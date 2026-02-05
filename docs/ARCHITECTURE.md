@@ -1,7 +1,7 @@
 # Project Chorus - 技术架构文档
 
-**版本**: 1.1
-**更新日期**: 2026-02-04
+**版本**: 1.2
+**更新日期**: 2026-02-05
 
 ---
 
@@ -17,6 +17,7 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 |-----|------|
 | **知识库** | 项目上下文存储和查询 |
 | **任务管理** | 任务 CRUD、状态流转、Kanban |
+| **认领机制** | Idea/Task 认领，解决 Agent 协作冲突 |
 | **提议审批** | PM Agent 创建提议，人类审批 |
 | **MCP Server** | Agent 通过 MCP 协议接入平台 |
 | **活动流** | 实时追踪所有参与者的操作 |
@@ -423,9 +424,15 @@ chorus/
 - 包含 Ideas、Documents、Tasks、Proposals、Activities
 
 #### Idea（想法）
-- 人类原始输入
+- 人类原始输入，可被 PM Agent 认领处理
+- `title`: 标题
 - `content`: 文本内容
 - `attachments`: 附件列表（图片、文件等）
+- `status`: `open` | `assigned` | `in_progress` | `pending_review` | `completed` | `closed`
+- `assigneeType`: `user` | `agent`
+- `assigneeId`: 认领者 ID
+- `assignedAt`: 认领时间
+- `assignedBy`: 分配者 User ID（人类分配时记录）
 - `createdBy`: 创建者 User ID
 - 作为 Proposal 的输入源
 
@@ -437,11 +444,15 @@ chorus/
 - `proposalId`: 来源 Proposal（可追溯）
 
 #### Task（任务）
-- Proposal 的产物或人工创建
-- `status`: `todo` | `in_progress` | `done`
+- Proposal 的产物或人工创建，可被 Agent/人类认领执行
+- `status`: `open` | `assigned` | `in_progress` | `to_verify` | `done` | `closed`
+- `priority`: `low` | `medium` | `high`
 - `assigneeType`: `user` | `agent`
-- `assigneeId`: 关联的 User 或 Agent ID
+- `assigneeId`: 认领者 ID
+- `assignedAt`: 认领时间
+- `assignedBy`: 分配者 User ID（人类分配时记录）
 - `proposalId`: 来源 Proposal（可追溯，可选）
+- `createdBy`: 创建者 User ID 或 Agent ID
 
 #### Proposal（提议）
 - PM Agent 创建，人类审批，连接输入和输出
@@ -486,6 +497,9 @@ chorus/
 | GET | /api/projects/:uuid/ideas | 项目 Ideas 列表 | User, PM Agent |
 | POST | /api/projects/:uuid/ideas | 创建 Idea | User |
 | GET | /api/ideas/:uuid | Idea 详情 | User, PM Agent |
+| PATCH | /api/ideas/:uuid | 更新 Idea（包括状态） | User, PM Agent |
+| POST | /api/ideas/:uuid/claim | 认领 Idea | PM Agent |
+| POST | /api/ideas/:uuid/release | 放弃认领 Idea | PM Agent |
 | DELETE | /api/ideas/:uuid | 删除 Idea | User |
 | **Documents** |
 | GET | /api/projects/:uuid/documents | 项目 Documents 列表 | User, Agent |
@@ -495,7 +509,9 @@ chorus/
 | GET | /api/projects/:uuid/tasks | 项目任务列表 | User, Agent |
 | POST | /api/projects/:uuid/tasks | 创建任务（手动） | User |
 | GET | /api/tasks/:uuid | 任务详情 | User, Agent |
-| PATCH | /api/tasks/:uuid | 更新任务 | User, Agent |
+| PATCH | /api/tasks/:uuid | 更新任务（包括状态） | User, Agent（认领者） |
+| POST | /api/tasks/:uuid/claim | 认领 Task | Developer Agent |
+| POST | /api/tasks/:uuid/release | 放弃认领 Task | Developer Agent |
 | POST | /api/tasks/:uuid/comments | 添加评论 | User, Agent |
 | **Proposals** |
 | GET | /api/projects/:uuid/proposals | 项目提议列表 | User, PM Agent |
@@ -513,6 +529,9 @@ chorus/
 | DELETE | /api/agents/:uuid/keys/:keyUuid | 撤销 API Key | User |
 | **Activities** |
 | GET | /api/projects/:uuid/activities | 项目活动列表 | User, Agent |
+| **Agent 自助** |
+| GET | /api/me/assignments | 获取自己认领的 Ideas + Tasks | Agent |
+| GET | /api/projects/:uuid/available | 获取可认领的 Ideas + Tasks | Agent |
 
 ### 5.2 MCP API
 
@@ -531,7 +550,7 @@ Header: Authorization: Bearer {api_key}
 
 根据 API Key 关联的 Agent role，返回不同的工具集。
 
-#### Personal Agent 工具
+#### 公共工具（All Agents）
 
 | 工具 | 描述 |
 |-----|------|
@@ -541,23 +560,38 @@ Header: Authorization: Bearer {api_key}
 | `chorus_get_document` | 获取单个 Document 详情 |
 | `chorus_get_task` | 获取任务详情 |
 | `chorus_list_tasks` | 列出任务 |
-| `chorus_update_task` | 更新任务状态 |
-| `chorus_add_comment` | 添加任务评论 |
-| `chorus_report_work` | 报告工作完成 |
 | `chorus_get_activity` | 获取项目活动流 |
+| `chorus_add_comment` | 添加评论（Idea/Task/Proposal/Document） |
 | `chorus_checkin` | 心跳签到 |
+| **自助查询** | |
+| `chorus_get_my_assignments` | 获取自己认领的所有 Ideas + Tasks |
+| `chorus_get_available_ideas` | 获取可认领的 Ideas（status=open） |
+| `chorus_get_available_tasks` | 获取可认领的 Tasks（status=open） |
+
+#### Developer Agent 工具
+
+| 工具 | 描述 |
+|-----|------|
+| `chorus_claim_task` | 认领 Task（open → assigned） |
+| `chorus_release_task` | 放弃认领 Task（assigned → open） |
+| `chorus_update_task` | 更新任务状态（仅认领者可操作） |
+| `chorus_submit_for_verify` | 提交任务等待人类验证 |
+| `chorus_report_work` | 报告工作完成 |
 
 #### PM Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
 | `chorus_pm_get_ideas` | 获取项目 Ideas 列表（人类输入） |
+| `chorus_claim_idea` | 认领 Idea（open → assigned） |
+| `chorus_release_idea` | 放弃认领 Idea（assigned → open） |
+| `chorus_update_idea_status` | 更新 Idea 状态（仅认领者可操作） |
 | `chorus_pm_create_proposal` | 创建提议（PRD/任务拆分等） |
 | `chorus_pm_get_proposals` | 获取提议列表和状态 |
 | `chorus_pm_analyze_progress` | 分析项目进度 |
 | `chorus_pm_identify_risks` | 识别风险和阻塞 |
 
-PM Agent 同时拥有 Personal Agent 的所有工具。
+PM Agent 同时拥有 Developer Agent 的所有工具（全能角色）。
 
 #### Proposal 输入/输出说明
 
@@ -727,26 +761,105 @@ Ideas → Proposal → Document(PRD) → Proposal → Tasks
                            │
                            ▼
                     ┌──────────────┐
-         ┌─────────│     todo     │
+         ┌─────────│     open     │←─────────────────┐
+         │         │  (待认领)     │                  │
+         │         └──────┬───────┘                  │
+         │                │                          │
+         │                │ Agent/User 认领           │ 放弃认领
+         │                ▼                          │
+         │         ┌──────────────┐                  │
+         │         │   assigned   │──────────────────┘
+         │         │  (已认领)     │
          │         └──────┬───────┘
          │                │
-         │                │ Agent/User 开始
+         │                │ 开始工作
          │                ▼
          │         ┌──────────────┐
-         │         │ in_progress  │──────┐
-         │         └──────┬───────┘      │
-         │                │              │
-         │                │ 完成         │ 阻塞/暂停
-         │                ▼              │
-         │         ┌──────────────┐      │
-         │         │     done     │      │
-         │         └──────────────┘      │
-         │                               │
-         └───────────────────────────────┘
-                   重新打开
+         │         │ in_progress  │
+         │         │  (执行中)     │
+         │         └──────┬───────┘
+         │                │
+         │                │ 完成执行
+         │                ▼
+         │         ┌──────────────┐
+         │         │  to_verify   │
+         │         │  (待人类验证) │
+         │         └──────┬───────┘
+         │                │
+         │                │ 人类验证通过
+         │                ▼
+         │         ┌──────────────┐
+         │         │     done     │
+         │         │   (完成)     │
+         │         └──────────────┘
+         │
+         │         ┌──────────────┐
+         └────────→│    closed    │  (任何阶段可关闭)
+                   │   (关闭)     │
+                   └──────────────┘
 ```
 
-### 7.3 提议审批流程
+**认领规则**：
+- 只有 `open` 状态的任务可被认领
+- 只有认领者（assignee）可以更新状态
+- 人类可以强制重新分配任何状态的任务
+- 所有人都可以评论任何状态的任务
+
+### 7.3 Idea 状态流转
+
+```
+                    ┌──────────────┐
+                    │   created    │
+                    │  (人类创建)   │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+         ┌─────────│     open     │←─────────────────┐
+         │         │  (待认领)     │                  │
+         │         └──────┬───────┘                  │
+         │                │                          │
+         │                │ PM Agent 认领             │ 放弃认领
+         │                ▼                          │
+         │         ┌──────────────┐                  │
+         │         │   assigned   │──────────────────┘
+         │         │  (已认领)     │
+         │         └──────┬───────┘
+         │                │
+         │                │ 开始处理
+         │                ▼
+         │         ┌──────────────┐
+         │         │ in_progress  │
+         │         │ (产出 Proposal)│
+         │         └──────┬───────┘
+         │                │
+         │                │ 提交 Proposal
+         │                ▼
+         │         ┌──────────────┐
+         │         │pending_review│
+         │         │ (待人类审批)  │
+         │         └──────┬───────┘
+         │                │
+         │                │ Proposal 审批通过
+         │                ▼
+         │         ┌──────────────┐
+         │         │  completed   │
+         │         │   (完成)     │
+         │         └──────────────┘
+         │
+         │         ┌──────────────┐
+         └────────→│    closed    │  (任何阶段可关闭)
+                   │   (关闭)     │
+                   └──────────────┘
+```
+
+**认领规则**：
+- 只有 `open` 状态的 Idea 可被认领
+- 只有认领者（assignee）可以更新状态
+- 人类可以强制重新分配任何状态的 Idea
+- 所有人都可以评论任何状态的 Idea
+
+### 7.4 提议审批流程
 
 ```
                            ┌──────────────────────────────────────┐

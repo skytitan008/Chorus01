@@ -1,9 +1,9 @@
 # PRD: Project Chorus 🎵
 
 **代号**: Chorus
-**文档版本**: 0.12 (Draft)
+**文档版本**: 0.14 (Draft)
 **创建日期**: 2026-02-04
-**更新日期**: 2026-02-04
+**更新日期**: 2026-02-05
 **状态**: 讨论中
 
 ---
@@ -261,19 +261,43 @@ Chorus Platform
 
 #### 3.3.1 任务系统
 - 任务 CRUD、状态管理
-- 任务依赖关系（DAG）
+- **认领机制**：Agent/人类可认领任务，解决多 Agent 协作冲突
 - 分配给人或 Agent
 - 评论和讨论（类似 GitHub Issue）
 
-**Kanban 四阶段工作流**（体现 AI-DLC 人类验证理念）：
+**Task 六阶段工作流**（认领 + AI-DLC 人类验证）：
 ```
-Todo → In Progress → To Verify → Done
-       (Agent 执行)  (人类验证)
+Open → Assigned → In Progress → To Verify → Done
+(待认领) (已认领)  (执行中)      (待验证)   (完成)
+                                    ↓
+                                  Closed (关闭)
 ```
-- **Todo**: 待开始的任务
-- **In Progress**: Agent 正在执行
-- **To Verify**: Agent 完成，等待人类验证
-- **Done**: 人类确认通过
+- **Open**: 待认领，任何符合角色的 Agent/人类可认领
+- **Assigned**: 已被认领，等待开始工作
+- **In Progress**: 认领者正在执行
+- **To Verify**: 执行完成，等待人类验证
+- **Done**: 人类验证通过
+- **Closed**: 任务关闭（取消或其他原因）
+
+**认领规则**：
+- 被认领的 Task 不能被他人重复认领
+- 只有认领者可以更新 Task 状态
+- 所有人都可以评论任务
+- 人类可以强制重新分配已认领的任务
+
+**认领方式**：
+
+| 操作者 | 认领方式 | 可见性 |
+|--------|----------|--------|
+| **Agent** | 自己认领 | 仅该 Agent 可操作 |
+| **人类** | Assign 给自己 | 该人类名下**所有 Agent** 都可看到并操作 |
+| **人类** | Assign 给特定 Agent | 仅该 Agent 可操作 |
+
+**UI 交互**：
+- 人类点击 "Claim" 按钮时，弹出选择框：
+  - "Assign to myself" - 分配给自己，所有我的 Agent 都能处理
+  - "Assign to [Agent Name]" - 分配给特定 Agent
+- Agent 通过 MCP 工具 `chorus_claim_task` 直接认领给自己
 
 #### 3.3.2 知识库（Project Knowledge）
 
@@ -431,10 +455,44 @@ Claude Code 接入 Chorus 的三层机制：
 
 | 实体 | 说明 | 来源 |
 |-----|------|------|
-| **Idea** | 人类原始输入（文本、图片、文件） | 人类创建 |
+| **Idea** | 人类原始输入（文本、图片、文件），可被认领处理 | 人类创建 |
 | **Proposal** | 提议过程，有输入有输出 | Agent 创建 |
 | **Document** | PRD、技术设计文档等 | Proposal 产物 |
-| **Task** | 任务项 | Proposal 产物 |
+| **Task** | 任务项，可被认领执行 | Proposal 产物 |
+
+**Idea 六阶段状态**（认领 + 处理流程）：
+```
+Open → Assigned → In Progress → Pending Review → Completed
+(待认领) (已认领)   (处理中)      (待审批)         (完成)
+                                      ↓
+                                    Closed (关闭)
+```
+- **Open**: 待认领，PM Agent 可认领
+- **Assigned**: 已被 PM Agent 认领，等待处理
+- **In Progress**: PM Agent 正在基于 Idea 产出 Proposal
+- **Pending Review**: Proposal 已提交，等待人类审批
+- **Completed**: Proposal 审批通过，Idea 处理完成
+- **Closed**: Idea 关闭（拒绝或取消）
+
+**认领规则**：
+- 被认领的 Idea 不能被他人重复认领
+- 只有认领者可以更新 Idea 状态
+- 所有人都可以评论 Idea
+- 人类可以强制重新分配已认领的 Idea
+
+**认领方式**：
+
+| 操作者 | 认领方式 | 可见性 |
+|--------|----------|--------|
+| **PM Agent** | 自己认领 | 仅该 Agent 可操作 |
+| **人类** | Assign 给自己 | 该人类名下**所有 PM Agent** 都可看到并操作 |
+| **人类** | Assign 给特定 PM Agent | 仅该 PM Agent 可操作 |
+
+**UI 交互**：
+- 人类点击 "Claim" 按钮时，弹出选择框：
+  - "Assign to myself" - 分配给自己，所有我的 PM Agent 都能处理
+  - "Assign to [PM Agent Name]" - 分配给特定 PM Agent
+- PM Agent 通过 MCP 工具 `chorus_claim_idea` 直接认领给自己
 
 **Proposal 的本质**：
 - Proposal **没有固定类型**，由输入和输出决定其性质
@@ -691,14 +749,27 @@ export async function POST(req: Request) {
 | `chorus_get_task` | 获取任务详情和上下文 | All |
 | `chorus_list_tasks` | 列出任务 | All |
 | `chorus_get_activity` | 获取项目活动流 | All |
+| **自助查询（公开）** | | |
+| `chorus_get_my_assignments` | 获取自己可操作的 Ideas + Tasks（含 owner 分配的） | All |
+| `chorus_get_available_ideas` | 获取可认领的 Ideas（status=open） | All |
+| `chorus_get_available_tasks` | 获取可认领的 Tasks（status=open） | All |
+
+**`chorus_get_my_assignments` 查询逻辑**：
+- 返回 `assigneeType=agent AND assigneeId=当前AgentId` 的项目
+- **加上** `assigneeType=user AND assigneeId=当前Agent的OwnerId` 的项目（人类分配给自己的，所有他的 Agent 都能看到）
 | **评论（公开）** | | |
 | `chorus_add_comment` | 评论 Idea/Proposal/Task/Document | All |
 | **签到（公开）** | | |
 | `chorus_checkin` | 心跳签到 | All |
 | **PM 专属** | | |
 | `chorus_pm_create_proposal` | 创建提议（推动项目的关键） | PM |
+| `chorus_claim_idea` | 认领 Idea（open → assigned） | PM |
+| `chorus_release_idea` | 放弃认领 Idea（assigned → open） | PM |
+| `chorus_update_idea_status` | 更新 Idea 状态（仅认领者） | PM |
 | **Developer 专属** | | |
-| `chorus_update_task` | 更新任务状态 | Dev |
+| `chorus_claim_task` | 认领 Task（open → assigned） | Dev |
+| `chorus_release_task` | 放弃认领 Task（assigned → open） | Dev |
+| `chorus_update_task` | 更新任务状态（仅认领者） | Dev |
 | `chorus_submit_for_verify` | 提交任务等待人类验证 | Dev |
 | `chorus_report_work` | 报告工作完成 | Dev |
 
@@ -860,18 +931,26 @@ model Project {
   activities Activity[]
 }
 
-// 想法（人类原始输入）
+// 想法（人类原始输入，可被认领处理）
 model Idea {
-  id          Int      @id @default(autoincrement())
-  uuid        String   @unique @default(uuid())
-  companyId   Int
-  company     Company  @relation(fields: [companyId], references: [id])
-  projectId   Int
-  project     Project  @relation(fields: [projectId], references: [id])
-  content     String?  // 文本内容
-  attachments Json?    // 附件列表 [{type, url, name}]
-  createdBy   Int      // User ID
-  createdAt   DateTime @default(now())
+  id           Int       @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
+  companyId    Int
+  company      Company   @relation(fields: [companyId], references: [id])
+  projectId    Int
+  project      Project   @relation(fields: [projectId], references: [id])
+  title        String
+  content      String?   // 文本内容
+  attachments  Json?     // 附件列表 [{type, url, name}]
+  // 状态与认领
+  status       String    @default("open")  // open | assigned | in_progress | pending_review | completed | closed
+  assigneeType String?   // user | agent
+  assigneeId   Int?
+  assignedAt   DateTime?
+  assignedBy   Int?      // 分配者 User ID（人类分配时记录）
+  createdBy    Int       // User ID
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 // 文档（PRD、技术设计等，Proposal 产物）
@@ -891,22 +970,27 @@ model Document {
   updatedAt   DateTime  @updatedAt
 }
 
-// 任务（Proposal 产物或人工创建）
+// 任务（Proposal 产物或人工创建，可被认领执行）
 model Task {
-  id           Int      @id @default(autoincrement())
-  uuid         String   @unique @default(uuid())
+  id           Int       @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
   companyId    Int
-  company      Company  @relation(fields: [companyId], references: [id])
+  company      Company   @relation(fields: [companyId], references: [id])
   projectId    Int
-  project      Project  @relation(fields: [projectId], references: [id])
+  project      Project   @relation(fields: [projectId], references: [id])
   title        String
   description  String?
-  status       String   @default("todo")  // todo | in_progress | to_verify | done
-  assigneeType String?  // user | agent
+  priority     String    @default("medium") // low | medium | high
+  // 状态与认领
+  status       String    @default("open")  // open | assigned | in_progress | to_verify | done | closed
+  assigneeType String?   // user | agent
   assigneeId   Int?
-  proposalId   Int?     // 来源 Proposal（可追溯，可选）
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  assignedAt   DateTime?
+  assignedBy   Int?      // 分配者 User ID（人类分配时记录）
+  proposalId   Int?      // 来源 Proposal（可追溯，可选）
+  createdBy    Int       // User ID 或 Agent ID
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   activities Activity[]
 }
@@ -1150,3 +1234,5 @@ chorus/
 | 0.10 | 2026-02-04 | AI Assistant | 新增 Agent-First 设计理念：明确 Agent vs Human 权限矩阵，更新架构图和 API 路由 |
 | 0.11 | 2026-02-04 | AI Assistant | 重新定义三大杀手级功能：Zero Context Injection、AI-DLC Workflow、Multi-Agent Awareness |
 | 0.12 | 2026-02-04 | AI Assistant | 简化 Agent 权限模型：读取/评论公开，PM 专属创建 Proposal，Developer 专属更新 Task |
+| 0.13 | 2026-02-05 | AI Assistant | 新增 Idea/Task 认领机制：6 阶段状态流转，认领/释放工具，Agent 自助查询工具 |
+| 0.14 | 2026-02-05 | AI Assistant | 细化认领方式：人类可 Assign 给自己（所有 Agent 可见）或特定 Agent |
