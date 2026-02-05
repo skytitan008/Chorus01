@@ -1,6 +1,6 @@
 # Project Chorus - 技术架构文档
 
-**版本**: 1.3
+**版本**: 1.4
 **更新日期**: 2026-02-05
 
 ---
@@ -253,8 +253,15 @@ chorus/
 │   │   ├── globals.css
 │   │   │
 │   │   ├── (auth)/             # 认证相关页面
-│   │   │   ├── login/page.tsx
-│   │   │   └── callback/page.tsx
+│   │   │   ├── login/page.tsx        # 邮箱输入 → 路由分发
+│   │   │   ├── login/password/page.tsx  # 超级用户密码登录
+│   │   │   └── callback/page.tsx     # OIDC 回调
+│   │   │
+│   │   ├── admin/              # 超级用户后台
+│   │   │   ├── page.tsx        # 超级用户 Dashboard
+│   │   │   └── companies/
+│   │   │       ├── page.tsx    # Company 列表
+│   │   │       └── [id]/page.tsx  # Company 详情/OIDC 配置
 │   │   │
 │   │   ├── projects/
 │   │   │   ├── page.tsx        # 项目列表
@@ -273,7 +280,14 @@ chorus/
 │   │   │
 │   │   └── api/                # API Routes
 │   │       ├── auth/
+│   │       │   ├── login/route.ts        # 邮箱识别登录
+│   │       │   ├── callback/route.ts     # OIDC 回调
 │   │       │   └── [...nextauth]/route.ts
+│   │       ├── admin/
+│   │       │   ├── login/route.ts        # 超级用户密码登录
+│   │       │   └── companies/
+│   │       │       ├── route.ts          # GET/POST Company
+│   │       │       └── [id]/route.ts     # GET/PATCH/DELETE Company
 │   │       ├── projects/
 │   │       │   ├── route.ts    # GET (list), POST (create)
 │   │       │   └── [id]/
@@ -476,10 +490,12 @@ model Task {
 │  id (Int)   │   │   │  id (Int)   │       │  id (Int)   │
 │  uuid       │   │   │  uuid       │       │  uuid       │
 │  name       │   │   │  companyId  │       │  companyId  │
-│  createdAt  │   │   │  oidcSub    │       │  name       │
-└─────────────┘   │   │  email      │       │  role       │
-       │          │   │  name       │       │  ownerId    │
-       │          │   └─────────────┘       └─────────────┘
+│  emailDomains    │   │  oidcSub    │       │  name       │
+│  oidcIssuer │   │   │  email      │       │  role       │
+│  oidcClientId    │   │  name       │       │  ownerId    │
+│  oidcEnabled│   │   └─────────────┘       └─────────────┘
+│  createdAt  │   │
+└─────────────┘   │
        │          │                                │
        │          │   ┌─────────────┐              │
        │          └───│   ApiKey    │──────────────┘
@@ -569,6 +585,10 @@ model Task {
 #### Company（租户）
 - 多租户隔离的根实体
 - 所有数据通过 companyId 关联
+- `emailDomains`: 邮箱域名列表，用于登录时识别 Company
+- `oidcIssuer`: OIDC Provider URL
+- `oidcClientId`: OIDC Client ID（仅支持 PKCE，无需 Client Secret）
+- `oidcEnabled`: 是否启用 OIDC 登录
 
 #### User（用户）
 - 人类用户，通过 OIDC 登录
@@ -698,6 +718,14 @@ model Task {
 | **Agent 自助** |
 | GET | /api/me/assignments | 获取自己认领的 Ideas + Tasks | Agent |
 | GET | /api/projects/:uuid/available | 获取可认领的 Ideas + Tasks | Agent |
+| **Super Admin（超级用户专属）** |
+| POST | /api/auth/login | 邮箱识别登录入口 | Public |
+| POST | /api/admin/login | 超级用户密码登录 | Public |
+| GET | /api/admin/companies | Company 列表 | Super Admin |
+| POST | /api/admin/companies | 创建 Company | Super Admin |
+| GET | /api/admin/companies/:uuid | Company 详情 | Super Admin |
+| PATCH | /api/admin/companies/:uuid | 更新 Company（含 OIDC 配置） | Super Admin |
+| DELETE | /api/admin/companies/:uuid | 删除 Company | Super Admin |
 
 ### 5.2 MCP API
 
@@ -770,6 +798,57 @@ PM Agent 同时拥有 Developer Agent 的所有工具（全能角色）。
 ---
 
 ## 6. 认证与授权
+
+### 6.0 超级用户认证
+
+**配置方式**（环境变量）：
+```bash
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
+```
+
+**登录流程**：
+```
+┌──────────┐     ┌──────────┐     ┌──────────────┐
+│  Browser │     │  Chorus  │     │   Database   │
+│          │     │  Server  │     │              │
+└────┬─────┘     └────┬─────┘     └──────┬───────┘
+     │                │                   │
+     │  1. 输入邮箱    │                   │
+     │ ──────────────>│                   │
+     │                │                   │
+     │                │  2. 检查是否超级用户
+     │                │  (对比环境变量)     │
+     │                │                   │
+     │  3a. 是超级用户 │                   │
+     │  返回密码登录页 │                   │
+     │ <──────────────│                   │
+     │                │                   │
+     │  4a. 输入密码   │                   │
+     │ ──────────────>│                   │
+     │                │                   │
+     │                │  5a. 验证密码哈希  │
+     │                │                   │
+     │  6a. 超级用户后台                   │
+     │ <──────────────│                   │
+     │                │                   │
+     │  3b. 非超级用户 │                   │
+     │                │  查询邮箱域名      │
+     │                │ ─────────────────>│
+     │                │                   │
+     │                │  返回 Company      │
+     │                │  OIDC 配置        │
+     │                │ <─────────────────│
+     │                │                   │
+     │  4b. 重定向到   │                   │
+     │  Company OIDC  │                   │
+     │ <──────────────│                   │
+```
+
+**超级用户后台路由**：
+- `/admin` - 超级用户后台入口
+- `/admin/companies` - Company 管理
+- `/admin/companies/[id]` - Company 详情/OIDC 配置
 
 ### 6.1 人类认证（OIDC + PKCE）
 
@@ -1195,10 +1274,12 @@ DATABASE_URL=postgres://chorus:chorus@localhost:5432/chorus
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key
 
-# OIDC Provider
-OIDC_ISSUER=https://your-oidc-provider.com
-OIDC_CLIENT_ID=your-client-id
-OIDC_CLIENT_SECRET=your-client-secret
+# Super Admin（系统启动配置，管理 Company 和全局设置）
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
+
+# 注意：OIDC 配置已移至数据库（Company 表），每个 Company 独立配置
+# 仅支持 PKCE，无需 Client Secret
 ```
 
 ### B. 参考文档

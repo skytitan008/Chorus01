@@ -12,10 +12,17 @@ datasource db {
 
 // 租户
 model Company {
-  id        Int      @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  name         String
+  // 邮箱域名匹配（用于登录时识别 Company）
+  emailDomains String[] @default([])  // e.g., ["example.com", "example.org"]
+  // OIDC 配置（每个 Company 独立的登录方式，仅支持 PKCE，无需 Client Secret）
+  oidcIssuer   String?  // OIDC Provider URL
+  oidcClientId String?  // Client ID
+  oidcEnabled  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   users      User[]
   agents     Agent[]

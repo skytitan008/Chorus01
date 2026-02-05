@@ -1,7 +1,7 @@
 # PRD: Project Chorus 🎵
 
 **代号**: Chorus
-**文档版本**: 0.14 (Draft)
+**文档版本**: 0.15 (Draft)
 **创建日期**: 2026-02-04
 **更新日期**: 2026-02-05
 **状态**: 讨论中
@@ -678,8 +678,10 @@ services:
       - "3000:3000"      # Next.js (Web + API + MCP)
     environment:
       - DATABASE_URL=postgres://chorus:chorus@db:5432/chorus
-      - OIDC_ISSUER=${OIDC_ISSUER}
-      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      # 超级用户配置（用于初始 Setup 和 Company 管理）
+      - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
+      - SUPER_ADMIN_PASSWORD_HASH=${SUPER_ADMIN_PASSWORD_HASH}
+      # 注意：OIDC 配置已移至数据库，每个 Company 独立配置
     depends_on:
       - db
 
@@ -813,9 +815,17 @@ export async function POST(req: Request) {
 | **活动流** | 项目级操作记录 | P1 |
 
 **认证与多租户**:
-- ✅ 多租户：数据库层面支持（company_id 字段），MVP 阶段单租户使用
-- ✅ 人类认证：OIDC + PKCE，启动时配置 issuer / client_id
+- ✅ 多租户：数据库层面支持（company_id 字段），完整多租户认证
+- ✅ 超级用户：通过环境变量配置（SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD）
+  - 管理 Company（创建、编辑、删除）
+  - 配置各 Company 的 OIDC 设置
+  - 访问超级用户后台（独立界面）
+- ✅ 人类认证：每个 Company 独立的 OIDC 配置（存储在数据库），支持不同登录方式
 - ✅ Agent 认证：API Key（注册时生成）
+- ✅ 登录流程：
+  1. 用户输入邮箱
+  2. 系统判断：超级用户邮箱 → 密码登录 → 超级用户后台
+  3. 普通用户 → 根据邮箱域名匹配 Company → 该 Company 的 OIDC 登录
 
 **明确不做**:
 - ❌ 复杂的任务依赖（DAG）
@@ -855,7 +865,14 @@ model Company {
   id        Int      @id @default(autoincrement())
   uuid      String   @unique @default(uuid())
   name      String
+  // 邮箱域名匹配（用于登录时识别 Company）
+  emailDomains String[]   // e.g., ["example.com", "example.org"]
+  // OIDC 配置（每个 Company 独立的登录方式，仅支持 PKCE，无需 Client Secret）
+  oidcIssuer       String?  // OIDC Provider URL
+  oidcClientId     String?  // Client ID
+  oidcEnabled      Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users      User[]
   agents     Agent[]
@@ -1045,7 +1062,55 @@ model Activity {
 }
 ```
 
-### 7.4 认证流程
+### 7.4 超级用户与 Setup 流程
+
+**超级用户配置**（环境变量）：
+```bash
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=secure-password-hash  # bcrypt 哈希
+```
+
+**登录流程**：
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. 用户输入邮箱                                             │
+│     [email@domain.com]                                      │
+│     [继续] 按钮                                              │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+                    邮箱判断逻辑
+                          ↓
+    ┌─────────────────────┴─────────────────────┐
+    ↓                                           ↓
+是超级用户邮箱                              普通用户邮箱
+    ↓                                           ↓
+┌───────────────┐                    ┌─────────────────────┐
+│  密码登录页面  │                    │ 根据邮箱域名匹配     │
+│  [密码输入框]  │                    │ Company              │
+│  [登录] 按钮   │                    └─────────┬───────────┘
+└───────────────┘                              ↓
+    ↓                                 ┌─────────────────────┐
+    ↓                                 │ 重定向到 Company 的  │
+超级用户后台                          │ OIDC Provider 登录   │
+                                      └─────────────────────┘
+                                               ↓
+                                          Company 后台
+```
+
+**超级用户后台功能**：
+- Company 管理（CRUD）
+- 为每个 Company 配置 OIDC（Issuer、Client ID，仅支持 PKCE 无需 Client Secret）
+- 配置 Company 的邮箱域名匹配规则
+- 查看全局系统状态
+- 不参与具体 Project 的业务操作
+
+**邮箱域名匹配规则**：
+- Company A 配置 `emailDomains: ["companya.com"]`
+- 用户输入 `user@companya.com` → 匹配到 Company A → 使用 Company A 的 OIDC 登录
+- 邮箱域名必须唯一（不能多个 Company 配置相同域名）
+- 未匹配到任何 Company → 提示"未找到对应的组织"
+
+### 7.5 认证流程
 
 ```
 人类登录 (OIDC + PKCE):
@@ -1063,7 +1128,7 @@ Agent 认证 (API Key):
    Header: Authorization: Bearer {api_key}
 ```
 
-### 7.5 目录结构
+### 7.6 目录结构
 
 ```
 chorus/
@@ -1236,3 +1301,4 @@ chorus/
 | 0.12 | 2026-02-04 | AI Assistant | 简化 Agent 权限模型：读取/评论公开，PM 专属创建 Proposal，Developer 专属更新 Task |
 | 0.13 | 2026-02-05 | AI Assistant | 新增 Idea/Task 认领机制：6 阶段状态流转，认领/释放工具，Agent 自助查询工具 |
 | 0.14 | 2026-02-05 | AI Assistant | 细化认领方式：人类可 Assign 给自己（所有 Agent 可见）或特定 Agent |
+| 0.15 | 2026-02-05 | AI Assistant | 新增超级用户认证：环境变量配置超级用户，Company 独立 OIDC 配置，邮箱识别登录流程 |
