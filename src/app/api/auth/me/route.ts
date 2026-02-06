@@ -1,5 +1,6 @@
 // src/app/api/auth/me/route.ts
 // Get current user info from our JWT session token
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { success, errors } from "@/lib/api-response";
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       return errors.unauthorized("Invalid token format");
     }
 
-    // Our JWT format has: userUuid, userId, companyId, email, oidcSub, etc.
+    // Our JWT format has: userUuid, companyUuid, email, oidcSub, etc.
     // Also support raw OIDC tokens which have: sub, email
     const userUuid = payload.userUuid as string | undefined;
     const oidcSub = (payload.oidcSub || payload.sub) as string | undefined;
@@ -43,15 +44,14 @@ export async function GET(request: NextRequest) {
       return errors.unauthorized("Token missing user identifier");
     }
 
-    // Find user - prefer userUuid, fallback to oidcSub
+    // Find user - prefer userUuid, fallback to oidcSub (query by UUID)
     const user = await prisma.user.findFirst({
       where: userUuid ? { uuid: userUuid } : { oidcSub: oidcSub },
       select: {
-        id: true,
         uuid: true,
         email: true,
         name: true,
-        companyId: true,
+        companyUuid: true,
         company: {
           select: {
             uuid: true,

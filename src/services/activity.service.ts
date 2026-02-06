@@ -1,36 +1,37 @@
 // src/services/activity.service.ts
 // Activity 服务层 (ARCHITECTURE.md §3.1 Service Layer)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
 
 export interface ActivityListParams {
-  companyId: number;
-  projectId: number;
+  companyUuid: string;
+  projectUuid: string;
   skip: number;
   take: number;
 }
 
 export interface ActivityCreateParams {
-  companyId: number;
-  projectId: number;
+  companyUuid: string;
+  projectUuid: string;
   actorType: string;
-  actorId: number;
+  actorUuid: string;
   action: string;
-  ideaId?: number | null;
-  documentId?: number | null;
-  proposalId?: number | null;
-  taskId?: number | null;
+  ideaUuid?: string | null;
+  documentUuid?: string | null;
+  proposalUuid?: string | null;
+  taskUuid?: string | null;
   payload?: unknown;
 }
 
 // Activities 列表查询
 export async function listActivities({
-  companyId,
-  projectId,
+  companyUuid,
+  projectUuid,
   skip,
   take,
 }: ActivityListParams) {
-  const where = { projectId, companyId };
+  const where = { projectUuid, companyUuid };
 
   const [activities, total] = await Promise.all([
     prisma.activity.findMany({
@@ -40,12 +41,12 @@ export async function listActivities({
       orderBy: { createdAt: "desc" },
       select: {
         uuid: true,
-        ideaId: true,
-        documentId: true,
-        proposalId: true,
-        taskId: true,
+        ideaUuid: true,
+        documentUuid: true,
+        proposalUuid: true,
+        taskUuid: true,
         actorType: true,
-        actorId: true,
+        actorUuid: true,
         action: true,
         payload: true,
         createdAt: true,
@@ -59,28 +60,28 @@ export async function listActivities({
 
 // 创建 Activity
 export async function createActivity({
-  companyId,
-  projectId,
+  companyUuid,
+  projectUuid,
   actorType,
-  actorId,
+  actorUuid,
   action,
-  ideaId,
-  documentId,
-  proposalId,
-  taskId,
+  ideaUuid,
+  documentUuid,
+  proposalUuid,
+  taskUuid,
   payload,
 }: ActivityCreateParams) {
   return prisma.activity.create({
     data: {
-      companyId,
-      projectId,
+      companyUuid,
+      projectUuid,
       actorType,
-      actorId,
+      actorUuid,
       action,
-      ideaId,
-      documentId,
-      proposalId,
-      taskId,
+      ideaUuid,
+      documentUuid,
+      proposalUuid,
+      taskUuid,
       payload: payload || undefined,
     },
   });

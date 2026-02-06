@@ -1,11 +1,17 @@
 // src/app/api/documents/[uuid]/route.ts
 // Documents API - 详情、更新、删除 (ARCHITECTURE.md §5.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import {
+  getDocument,
+  getDocumentByUuid,
+  updateDocument,
+  deleteDocument,
+} from "@/services/document.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -18,35 +24,13 @@ export const GET = withErrorHandler<{ uuid: string }>(
     }
 
     const { uuid } = await context.params;
-
-    const document = await prisma.document.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      include: {
-        project: {
-          select: { uuid: true, name: true },
-        },
-      },
-    });
+    const document = await getDocument(auth.companyUuid, uuid);
 
     if (!document) {
       return errors.notFound("Document");
     }
 
-    return success({
-      uuid: document.uuid,
-      type: document.type,
-      title: document.title,
-      content: document.content,
-      version: document.version,
-      proposalId: document.proposalId,
-      project: {
-        uuid: document.project.uuid,
-        name: document.project.name,
-      },
-      createdBy: document.createdBy,
-      createdAt: document.createdAt.toISOString(),
-      updatedAt: document.updatedAt.toISOString(),
-    });
+    return success(document);
   }
 );
 
@@ -65,10 +49,8 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const document = await prisma.document.findFirst({
-      where: { uuid, companyId: auth.companyId },
-    });
-
+    // 获取原始 Document 数据
+    const document = await getDocumentByUuid(auth.companyUuid, uuid);
     if (!document) {
       return errors.notFound("Document");
     }
@@ -79,54 +61,18 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       incrementVersion?: boolean;
     }>(request);
 
-    // 构建更新数据
-    const updateData: {
-      title?: string;
-      content?: string | null;
-      version?: { increment: number };
-    } = {};
-
-    if (body.title !== undefined) {
-      if (body.title.trim() === "") {
-        return errors.validationError({ title: "Title cannot be empty" });
-      }
-      updateData.title = body.title.trim();
+    // 验证标题
+    if (body.title !== undefined && body.title.trim() === "") {
+      return errors.validationError({ title: "Title cannot be empty" });
     }
 
-    if (body.content !== undefined) {
-      updateData.content = body.content.trim() || null;
-    }
-
-    // 可选增加版本号
-    if (body.incrementVersion) {
-      updateData.version = { increment: 1 };
-    }
-
-    const updated = await prisma.document.update({
-      where: { id: document.id },
-      data: updateData,
-      include: {
-        project: {
-          select: { uuid: true, name: true },
-        },
-      },
+    const updated = await updateDocument(document.uuid, {
+      title: body.title?.trim(),
+      content: body.content !== undefined ? (body.content.trim() || null) : undefined,
+      incrementVersion: body.incrementVersion,
     });
 
-    return success({
-      uuid: updated.uuid,
-      type: updated.type,
-      title: updated.title,
-      content: updated.content,
-      version: updated.version,
-      proposalId: updated.proposalId,
-      project: {
-        uuid: updated.project.uuid,
-        name: updated.project.name,
-      },
-      createdBy: updated.createdBy,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    return success(updated);
   }
 );
 
@@ -145,19 +91,12 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const document = await prisma.document.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true },
-    });
-
+    const document = await getDocumentByUuid(auth.companyUuid, uuid);
     if (!document) {
       return errors.notFound("Document");
     }
 
-    await prisma.document.delete({
-      where: { id: document.id },
-    });
-
+    await deleteDocument(document.uuid);
     return success({ deleted: true });
   }
 );

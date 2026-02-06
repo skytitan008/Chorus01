@@ -1,5 +1,6 @@
 // src/app/api/mcp/route.ts
 // MCP HTTP 端点 (ARCHITECTURE.md §5.2)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest, NextResponse } from "next/server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
@@ -37,14 +38,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 构建认证上下文
+    // 构建认证上下文 (UUID-based)
     const auth: AgentAuthContext = {
       type: "agent",
-      companyId: validation.agent.companyId,
-      actorId: validation.agent.id,
-      uuid: validation.agent.uuid,
+      companyUuid: validation.agent.companyUuid,
+      actorUuid: validation.agent.uuid,
       roles: validation.agent.roles as ("pm" | "developer")[],
-      ownerId: validation.agent.ownerId ?? undefined,
+      ownerUuid: validation.agent.ownerUuid ?? undefined,
       agentName: validation.agent.name,
     };
 

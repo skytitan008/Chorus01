@@ -1,11 +1,12 @@
 // src/app/api/ideas/[uuid]/release/route.ts
 // Ideas API - 放弃认领 Idea (PRD §4.1 F5)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser, isAssignee } from "@/lib/auth";
+import { getIdeaByUuid, releaseIdea } from "@/services/idea.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -19,10 +20,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const idea = await prisma.idea.findFirst({
-      where: { uuid, companyId: auth.companyId },
-    });
-
+    const idea = await getIdeaByUuid(auth.companyUuid, uuid);
     if (!idea) {
       return errors.notFound("Idea");
     }
@@ -34,41 +32,12 @@ export const POST = withErrorHandler<{ uuid: string }>(
 
     // 检查权限：用户可以释放任何 Idea，Agent 只能释放自己认领的
     if (!isUser(auth)) {
-      if (!isAssignee(auth, idea.assigneeType, idea.assigneeId)) {
+      if (!isAssignee(auth, idea.assigneeType, idea.assigneeUuid)) {
         return errors.permissionDenied("Only assignee can release this idea");
       }
     }
 
-    const updated = await prisma.idea.update({
-      where: { id: idea.id },
-      data: {
-        status: "open",
-        assigneeType: null,
-        assigneeId: null,
-        assignedAt: null,
-        assignedBy: null,
-      },
-      include: {
-        project: {
-          select: { uuid: true, name: true },
-        },
-      },
-    });
-
-    return success({
-      uuid: updated.uuid,
-      title: updated.title,
-      content: updated.content,
-      attachments: updated.attachments,
-      status: updated.status,
-      assignee: null,
-      project: {
-        uuid: updated.project.uuid,
-        name: updated.project.name,
-      },
-      createdBy: updated.createdBy,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    const updated = await releaseIdea(idea.uuid);
+    return success(updated);
   }
 );

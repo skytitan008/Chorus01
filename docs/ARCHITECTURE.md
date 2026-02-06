@@ -1,7 +1,7 @@
 # Project Chorus - 技术架构文档
 
-**版本**: 1.4
-**更新日期**: 2026-02-05
+**版本**: 1.5
+**更新日期**: 2026-02-06
 
 ---
 
@@ -201,7 +201,7 @@ export const GET = withErrorHandler(async (request) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
   const { projects, total } = await projectService.listProjects({
-    companyId: auth.companyId,
+    companyUuid: auth.companyUuid,  // UUID-based
     skip,
     take,
   });
@@ -215,15 +215,15 @@ export const GET = withErrorHandler(async (request) => {
 // src/services/project.service.ts
 import { prisma } from "@/lib/prisma";
 
-export async function listProjects({ companyId, skip, take }) {
+export async function listProjects({ companyUuid, skip, take }) {
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
-      where: { companyId },
+      where: { companyUuid },  // UUID-based query
       skip,
       take,
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.project.count({ where: { companyId } }),
+    prisma.project.count({ where: { companyUuid } }),
   ]);
   return { projects, total };
 }
@@ -418,9 +418,12 @@ chorus/
 
 ## 4. 数据模型
 
-### 4.0 数据库设计原则：无外键约束
+### 4.0 数据库设计原则：UUID-Based Architecture + 无外键约束
 
-**设计决策**：Chorus 采用 **Prisma 关系模式（relationMode = "prisma"）**，不在数据库层面创建外键约束，所有关系由 Prisma Client 在应用层管理。
+**设计决策**：
+
+1. **UUID-Based 外键引用**：所有实体间的关联使用 UUID 而非数字 ID
+2. **Prisma 关系模式**：采用 `relationMode = "prisma"`，不创建数据库级外键约束
 
 **配置方式**：
 
@@ -433,55 +436,62 @@ datasource db {
 }
 ```
 
-**为什么这样设计**：
+**UUID-Based Architecture 设计原则**：
+
+| 原则 | 说明 |
+|-----|------|
+| **外键使用 UUID** | 所有 `*Id` 字段改为 `*Uuid`（如 `companyUuid`、`projectUuid`） |
+| **关系引用 UUID** | Prisma 关系定义使用 `references: [uuid]` 而非 `references: [id]` |
+| **无 ID 查询** | 所有查询/操作基于 UUID，不使用数字 `id` |
+| **API 一致性** | 内外部统一使用 UUID，无需 ID↔UUID 转换 |
+
+**为什么采用 UUID-Based 设计**：
 
 | 优势 | 说明 |
 |-----|------|
-| **迁移灵活性** | 无 FK 约束意味着可以更自由地修改表结构，无需处理级联删除顺序 |
-| **数据库兼容性** | 支持不原生支持 FK 的数据库（如 PlanetScale），便于未来迁移 |
-| **性能优化** | 避免数据库层面的 FK 检查开销，批量操作更高效 |
-| **应用层控制** | 引用完整性在 Prisma Client 层面维护，逻辑更清晰 |
+| **安全性** | 避免数字 ID 被枚举攻击 |
+| **简化代码** | 无需 ID↔UUID 转换逻辑 |
+| **API 一致性** | 内外部统一使用 UUID |
+| **分布式友好** | UUID 可在客户端生成，无需数据库序列 |
 
 **关系定义示例**：
 
 ```prisma
 model Project {
-  id        Int      @id @default(autoincrement())
-  companyId Int
-  company   Company  @relation(fields: [companyId], references: [id])
-  tasks     Task[]
-  // 关系在 Prisma 层面定义，数据库不创建 FK 约束
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  tasks       Task[]
+
+  @@index([companyUuid])
 }
 
 model Task {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  // onDelete: Cascade 由 Prisma Client 模拟执行，非数据库级联
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  projectUuid String
+  project     Project  @relation(fields: [projectUuid], references: [uuid])
+
+  @@index([companyUuid])
+  @@index([projectUuid])
 }
 ```
 
 **注意事项**：
 
-1. **引用完整性**：Prisma Client 会在查询时模拟 FK 行为，确保关系完整性
-2. **级联操作**：`onDelete: Cascade` 等操作由 Prisma 在应用层执行，需要额外数据库查询
-3. **原始 SQL**：使用 `$queryRaw` 时不受 Prisma 关系管理，需自行确保数据一致性
-4. **索引建议**：虽然无 FK，仍建议在关系字段上创建索引以优化查询性能
-
-```prisma
-model Task {
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
-
-  @@index([projectId])  // 手动添加索引
-}
-```
+1. **保留数字 ID**：`id` 仍作为主键用于内部索引，但业务逻辑不使用
+2. **UUID 索引**：所有 UUID 外键字段都创建索引以优化查询性能
+3. **关系完整性**：由 Prisma Client 在应用层管理
+4. **级联操作**：`onDelete: Cascade` 由 Prisma 模拟执行
 
 ### 4.1 ER 图
 
-**ID 设计原则**：所有实体使用双 ID 模式
-- `id`: 数字自增主键（内部 FK 引用）
-- `uuid`: UUID 字符串（外部 API 暴露）
+**ID 设计原则**：UUID-Based Architecture
+- `id`: 数字自增主键（仅内部索引，业务不使用）
+- `uuid`: UUID 字符串（所有外键引用和 API 暴露）
+- 所有关联字段使用 `*Uuid` 命名（如 `companyUuid`、`projectUuid`）
 
 ```
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
@@ -489,22 +499,22 @@ model Task {
 │             │   │   │             │───────│             │
 │  id (Int)   │   │   │  id (Int)   │       │  id (Int)   │
 │  uuid       │   │   │  uuid       │       │  uuid       │
-│  name       │   │   │  companyId  │       │  companyId  │
+│  name       │   │   │  companyUuid│       │  companyUuid│
 │  emailDomains    │   │  oidcSub    │       │  name       │
-│  oidcIssuer │   │   │  email      │       │  role       │
-│  oidcClientId    │   │  name       │       │  ownerId    │
-│  oidcEnabled│   │   └─────────────┘       └─────────────┘
-│  createdAt  │   │
-└─────────────┘   │
+│  oidcIssuer │   │   │  email      │       │  roles[]    │
+│  oidcClientId    │   │  name       │       │  ownerUuid  │
+│  oidcEnabled│   │   └─────────────┘       │  persona    │
+│  createdAt  │   │                         │  systemPrompt│
+└─────────────┘   │                         └─────────────┘
        │          │                                │
        │          │   ┌─────────────┐              │
        │          └───│   ApiKey    │──────────────┘
        │              │             │
        │              │  id (Int)   │
        │              │  uuid       │
-       │              │  companyId  │
-       │              │  agentId    │
-       │              │  key        │
+       │              │  companyUuid│
+       │              │  agentUuid  │
+       │              │  keyHash    │
        │              │  lastUsed   │
        │              │  expiresAt  │
        │              │  revokedAt  │
@@ -517,29 +527,31 @@ model Task {
 │             │                                        │             │
 │  id (Int)   │                                        │  id (Int)   │
 │  uuid       │       ┌─────────────┐                  │  uuid       │
-│  companyId  │───────│    Idea     │                  │  companyId  │
-│  name       │       │             │                  │  projectId  │
+│  companyUuid│───────│    Idea     │                  │  companyUuid│
+│  name       │       │             │                  │  projectUuid│
 │  description│       │  id (Int)   │                  │  title      │
 │  createdAt  │       │  uuid       │                  │  inputType  │
-└─────────────┘       │  companyId  │──────────────────│  inputIds   │
-       │              │  projectId  │                  │  outputType │
+└─────────────┘       │  companyUuid│──────────────────│  inputUuids │
+       │              │  projectUuid│                  │  outputType │
        │              │  content    │                  │  outputData │
        │              │  attachments│                  │  status     │
-       │              │  createdBy  │                  │  createdBy  │
-       │              └─────────────┘                  │  reviewedBy │
-       │                                               └─────────────┘
+       │              │  assigneeType                  │  createdByUuid│
+       │              │  assigneeUuid                  │  reviewedByUuid│
+       │              │  createdByUuid                 └─────────────┘
+       │              └─────────────┘                         │
        │              ┌─────────────┐                         │
        │              │  Document   │◄────────────────────────┘
        │              │             │     (outputType=document)
        │              │  id (Int)   │
        │              │  uuid       │
-       │              │  companyId  │
-       │              │  projectId  │
+       │              │  companyUuid│
+       │              │  projectUuid│
        │              │  type       │  (prd | tech_design | adr)
        │              │  title      │
        │              │  content    │
        │              │  version    │
-       │              │  proposalId │
+       │              │  proposalUuid│
+       │              │  createdByUuid│
        │              └─────────────┘
        │
        │              ┌─────────────┐
@@ -547,14 +559,16 @@ model Task {
        │              │             │     (outputType=task)   │
        │              │  id (Int)   │                         │
        │              │  uuid       │                         │
-       │              │  companyId  │                         │
-       │              │  projectId  │                         │
+       │              │  companyUuid│                         │
+       │              │  projectUuid│                         │
        │              │  title      │                         │
        │              │  description│                         │
        │              │  status     │                         │
        │              │  assigneeType                         │
-       │              │  assigneeId │                         │
-       │              │  proposalId │─────────────────────────┘
+       │              │  assigneeUuid                         │
+       │              │  proposalUuid│────────────────────────┘
+       │              │  createdByUuid│
+       │              │  storyPoints│
        │              └─────────────┘
        │                     │
        │              ┌──────▼──────┐
@@ -562,14 +576,14 @@ model Task {
                       │             │
                       │  id (Int)   │
                       │  uuid       │
-                      │  companyId  │
-                      │  projectId  │
-                      │  ideaId     │
-                      │  documentId │
-                      │  proposalId │
-                      │  taskId     │
+                      │  companyUuid│
+                      │  projectUuid│
+                      │  ideaUuid   │
+                      │  documentUuid│
+                      │  proposalUuid│
+                      │  taskUuid   │
                       │  actorType  │
-                      │  actorId    │
+                      │  actorUuid  │
                       │  action     │
                       │  payload    │
                       └─────────────┘
@@ -578,13 +592,13 @@ model Task {
 ### 4.2 核心实体说明
 
 **通用字段**：
-- `id`: 数字自增主键（`Int @id @default(autoincrement())`）
-- `uuid`: UUID 字符串（`String @unique @default(uuid())`）
-- 内部 FK 使用数字 `id`，外部 API 暴露 `uuid`
+- `id`: 数字自增主键（`Int @id @default(autoincrement())`）- 仅内部索引
+- `uuid`: UUID 字符串（`String @unique @default(uuid())`）- 业务标识和外键引用
+- **所有外键使用 UUID**（如 `companyUuid`、`projectUuid`）
 
 #### Company（租户）
 - 多租户隔离的根实体
-- 所有数据通过 companyId 关联
+- 所有数据通过 `companyUuid` 关联
 - `emailDomains`: 邮箱域名列表，用于登录时识别 Company
 - `oidcIssuer`: OIDC Provider URL
 - `oidcClientId`: OIDC Client ID（仅支持 PKCE，无需 Client Secret）
@@ -592,70 +606,102 @@ model Task {
 
 #### User（用户）
 - 人类用户，通过 OIDC 登录
-- `oidcSub` 存储 OIDC Provider 的 subject
+- `companyUuid`: 所属公司 UUID
+- `oidcSub`: OIDC Provider 的 subject
 
 #### Agent（代理）
 - AI Agent 实体（Claude Code 等）
-- `role`: `pm` | `personal`
+- `companyUuid`: 所属公司 UUID
+- `roles`: 角色数组（`pm` | `developer`）
+- `ownerUuid`: 创建者 User UUID
+- `persona`: 自定义人格描述
+- `systemPrompt`: 完整系统提示
 - 一个 Agent 可以有多个 API Key
 
 #### ApiKey（API 密钥）
 - 独立管理，支持轮换和撤销
-- `key`: 实际的 API 密钥（哈希存储）
+- `companyUuid`: 所属公司 UUID
+- `agentUuid`: 关联的 Agent UUID
+- `keyHash`: API 密钥哈希存储
 - `expiresAt`: 可选的过期时间
 - `revokedAt`: 撤销时间
 
 #### Project（项目）
 - 项目容器，所有业务数据的父级
+- `companyUuid`: 所属公司 UUID
 - 包含 Ideas、Documents、Tasks、Proposals、Activities
 
 #### Idea（想法）
 - 人类原始输入，可被 PM Agent 认领处理
+- `companyUuid`: 所属公司 UUID
+- `projectUuid`: 所属项目 UUID
 - `title`: 标题
 - `content`: 文本内容
 - `attachments`: 附件列表（图片、文件等）
 - `status`: `open` | `assigned` | `in_progress` | `pending_review` | `completed` | `closed`
-- `assigneeType`: `user` | `agent`
-- `assigneeId`: 认领者 ID
+- `assigneeType`: `user` | `agent`（多态关联）
+- `assigneeUuid`: 认领者 UUID
 - `assignedAt`: 认领时间
-- `assignedBy`: 分配者 User ID（人类分配时记录）
-- `createdBy`: 创建者 User ID
+- `assignedByUuid`: 分配者 User UUID（人类分配时记录）
+- `createdByUuid`: 创建者 User UUID
 - 作为 Proposal 的输入源
 
 #### Document（文档）
 - Proposal 的产物（PRD、技术设计等）
+- `companyUuid`: 所属公司 UUID
+- `projectUuid`: 所属项目 UUID
 - `type`: `prd` | `tech_design` | `adr` | ...
 - `content`: Markdown 格式内容
 - `version`: 版本号
-- `proposalId`: 来源 Proposal（可追溯）
+- `proposalUuid`: 来源 Proposal UUID（可追溯）
+- `createdByUuid`: 创建者 UUID
 
 #### Task（任务）
 - Proposal 的产物或人工创建，可被 Agent/人类认领执行
+- `companyUuid`: 所属公司 UUID
+- `projectUuid`: 所属项目 UUID
 - `status`: `open` | `assigned` | `in_progress` | `to_verify` | `done` | `closed`
 - `priority`: `low` | `medium` | `high`
-- `assigneeType`: `user` | `agent`
-- `assigneeId`: 认领者 ID
+- `storyPoints`: 工作量估算（单位：Agent 小时）
+- `assigneeType`: `user` | `agent`（多态关联）
+- `assigneeUuid`: 认领者 UUID
 - `assignedAt`: 认领时间
-- `assignedBy`: 分配者 User ID（人类分配时记录）
-- `proposalId`: 来源 Proposal（可追溯，可选）
-- `createdBy`: 创建者 User ID 或 Agent ID
+- `assignedByUuid`: 分配者 User UUID（人类分配时记录）
+- `proposalUuid`: 来源 Proposal UUID（可追溯，可选）
+- `createdByUuid`: 创建者 UUID
 
 #### Proposal（提议）
 - PM Agent 创建，人类审批，连接输入和输出
+- `companyUuid`: 所属公司 UUID
+- `projectUuid`: 所属项目 UUID
 - **输入**：
   - `inputType`: `idea` | `document`
-  - `inputIds`: 关联的输入 ID 列表（数字 ID 数组）
+  - `inputUuids`: 关联的输入 UUID 列表（JSON 数组）
 - **输出**：
   - `outputType`: `document` | `task`
   - `outputData`: 提议的内容（Document 草稿或 Task 列表）
 - `status`: `pending` | `approved` | `rejected` | `revised`
+- `createdByUuid`: 创建者 Agent UUID
+- `reviewedByUuid`: 审批者 User UUID
 - 批准后根据 outputType 自动创建 Document 或 Tasks
 
 #### Activity（活动）
 - 项目级活动日志
+- `companyUuid`: 所属公司 UUID
+- `projectUuid`: 所属项目 UUID
 - `actorType`: `user` | `agent`
+- `actorUuid`: 操作者 UUID
 - `action`: `idea_created` | `proposal_created` | `proposal_approved` | `document_created` | `task_created` | ...
-- 可关联 ideaId、documentId、proposalId、taskId 用于追溯
+- 可关联 `ideaUuid`、`documentUuid`、`proposalUuid`、`taskUuid` 用于追溯
+
+#### Comment（评论）
+- 多态评论，可评论 Idea、Proposal、Task、Document
+- `companyUuid`: 所属公司 UUID
+- `targetType`: `idea` | `proposal` | `task` | `document`
+- `targetUuid`: 目标实体 UUID
+- `authorType`: `user` | `agent`
+- `authorUuid`: 作者 UUID
+- `content`: 评论内容
 
 ---
 
@@ -669,7 +715,7 @@ model Task {
 
 #### 端点概览
 
-**注意**：URL 中的 `:id` 参数使用 `uuid`，内部存储使用数字 `id`。
+**UUID-Based API**：所有 URL 参数和请求/响应数据统一使用 UUID，内外一致。
 
 | 方法 | 路径 | 描述 | 权限 |
 |-----|------|------|------|
@@ -789,11 +835,11 @@ PM Agent 同时拥有 Developer Agent 的所有工具（全能角色）。
 
 #### Proposal 输入/输出说明
 
-| 场景 | inputType | inputIds | outputType | outputData |
-|-----|-----------|----------|------------|------------|
-| Ideas → PRD | `idea` | Idea IDs | `document` | PRD 草稿 |
-| PRD → Tasks | `document` | Document ID | `task` | Task 列表 |
-| PRD → Tech Design | `document` | Document ID | `document` | 技术设计草稿 |
+| 场景 | inputType | inputUuids | outputType | outputData |
+|-----|-----------|------------|------------|------------|
+| Ideas → PRD | `idea` | Idea UUIDs | `document` | PRD 草稿 |
+| PRD → Tasks | `document` | Document UUID | `task` | Task 列表 |
+| PRD → Tech Design | `document` | Document UUID | `document` | 技术设计草稿 |
 
 ---
 
@@ -1225,8 +1271,8 @@ volumes:
 
 ### 9.2 数据隔离
 
-- 所有查询都包含 companyId 过滤
-- Prisma 中间件强制多租户隔离
+- 所有查询都包含 `companyUuid` 过滤（UUID-based 多租户隔离）
+- 服务层强制检查租户归属
 
 ### 9.3 输入验证
 

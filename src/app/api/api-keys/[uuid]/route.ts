@@ -1,5 +1,6 @@
 // src/app/api/api-keys/[uuid]/route.ts
 // API Keys API - 撤销 (ARCHITECTURE.md §5.1, §9.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -25,8 +26,8 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
     const { uuid } = await context.params;
 
     const apiKey = await prisma.apiKey.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true, revokedAt: true },
+      where: { uuid, companyUuid: auth.companyUuid },
+      select: { uuid: true, revokedAt: true },
     });
 
     if (!apiKey) {
@@ -38,7 +39,7 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
     }
 
     await prisma.apiKey.update({
-      where: { id: apiKey.id },
+      where: { uuid: apiKey.uuid },
       data: { revokedAt: new Date() },
     });
 

@@ -38,69 +38,69 @@ model Company {
 
 // 用户（人类，OIDC 登录）
 model User {
-  id        Int      @id @default(autoincrement())
-  uuid      String   @unique @default(uuid())
-  companyId Int
-  company   Company  @relation(fields: [companyId], references: [id])
-  oidcSub   String   @unique    // OIDC subject
-  email     String?
-  name      String?
-  avatarUrl String?
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  oidcSub     String   @unique    // OIDC subject
+  email       String?
+  name        String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
 
   ownedAgents Agent[]
 
-  @@index([companyId])
+  @@index([companyUuid])
 }
 
 // Agent（Claude Code 等）
 model Agent {
   id           Int       @id @default(autoincrement())
   uuid         String    @unique @default(uuid())
-  companyId    Int
-  company      Company   @relation(fields: [companyId], references: [id])
+  companyUuid  String
+  company      Company   @relation(fields: [companyUuid], references: [uuid])
   name         String
   roles        String[]  @default(["developer"])  // pm | developer（可多选）
   // Agent 人格定义（Zero Context Injection）
   persona      String?   // 自定义人格描述（简短）
   systemPrompt String?   // 完整系统提示（可选，覆盖默认模板）
-  ownerId      Int?
-  owner        User?     @relation(fields: [ownerId], references: [id])
+  ownerUuid    String?   // User's UUID
+  owner        User?     @relation(fields: [ownerUuid], references: [uuid])
   lastActiveAt DateTime?
   createdAt    DateTime  @default(now())
 
   apiKeys ApiKey[]
 
-  @@index([companyId])
-  @@index([ownerId])
+  @@index([companyUuid])
+  @@index([ownerUuid])
 }
 
 // API Key（独立管理，支持轮换和撤销）
 model ApiKey {
-  id        Int       @id @default(autoincrement())
-  uuid      String    @unique @default(uuid())
-  companyId Int
-  company   Company   @relation(fields: [companyId], references: [id])
-  agentId   Int
-  agent     Agent     @relation(fields: [agentId], references: [id])
-  keyHash   String    @unique    // API Key 哈希存储
-  keyPrefix String               // Key 前缀，用于显示（如 "cho_xxx..."）
-  name      String?              // 可选的描述名称
-  lastUsed  DateTime?
-  expiresAt DateTime?
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  companyUuid String
+  company     Company   @relation(fields: [companyUuid], references: [uuid])
+  agentUuid   String    // Agent's UUID
+  agent       Agent     @relation(fields: [agentUuid], references: [uuid])
+  keyHash     String    @unique    // API Key 哈希存储
+  keyPrefix   String               // Key 前缀，用于显示（如 "cho_xxx..."）
+  name        String?              // 可选的描述名称
+  lastUsed    DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
 
-  @@index([companyId])
-  @@index([agentId])
+  @@index([companyUuid])
+  @@index([agentUuid])
 }
 
 // 项目
 model Project {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
-  companyId   Int
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
   name        String
   description String?
   createdAt   DateTime @default(now())
@@ -112,120 +112,120 @@ model Project {
   proposals  Proposal[]
   activities Activity[]
 
-  @@index([companyId])
+  @@index([companyUuid])
 }
 
 // 想法（人类原始输入）
 model Idea {
-  id           Int       @id @default(autoincrement())
-  uuid         String    @unique @default(uuid())
-  companyId    Int
-  company      Company   @relation(fields: [companyId], references: [id])
-  projectId    Int
-  project      Project   @relation(fields: [projectId], references: [id])
-  title        String
-  content      String?   // 文本内容
-  attachments  Json?     // 附件列表 [{type, url, name}]
+  id             Int       @id @default(autoincrement())
+  uuid           String    @unique @default(uuid())
+  companyUuid    String
+  company        Company   @relation(fields: [companyUuid], references: [uuid])
+  projectUuid    String
+  project        Project   @relation(fields: [projectUuid], references: [uuid])
+  title          String
+  content        String?   // 文本内容
+  attachments    Json?     // 附件列表 [{type, url, name}]
   // 状态和认领 (ARCHITECTURE.md §7.3)
-  status       String    @default("open")  // open | assigned | in_progress | pending_review | completed | closed
-  assigneeType String?   // user | agent
-  assigneeId   Int?      // 认领者 ID
-  assignedAt   DateTime? // 认领时间
-  assignedBy   Int?      // 分配者 User ID（人类分配时记录）
-  createdBy    Int       // User ID
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  status         String    @default("open")  // open | assigned | in_progress | pending_review | completed | closed
+  assigneeType   String?   // user | agent
+  assigneeUuid   String?   // User or Agent UUID (polymorphic)
+  assignedAt     DateTime? // 认领时间
+  assignedByUuid String?   // User UUID (human assignment)
+  createdByUuid  String    // User UUID
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  @@index([companyId])
-  @@index([projectId])
+  @@index([companyUuid])
+  @@index([projectUuid])
   @@index([status])
-  @@index([assigneeId])
+  @@index([assigneeUuid])
 }
 
 // 文档（PRD、技术设计等，Proposal 产物）
 model Document {
-  id          Int       @id @default(autoincrement())
-  uuid        String    @unique @default(uuid())
-  companyId   Int
-  company     Company   @relation(fields: [companyId], references: [id])
-  projectId   Int
-  project     Project   @relation(fields: [projectId], references: [id])
-  type        String    // prd | tech_design | adr | ...
-  title       String
-  content     String?   // Markdown 内容
-  version     Int       @default(1)
-  proposalId  Int?      // 来源 Proposal（可追溯）
-  createdBy   Int       // User ID 或 Agent ID
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  companyUuid   String
+  company       Company   @relation(fields: [companyUuid], references: [uuid])
+  projectUuid   String
+  project       Project   @relation(fields: [projectUuid], references: [uuid])
+  type          String    // prd | tech_design | adr | ...
+  title         String
+  content       String?   // Markdown 内容
+  version       Int       @default(1)
+  proposalUuid  String?   // Source Proposal UUID (traceable)
+  createdByUuid String    // User or Agent UUID
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  @@index([companyId])
-  @@index([projectId])
-  @@index([proposalId])
+  @@index([companyUuid])
+  @@index([projectUuid])
+  @@index([proposalUuid])
 }
 
 // 任务（Proposal 产物或人工创建）
 model Task {
-  id           Int       @id @default(autoincrement())
-  uuid         String    @unique @default(uuid())
-  companyId    Int
-  company      Company   @relation(fields: [companyId], references: [id])
-  projectId    Int
-  project      Project   @relation(fields: [projectId], references: [id])
-  title        String
-  description  String?
+  id             Int       @id @default(autoincrement())
+  uuid           String    @unique @default(uuid())
+  companyUuid    String
+  company        Company   @relation(fields: [companyUuid], references: [uuid])
+  projectUuid    String
+  project        Project   @relation(fields: [projectUuid], references: [uuid])
+  title          String
+  description    String?
   // 状态和认领 (ARCHITECTURE.md §7.2)
-  status       String    @default("open")  // open | assigned | in_progress | to_verify | done | closed
-  priority     String    @default("medium") // low | medium | high
-  storyPoints  Float?    // 工作量估算（单位：Agent 小时）
-  assigneeType String?   // user | agent
-  assigneeId   Int?      // 认领者 ID
-  assignedAt   DateTime? // 认领时间
-  assignedBy   Int?      // 分配者 User ID（人类分配时记录）
-  proposalId   Int?      // 来源 Proposal（可追溯，可选）
-  createdBy    Int       // User ID 或 Agent ID
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  status         String    @default("open")  // open | assigned | in_progress | to_verify | done | closed
+  priority       String    @default("medium") // low | medium | high
+  storyPoints    Float?    // 工作量估算（单位：Agent 小时）
+  assigneeType   String?   // user | agent
+  assigneeUuid   String?   // User or Agent UUID (polymorphic)
+  assignedAt     DateTime? // 认领时间
+  assignedByUuid String?   // User UUID (human assignment)
+  proposalUuid   String?   // Source Proposal UUID (traceable, optional)
+  createdByUuid  String    // User or Agent UUID
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   activities Activity[]
 
-  @@index([companyId])
-  @@index([projectId])
-  @@index([proposalId])
-  @@index([assigneeId])
+  @@index([companyUuid])
+  @@index([projectUuid])
+  @@index([proposalUuid])
+  @@index([assigneeUuid])
   @@index([status])
 }
 
 // 提议（Agent 创建，人类审批，连接输入和输出）
 model Proposal {
-  id          Int       @id @default(autoincrement())
-  uuid        String    @unique @default(uuid())
-  companyId   Int
-  company     Company   @relation(fields: [companyId], references: [id])
-  projectId   Int
-  project     Project   @relation(fields: [projectId], references: [id])
-  title       String
-  description String?
+  id              Int       @id @default(autoincrement())
+  uuid            String    @unique @default(uuid())
+  companyUuid     String
+  company         Company   @relation(fields: [companyUuid], references: [uuid])
+  projectUuid     String
+  project         Project   @relation(fields: [projectUuid], references: [uuid])
+  title           String
+  description     String?
 
   // 输入（Proposal 基于什么创建）
-  inputType   String    // idea | document
-  inputIds    Json      // 关联的输入 ID 列表（数字 ID 数组）
+  inputType       String    // idea | document
+  inputUuids      Json      // Array of UUID strings (NOT numeric IDs)
 
   // 输出（Proposal 产出什么）
-  outputType  String    // document | task
-  outputData  Json      // 提议的内容（Document 草稿或 Task 列表）
+  outputType      String    // document | task
+  outputData      Json      // 提议的内容（Document 草稿或 Task 列表）
 
   // 状态与审批
-  status      String    @default("pending")  // pending | approved | rejected | revised
-  createdBy   Int       // Agent ID
-  reviewedBy  Int?      // User ID
-  reviewNote  String?   // 审批备注
-  reviewedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  status          String    @default("pending")  // pending | approved | rejected | revised
+  createdByUuid   String    // Agent UUID
+  reviewedByUuid  String?   // User UUID
+  reviewNote      String?   // 审批备注
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  @@index([companyId])
-  @@index([projectId])
+  @@index([companyUuid])
+  @@index([projectUuid])
   @@index([status])
 }
 
@@ -233,43 +233,43 @@ model Proposal {
 model Comment {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
-  companyId   Int
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
   targetType  String   // idea | proposal | task | document
-  targetId    Int      // 目标实体的 ID
+  targetUuid  String   // UUID of target entity (idea/proposal/task/document)
   content     String
   authorType  String   // user | agent
-  authorId    Int
+  authorUuid  String   // User or Agent UUID
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([companyId])
-  @@index([targetType, targetId])
+  @@index([companyUuid])
+  @@index([targetType, targetUuid])
 }
 
 // 活动流（项目级）
 model Activity {
-  id         Int      @id @default(autoincrement())
-  uuid       String   @unique @default(uuid())
-  companyId  Int
-  company    Company  @relation(fields: [companyId], references: [id])
-  projectId  Int
-  project    Project  @relation(fields: [projectId], references: [id])
-  // 关联实体（可选，用于追溯）
-  ideaId     Int?
-  documentId Int?
-  proposalId Int?
-  taskId     Int?
-  task       Task?    @relation(fields: [taskId], references: [id])
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  companyUuid  String
+  company      Company  @relation(fields: [companyUuid], references: [uuid])
+  projectUuid  String
+  project      Project  @relation(fields: [projectUuid], references: [uuid])
+  // 关联实体（可选，用于追溯）- all UUIDs
+  ideaUuid     String?
+  documentUuid String?
+  proposalUuid String?
+  taskUuid     String?
+  task         Task?    @relation(fields: [taskUuid], references: [uuid])
   // 操作信息
-  actorType  String   // user | agent
-  actorId    Int
-  action     String   // idea_created | proposal_created | proposal_approved | document_created | task_created | task_updated | comment_added | ...
-  payload    Json?    // 额外数据
-  createdAt  DateTime @default(now())
+  actorType    String   // user | agent
+  actorUuid    String   // User or Agent UUID
+  action       String   // idea_created | proposal_created | proposal_approved | document_created | task_created | task_updated | comment_added | ...
+  payload      Json?    // 额外数据
+  createdAt    DateTime @default(now())
 
-  @@index([companyId])
-  @@index([projectId])
-  @@index([taskId])
+  @@index([companyUuid])
+  @@index([projectUuid])
+  @@index([taskUuid])
   @@index([createdAt])
 }

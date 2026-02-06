@@ -43,3 +43,5 @@ next-env.d.ts
 # prisma generated client
 /src/generated
 .playwright-mcp/
+.claude/settings.local.json
+.mcp.json

@@ -1,5 +1,6 @@
 // src/lib/user-session.ts
 // User session management for OIDC-authenticated users
+// UUID-Based Architecture: All IDs are UUIDs
 
 import { SignJWT, jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
@@ -19,12 +20,10 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-// User session payload stored in JWT
+// User session payload stored in JWT (UUID-based)
 export interface UserSessionPayload {
   type: "user";
-  userId: number;
   userUuid: string;
-  companyId: number;
   companyUuid: string;
   email: string;
   name?: string;
@@ -54,9 +53,8 @@ export async function createUserRefreshToken(
   payload: UserSessionPayload
 ): Promise<string> {
   return new SignJWT({
-    userId: payload.userId,
     userUuid: payload.userUuid,
-    companyId: payload.companyId,
+    companyUuid: payload.companyUuid,
     tokenType: "refresh",
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -74,9 +72,7 @@ export async function verifyAccessToken(
     if (payload.type === "user" && payload.tokenType === "access") {
       return {
         type: "user",
-        userId: payload.userId as number,
         userUuid: payload.userUuid as string,
-        companyId: payload.companyId as number,
         companyUuid: payload.companyUuid as string,
         email: payload.email as string,
         name: payload.name as string | undefined,
@@ -94,17 +90,15 @@ export async function verifyAccessToken(
 
 // Verify refresh token (returns minimal payload for token refresh)
 export async function verifyRefreshToken(token: string): Promise<{
-  userId: number;
   userUuid: string;
-  companyId: number;
+  companyUuid: string;
 } | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (payload.tokenType === "refresh") {
       return {
-        userId: payload.userId as number,
         userUuid: payload.userUuid as string,
-        companyId: payload.companyId as number,
+        companyUuid: payload.companyUuid as string,
       };
     }
     return null;
@@ -120,7 +114,7 @@ export function extractBearerToken(authHeader: string | null): string | null {
   return match ? match[1] : null;
 }
 
-// Get user session from request (Bearer token or cookies)
+// Get user session from request (Bearer token or cookies) - UUID-based
 export async function getUserSessionFromRequest(
   request: NextRequest
 ): Promise<UserAuthContext | null> {
@@ -133,9 +127,8 @@ export async function getUserSessionFromRequest(
     if (payload) {
       return {
         type: "user",
-        companyId: payload.companyId,
-        actorId: payload.userId,
-        uuid: payload.userUuid,
+        companyUuid: payload.companyUuid,
+        actorUuid: payload.userUuid,
         email: payload.email,
         name: payload.name,
       };
@@ -155,9 +148,8 @@ export async function getUserSessionFromRequest(
 
   return {
     type: "user",
-    companyId: payload.companyId,
-    actorId: payload.userId,
-    uuid: payload.userUuid,
+    companyUuid: payload.companyUuid,
+    actorUuid: payload.userUuid,
     email: payload.email,
     name: payload.name,
   };

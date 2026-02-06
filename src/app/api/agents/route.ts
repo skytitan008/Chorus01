@@ -1,5 +1,6 @@
 // src/app/api/agents/route.ts
 // Agents API - 列表和创建 (ARCHITECTURE.md §5.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +23,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const { page, pageSize, skip, take } = parsePagination(request);
 
   const where = {
-    companyId: auth.companyId,
+    companyUuid: auth.companyUuid,
   };
 
   const [agents, total] = await Promise.all([
@@ -36,7 +37,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         name: true,
         roles: true,
         persona: true,
-        ownerId: true,
+        ownerUuid: true,
         lastActiveAt: true,
         createdAt: true,
         _count: {
@@ -52,7 +53,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     name: a.name,
     roles: a.roles,
     persona: a.persona,
-    ownerId: a.ownerId,
+    ownerUuid: a.ownerUuid,
     lastActiveAt: a.lastActiveAt?.toISOString() || null,
     apiKeyCount: a._count.apiKeys,
     createdAt: a.createdAt.toISOString(),
@@ -98,12 +99,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const agent = await prisma.agent.create({
     data: {
-      companyId: auth.companyId,
+      companyUuid: auth.companyUuid,
       name: body.name.trim(),
       roles,
       persona: body.persona?.trim() || null,
       systemPrompt: body.systemPrompt?.trim() || null,
-      ownerId: auth.actorId,
+      ownerUuid: auth.actorUuid,
     },
     select: {
       uuid: true,
@@ -111,7 +112,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       roles: true,
       persona: true,
       systemPrompt: true,
-      ownerId: true,
+      ownerUuid: true,
       createdAt: true,
     },
   });
@@ -122,7 +123,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     roles: agent.roles,
     persona: agent.persona,
     systemPrompt: agent.systemPrompt,
-    ownerId: agent.ownerId,
+    ownerUuid: agent.ownerUuid,
     lastActiveAt: null,
     apiKeyCount: 0,
     createdAt: agent.createdAt.toISOString(),

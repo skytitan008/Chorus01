@@ -1,11 +1,12 @@
 // src/app/api/proposals/[uuid]/reject/route.ts
 // Proposals API - 拒绝 Proposal (ARCHITECTURE.md §7.4)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { getProposalByUuid, rejectProposal } from "@/services/proposal.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -24,10 +25,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const proposal = await prisma.proposal.findFirst({
-      where: { uuid, companyId: auth.companyId },
-    });
-
+    const proposal = await getProposalByUuid(auth.companyUuid, uuid);
     if (!proposal) {
       return errors.notFound("Proposal");
     }
@@ -48,33 +46,12 @@ export const POST = withErrorHandler<{ uuid: string }>(
       });
     }
 
-    const updated = await prisma.proposal.update({
-      where: { id: proposal.id },
-      data: {
-        status: "rejected",
-        reviewedBy: auth.actorId,
-        reviewNote: body.reviewNote.trim(),
-        reviewedAt: new Date(),
-      },
-    });
+    const updated = await rejectProposal(
+      proposal.uuid,
+      auth.actorUuid,
+      body.reviewNote.trim()
+    );
 
-    return success({
-      uuid: updated.uuid,
-      title: updated.title,
-      description: updated.description,
-      inputType: updated.inputType,
-      inputIds: updated.inputIds,
-      outputType: updated.outputType,
-      outputData: updated.outputData,
-      status: updated.status,
-      createdBy: updated.createdBy,
-      review: {
-        reviewedBy: updated.reviewedBy,
-        reviewNote: updated.reviewNote,
-        reviewedAt: updated.reviewedAt?.toISOString(),
-      },
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    return success(updated);
   }
 );

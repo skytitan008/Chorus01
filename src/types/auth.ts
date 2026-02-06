@@ -1,17 +1,17 @@
 // src/types/auth.ts
 // 认证相关类型定义 (ARCHITECTURE.md §6)
+// UUID-Based Architecture: All IDs are UUIDs
 
 export type ActorType = "user" | "agent" | "super_admin";
-export type AgentRole = "pm" | "developer";
+export type AgentRole = "pm" | "developer" | "pm_agent" | "developer_agent";
 
-// 当前请求的认证上下文
+// 当前请求的认证上下文 (UUID-based)
 export interface AuthContext {
   type: ActorType;
-  companyId: number;
-  actorId: number; // User ID 或 Agent ID
-  uuid: string;
-  roles?: AgentRole[]; // Agent 角色列表
-  ownerId?: number; // Agent 的 Owner User ID
+  companyUuid: string;  // Company UUID
+  actorUuid: string;    // User UUID or Agent UUID
+  roles?: AgentRole[];  // Agent 角色列表
+  ownerUuid?: string;   // Agent's Owner User UUID
 }
 
 // User 认证上下文
@@ -25,7 +25,7 @@ export interface UserAuthContext extends AuthContext {
 export interface AgentAuthContext extends AuthContext {
   type: "agent";
   roles: AgentRole[];
-  ownerId?: number;
+  ownerUuid?: string;
   agentName: string;
 }
 
@@ -35,19 +35,17 @@ export interface SuperAdminAuthContext {
   email: string;
 }
 
-// API Key 验证结果
+// API Key 验证结果 (UUID-based)
 export interface ApiKeyValidationResult {
   valid: boolean;
   agent?: {
-    id: number;
     uuid: string;
-    companyId: number;
+    companyUuid: string;
     name: string;
     roles: string[];
-    ownerId: number | null;
+    ownerUuid: string | null;
   };
   apiKey?: {
-    id: number;
     uuid: string;
   };
   error?: string;

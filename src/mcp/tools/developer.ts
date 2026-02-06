@@ -1,5 +1,6 @@
 // src/mcp/tools/developer.ts
 // Developer Agent 专属 MCP 工具 (ARCHITECTURE.md §5.2)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -18,7 +19,7 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }),
     },
     async ({ taskUuid }) => {
-      const task = await taskService.getTaskById(auth.companyId, taskUuid);
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
         return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
       }
@@ -28,9 +29,10 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }
 
       const updated = await taskService.claimTask({
-        taskId: task.id,
+        taskUuid: task.uuid,
+        companyUuid: auth.companyUuid,
         assigneeType: "agent",
-        assigneeId: auth.actorId,
+        assigneeUuid: auth.actorUuid,
       });
 
       return {
@@ -49,7 +51,7 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }),
     },
     async ({ taskUuid }) => {
-      const task = await taskService.getTaskById(auth.companyId, taskUuid);
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
         return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
       }
@@ -58,16 +60,16 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         return { content: [{ type: "text", text: "只能放弃 assigned 状态的 Task" }], isError: true };
       }
 
-      // 检查是否是认领者
+      // 检查是否是认领者 (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeId === auth.actorId) ||
-        (task.assigneeType === "user" && auth.ownerId && task.assigneeId === auth.ownerId);
+        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
+        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
         return { content: [{ type: "text", text: "只有认领者可以放弃认领" }], isError: true };
       }
 
-      const updated = await taskService.releaseTask(task.id);
+      const updated = await taskService.releaseTask(task.uuid);
 
       return {
         content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
@@ -86,15 +88,15 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }),
     },
     async ({ taskUuid, status }) => {
-      const task = await taskService.getTaskById(auth.companyId, taskUuid);
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
         return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
       }
 
-      // 检查是否是认领者
+      // 检查是否是认领者 (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeId === auth.actorId) ||
-        (task.assigneeType === "user" && auth.ownerId && task.assigneeId === auth.ownerId);
+        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
+        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
         return { content: [{ type: "text", text: "只有认领者可以更新状态" }], isError: true };
@@ -108,7 +110,7 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         };
       }
 
-      const updated = await taskService.updateTask(task.id, { status });
+      const updated = await taskService.updateTask(task.uuid, { status });
 
       return {
         content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
@@ -127,15 +129,15 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }),
     },
     async ({ taskUuid, summary }) => {
-      const task = await taskService.getTaskById(auth.companyId, taskUuid);
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
         return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
       }
 
-      // 检查是否是认领者
+      // 检查是否是认领者 (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeId === auth.actorId) ||
-        (task.assigneeType === "user" && auth.ownerId && task.assigneeId === auth.ownerId);
+        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
+        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
         return { content: [{ type: "text", text: "只有认领者可以提交验证" }], isError: true };
@@ -145,16 +147,16 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         return { content: [{ type: "text", text: "只能从 in_progress 状态提交验证" }], isError: true };
       }
 
-      const updated = await taskService.updateTask(task.id, { status: "to_verify" });
+      const updated = await taskService.updateTask(task.uuid, { status: "to_verify" });
 
       // 记录活动
       await activityService.createActivity({
-        companyId: auth.companyId,
-        projectId: task.projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid: task.projectUuid,
         actorType: "agent",
-        actorId: auth.actorId,
+        actorUuid: auth.actorUuid,
         action: "task_submitted_for_verify",
-        taskId: task.id,
+        taskUuid: task.uuid,
         payload: summary ? { summary } : undefined,
       });
 
@@ -176,15 +178,15 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }),
     },
     async ({ taskUuid, report, status }) => {
-      const task = await taskService.getTaskById(auth.companyId, taskUuid);
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
         return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
       }
 
-      // 检查是否是认领者
+      // 检查是否是认领者 (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeId === auth.actorId) ||
-        (task.assigneeType === "user" && auth.ownerId && task.assigneeId === auth.ownerId);
+        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
+        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
         return { content: [{ type: "text", text: "只有认领者可以报告工作" }], isError: true };
@@ -192,17 +194,17 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
 
       // 如果需要更新状态
       if (status && taskService.isValidTaskStatusTransition(task.status, status)) {
-        await taskService.updateTask(task.id, { status });
+        await taskService.updateTask(task.uuid, { status });
       }
 
       // 记录活动
       await activityService.createActivity({
-        companyId: auth.companyId,
-        projectId: task.projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid: task.projectUuid,
         actorType: "agent",
-        actorId: auth.actorId,
+        actorUuid: auth.actorUuid,
         action: "task_work_reported",
-        taskId: task.id,
+        taskUuid: task.uuid,
         payload: { report, statusUpdated: status || null },
       });
 

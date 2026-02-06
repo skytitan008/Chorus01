@@ -1,13 +1,17 @@
 // src/app/api/comments/route.ts
 // Comments API (ARCHITECTURE.md §4.2)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination, parseQuery } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import * as commentService from "@/services/comment.service";
+import type { TargetType } from "@/lib/uuid-resolver";
 
-// GET /api/comments?targetType=&targetId= - 获取评论
+const validTargetTypes = ["idea", "proposal", "task", "document"];
+
+// GET /api/comments?targetType=&targetUuid= - 获取评论
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const auth = await getAuthContext(request);
   if (!auth) {
@@ -18,67 +22,28 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const { page, pageSize, skip, take } = parsePagination(request);
 
   // 验证必填参数
-  if (!query.targetType || !query.targetId) {
+  if (!query.targetType || !query.targetUuid) {
     return errors.validationError({
       targetType: "targetType is required",
-      targetId: "targetId is required",
+      targetUuid: "targetUuid is required",
     });
   }
 
-  const validTargetTypes = ["idea", "proposal", "task", "document"];
   if (!validTargetTypes.includes(query.targetType)) {
     return errors.validationError({
       targetType: "Invalid target type",
     });
   }
 
-  const targetId = parseInt(query.targetId, 10);
-  if (isNaN(targetId)) {
-    return errors.validationError({
-      targetId: "Invalid target ID",
-    });
-  }
+  const { comments, total } = await commentService.listComments({
+    companyUuid: auth.companyUuid,
+    targetType: query.targetType as TargetType,
+    targetUuid: query.targetUuid,
+    skip,
+    take,
+  });
 
-  const where = {
-    companyId: auth.companyId,
-    targetType: query.targetType,
-    targetId,
-  };
-
-  const [comments, total] = await Promise.all([
-    prisma.comment.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { createdAt: "asc" },
-      select: {
-        uuid: true,
-        targetType: true,
-        targetId: true,
-        content: true,
-        authorType: true,
-        authorId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    }),
-    prisma.comment.count({ where }),
-  ]);
-
-  const data = comments.map((c) => ({
-    uuid: c.uuid,
-    targetType: c.targetType,
-    targetId: c.targetId,
-    content: c.content,
-    author: {
-      type: c.authorType,
-      id: c.authorId,
-    },
-    createdAt: c.createdAt.toISOString(),
-    updatedAt: c.updatedAt.toISOString(),
-  }));
-
-  return paginated(data, page, pageSize, total);
+  return paginated(comments, page, pageSize, total);
 });
 
 // POST /api/comments - 添加评论
@@ -90,20 +55,19 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const body = await parseBody<{
     targetType: string;
-    targetId: number;
+    targetUuid: string;
     content: string;
   }>(request);
 
   // 验证必填字段
-  const validTargetTypes = ["idea", "proposal", "task", "document"];
   if (!body.targetType || !validTargetTypes.includes(body.targetType)) {
     return errors.validationError({
       targetType: "Invalid target type",
     });
   }
-  if (!body.targetId) {
+  if (!body.targetUuid) {
     return errors.validationError({
-      targetId: "Target ID is required",
+      targetUuid: "Target UUID is required",
     });
   }
   if (!body.content || body.content.trim() === "") {
@@ -112,37 +76,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     });
   }
 
-  const comment = await prisma.comment.create({
-    data: {
-      companyId: auth.companyId,
-      targetType: body.targetType,
-      targetId: body.targetId,
+  try {
+    const comment = await commentService.createComment({
+      companyUuid: auth.companyUuid,
+      targetType: body.targetType as TargetType,
+      targetUuid: body.targetUuid,
       content: body.content.trim(),
       authorType: isUser(auth) ? "user" : "agent",
-      authorId: auth.actorId,
-    },
-    select: {
-      uuid: true,
-      targetType: true,
-      targetId: true,
-      content: true,
-      authorType: true,
-      authorId: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+      authorUuid: auth.actorUuid,
+    });
 
-  return success({
-    uuid: comment.uuid,
-    targetType: comment.targetType,
-    targetId: comment.targetId,
-    content: comment.content,
-    author: {
-      type: comment.authorType,
-      id: comment.authorId,
-    },
-    createdAt: comment.createdAt.toISOString(),
-    updatedAt: comment.updatedAt.toISOString(),
-  });
+    return success(comment);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("not found")) {
+      return errors.notFound(error.message);
+    }
+    throw error;
+  }
 });

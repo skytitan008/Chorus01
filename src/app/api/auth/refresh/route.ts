@@ -1,5 +1,6 @@
 // src/app/api/auth/refresh/route.ts
 // Token refresh API - Refresh user session tokens
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest, NextResponse } from "next/server";
 import { success, errors } from "@/lib/api-response";
@@ -11,7 +12,7 @@ import {
   setUserSessionCookies,
   type UserSessionPayload,
 } from "@/lib/user-session";
-import { getUserById } from "@/services/user.service";
+import { getUserByUuid } from "@/services/user.service";
 
 // POST /api/auth/refresh
 // Body: { oidcAccessToken?, oidcRefreshToken?, oidcExpiresAt? }
@@ -30,8 +31,8 @@ export async function POST(request: NextRequest) {
       return errors.unauthorized("Invalid refresh token");
     }
 
-    // Get user from database
-    const user = await getUserById(tokenPayload.userId);
+    // Get user from database (UUID-based)
+    const user = await getUserByUuid(tokenPayload.userUuid);
     if (!user) {
       return errors.unauthorized("User not found");
     }
@@ -50,13 +51,11 @@ export async function POST(request: NextRequest) {
       // Empty body is okay - just refresh the session tokens
     }
 
-    // Create new session payload
+    // Create new session payload (UUID-based)
     const sessionPayload: UserSessionPayload = {
       type: "user",
-      userId: user.id,
       userUuid: user.uuid,
-      companyId: user.companyId,
-      companyUuid: user.company.uuid,
+      companyUuid: user.companyUuid,
       email: user.email || "", // Email should always exist, fallback to empty
       name: user.name || undefined,
       oidcSub: user.oidcSub || "",

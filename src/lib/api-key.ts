@@ -1,5 +1,6 @@
 // src/lib/api-key.ts
 // API Key 验证 (ARCHITECTURE.md §6.2, §9.1)
+// UUID-Based Architecture: All IDs are UUIDs
 
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { prisma } from "./prisma";
@@ -45,7 +46,7 @@ export function extractApiKey(authHeader: string | null): string | null {
   return null;
 }
 
-// 验证 API Key
+// 验证 API Key (UUID-based)
 export async function validateApiKey(
   key: string
 ): Promise<ApiKeyValidationResult> {
@@ -58,7 +59,7 @@ export async function validateApiKey(
     // 计算哈希
     const keyHash = hashApiKey(key);
 
-    // 查找 API Key
+    // 查找 API Key - using uuid references
     const apiKey = await prisma.apiKey.findUnique({
       where: { keyHash },
       include: {
@@ -81,28 +82,27 @@ export async function validateApiKey(
       return { valid: false, error: "API key has expired" };
     }
 
-    // 更新最后使用时间（异步，不等待）
+    // 更新最后使用时间（异步，不等待）- use uuid
     prisma.apiKey
       .update({
-        where: { id: apiKey.id },
+        where: { uuid: apiKey.uuid },
         data: { lastUsed: new Date() },
       })
       .catch(() => {
         // 忽略更新错误，不影响请求
       });
 
+    // Return UUID-based result
     return {
       valid: true,
       agent: {
-        id: apiKey.agent.id,
         uuid: apiKey.agent.uuid,
-        companyId: apiKey.agent.companyId,
+        companyUuid: apiKey.agent.companyUuid,
         name: apiKey.agent.name,
         roles: apiKey.agent.roles,
-        ownerId: apiKey.agent.ownerId,
+        ownerUuid: apiKey.agent.ownerUuid,
       },
       apiKey: {
-        id: apiKey.id,
         uuid: apiKey.uuid,
       },
     };

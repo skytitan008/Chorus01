@@ -1,5 +1,6 @@
 // src/app/api/projects/[uuid]/route.ts
 // Projects API - 详情、更新、删除 (ARCHITECTURE.md §5.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +22,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
   const project = await prisma.project.findFirst({
     where: {
       uuid,
-      companyId: auth.companyId,
+      companyUuid: auth.companyUuid,
     },
     select: {
       uuid: true,
@@ -75,10 +76,10 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
 
   const { uuid } = await context.params;
 
-  // 验证项目存在且属于当前公司
+  // 验证项目存在且属于当前公司 (query by UUID)
   const existing = await prisma.project.findFirst({
-    where: { uuid, companyId: auth.companyId },
-    select: { id: true },
+    where: { uuid, companyUuid: auth.companyUuid },
+    select: { uuid: true },
   });
 
   if (!existing) {
@@ -105,7 +106,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   }
 
   const project = await prisma.project.update({
-    where: { id: existing.id },
+    where: { uuid: existing.uuid },
     data: updateData,
     select: {
       uuid: true,
@@ -139,10 +140,10 @@ export const DELETE = withErrorHandler(async (request: NextRequest, context: Rou
 
   const { uuid } = await context.params;
 
-  // 验证项目存在且属于当前公司
+  // 验证项目存在且属于当前公司 (query by UUID)
   const existing = await prisma.project.findFirst({
-    where: { uuid, companyId: auth.companyId },
-    select: { id: true },
+    where: { uuid, companyUuid: auth.companyUuid },
+    select: { uuid: true },
   });
 
   if (!existing) {
@@ -151,7 +152,7 @@ export const DELETE = withErrorHandler(async (request: NextRequest, context: Rou
 
   // 删除项目（Prisma 会在应用层处理级联删除）
   await prisma.project.delete({
-    where: { id: existing.id },
+    where: { uuid: existing.uuid },
   });
 
   return success({ deleted: true });

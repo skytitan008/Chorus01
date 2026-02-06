@@ -1,5 +1,6 @@
 // src/mcp/tools/public.ts
 // 公共 MCP 工具 - 所有 Agent 可用 (ARCHITECTURE.md §5.2)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -25,7 +26,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid }) => {
-      const project = await projectService.getProject(auth.companyId, projectUuid);
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
@@ -48,15 +49,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid, status, page = 1, pageSize = 20 }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
       const { ideas, total } = await ideaService.listIdeas({
-        companyId: auth.companyId,
-        projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid,
         skip,
         take: pageSize,
         status,
@@ -81,15 +83,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid, type, page = 1, pageSize = 20 }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
       const { documents, total } = await documentService.listDocuments({
-        companyId: auth.companyId,
-        projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid,
         skip,
         take: pageSize,
         type,
@@ -111,7 +114,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ documentUuid }) => {
-      const document = await documentService.getDocument(auth.companyId, documentUuid);
+      const document = await documentService.getDocument(auth.companyUuid, documentUuid);
       if (!document) {
         return { content: [{ type: "text", text: "文档不存在" }], isError: true };
       }
@@ -134,15 +137,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid, status, page = 1, pageSize = 20 }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
       const { proposals, total } = await proposalService.listProposals({
-        companyId: auth.companyId,
-        projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid,
         skip,
         take: pageSize,
         status,
@@ -164,7 +168,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ taskUuid }) => {
-      const task = await taskService.getTask(auth.companyId, taskUuid);
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
         return { content: [{ type: "text", text: "任务不存在" }], isError: true };
       }
@@ -188,15 +192,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid, status, priority, page = 1, pageSize = 20 }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
       const { tasks, total } = await taskService.listTasks({
-        companyId: auth.companyId,
-        projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid,
         skip,
         take: pageSize,
         status,
@@ -221,15 +226,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid, page = 1, pageSize = 50 }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
       const { activities, total } = await activityService.listActivities({
-        companyId: auth.companyId,
-        projectId,
+        companyUuid: auth.companyUuid,
+        projectUuid,
         skip,
         take: pageSize,
       });
@@ -247,23 +253,30 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       description: "对 Idea/Proposal/Task/Document 添加评论",
       inputSchema: z.object({
         targetType: z.enum(["idea", "proposal", "task", "document"]).describe("目标类型"),
-        targetId: z.number().describe("目标 ID"),
+        targetUuid: z.string().describe("目标 UUID"),
         content: z.string().describe("评论内容"),
       }),
     },
-    async ({ targetType, targetId, content }) => {
-      const comment = await commentService.createComment({
-        companyId: auth.companyId,
-        targetType,
-        targetId,
-        content,
-        authorType: "agent",
-        authorId: auth.actorId,
-      });
+    async ({ targetType, targetUuid, content }) => {
+      try {
+        const comment = await commentService.createComment({
+          companyUuid: auth.companyUuid,
+          targetType,
+          targetUuid,
+          content,
+          authorType: "agent",
+          authorUuid: auth.actorUuid,
+        });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(comment, null, 2) }],
-      };
+        return {
+          content: [{ type: "text", text: JSON.stringify(comment, null, 2) }],
+        };
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("not found")) {
+          return { content: [{ type: "text", text: `${targetType} 不存在` }], isError: true };
+        }
+        throw error;
+      }
     }
   );
 
@@ -275,9 +288,9 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       inputSchema: z.object({}),
     },
     async () => {
-      // 更新最后活跃时间并获取 Agent 信息
+      // 更新最后活跃时间并获取 Agent 信息 (query by UUID)
       const agent = await prisma.agent.update({
-        where: { id: auth.actorId },
+        where: { uuid: auth.actorUuid },
         data: { lastActiveAt: new Date() },
         select: {
           uuid: true,
@@ -367,14 +380,15 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const { ideas } = await assignmentService.getAvailableItems(
-        auth.companyId,
-        projectId,
+        auth.companyUuid,
+        projectUuid,
         true,
         false
       );
@@ -395,20 +409,89 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ projectUuid }) => {
-      const projectId = await projectService.getProjectIdByUuid(auth.companyId, projectUuid);
-      if (!projectId) {
+      // Verify project exists
+      const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
       const { tasks } = await assignmentService.getAvailableItems(
-        auth.companyId,
-        projectId,
+        auth.companyUuid,
+        projectUuid,
         false,
         true
       );
 
       return {
         content: [{ type: "text", text: JSON.stringify({ tasks }, null, 2) }],
+      };
+    }
+  );
+
+  // chorus_get_idea - 获取单个 Idea 详情
+  server.registerTool(
+    "chorus_get_idea",
+    {
+      description: "获取单个 Idea 的详细信息",
+      inputSchema: z.object({
+        ideaUuid: z.string().describe("Idea UUID"),
+      }),
+    },
+    async ({ ideaUuid }) => {
+      const idea = await ideaService.getIdeaByUuid(auth.companyUuid, ideaUuid);
+      if (!idea) {
+        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(idea, null, 2) }],
+      };
+    }
+  );
+
+  // chorus_get_proposal - 获取单个 Proposal 详情
+  server.registerTool(
+    "chorus_get_proposal",
+    {
+      description: "获取单个提议的详细信息",
+      inputSchema: z.object({
+        proposalUuid: z.string().describe("Proposal UUID"),
+      }),
+    },
+    async ({ proposalUuid }) => {
+      const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
+      if (!proposal) {
+        return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+      };
+    }
+  );
+
+  // chorus_get_comments - 获取评论列表
+  server.registerTool(
+    "chorus_get_comments",
+    {
+      description: "获取 Idea/Proposal/Task/Document 的评论列表",
+      inputSchema: z.object({
+        targetType: z.enum(["idea", "proposal", "task", "document"]).describe("目标类型"),
+        targetUuid: z.string().describe("目标 UUID"),
+        page: z.number().optional().default(1).describe("页码"),
+        pageSize: z.number().optional().default(20).describe("每页数量"),
+      }),
+    },
+    async ({ targetType, targetUuid, page = 1, pageSize = 20 }) => {
+      const skip = (page - 1) * pageSize;
+      const { comments, total } = await commentService.listComments({
+        companyUuid: auth.companyUuid,
+        targetType,
+        targetUuid,
+        skip,
+        take: pageSize,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ comments, total, page, pageSize }, null, 2) }],
       };
     }
   );

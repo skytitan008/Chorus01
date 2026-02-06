@@ -1,5 +1,6 @@
 // src/app/api/projects/[uuid]/activity/route.ts
 // Activity API - 项目活动流 (ARCHITECTURE.md §4.2)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -17,13 +18,13 @@ export const GET = withErrorHandler<{ uuid: string }>(
       return errors.unauthorized();
     }
 
-    const { uuid } = await context.params;
+    const { uuid: projectUuid } = await context.params;
     const { page, pageSize, skip, take } = parsePagination(request);
 
-    // 查找项目
+    // 查找项目 (query by UUID)
     const project = await prisma.project.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true },
+      where: { uuid: projectUuid, companyUuid: auth.companyUuid },
+      select: { uuid: true },
     });
 
     if (!project) {
@@ -31,8 +32,8 @@ export const GET = withErrorHandler<{ uuid: string }>(
     }
 
     const where = {
-      projectId: project.id,
-      companyId: auth.companyId,
+      projectUuid: project.uuid,
+      companyUuid: auth.companyUuid,
     };
 
     const [activities, total] = await Promise.all([
@@ -43,12 +44,12 @@ export const GET = withErrorHandler<{ uuid: string }>(
         orderBy: { createdAt: "desc" },
         select: {
           uuid: true,
-          ideaId: true,
-          documentId: true,
-          proposalId: true,
-          taskId: true,
+          ideaUuid: true,
+          documentUuid: true,
+          proposalUuid: true,
+          taskUuid: true,
           actorType: true,
-          actorId: true,
+          actorUuid: true,
           action: true,
           payload: true,
           createdAt: true,
@@ -60,14 +61,14 @@ export const GET = withErrorHandler<{ uuid: string }>(
     const data = activities.map((a) => ({
       uuid: a.uuid,
       references: {
-        ideaId: a.ideaId,
-        documentId: a.documentId,
-        proposalId: a.proposalId,
-        taskId: a.taskId,
+        ideaUuid: a.ideaUuid,
+        documentUuid: a.documentUuid,
+        proposalUuid: a.proposalUuid,
+        taskUuid: a.taskUuid,
       },
       actor: {
         type: a.actorType,
-        id: a.actorId,
+        uuid: a.actorUuid,
       },
       action: a.action,
       payload: a.payload,

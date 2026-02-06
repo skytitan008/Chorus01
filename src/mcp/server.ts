@@ -20,11 +20,15 @@ export function createMcpServer(auth: AgentAuthContext): McpServer {
   // 根据角色注册专属工具
   const roles = auth.roles || [];
 
-  if (roles.includes("pm")) {
+  // 支持两种角色格式: "pm" / "pm_agent" 和 "developer" / "developer_agent"
+  const hasPmRole = roles.some(r => r === "pm" || r === "pm_agent");
+  const hasDevRole = roles.some(r => r === "developer" || r === "developer_agent");
+
+  if (hasPmRole) {
     // PM Agent 拥有所有工具
     registerPmTools(server, auth);
     registerDeveloperTools(server, auth);
-  } else if (roles.includes("developer")) {
+  } else if (hasDevRole) {
     // Developer Agent 只有开发者工具
     registerDeveloperTools(server, auth);
   }

@@ -1,11 +1,15 @@
 // src/services/task.service.ts
 // Task 服务层 (ARCHITECTURE.md §3.1 Service Layer)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
+import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
+
+// ===== 类型定义 =====
 
 export interface TaskListParams {
-  companyId: number;
-  projectId: number;
+  companyUuid: string;
+  projectUuid: string;
   skip: number;
   take: number;
   status?: string;
@@ -13,21 +17,22 @@ export interface TaskListParams {
 }
 
 export interface TaskCreateParams {
-  companyId: number;
-  projectId: number;
+  companyUuid: string;
+  projectUuid: string;
   title: string;
   description?: string | null;
   priority?: string;
-  storyPoints?: number | null;  // 工作量估算（单位：Agent 小时）
-  proposalId?: number | null;
-  createdBy: number;
+  storyPoints?: number | null;
+  proposalUuid?: string | null;
+  createdByUuid: string;
 }
 
 export interface TaskClaimParams {
-  taskId: number;
+  taskUuid: string;
+  companyUuid: string;
   assigneeType: string;
-  assigneeId: number;
-  assignedBy?: number | null;
+  assigneeUuid: string;
+  assignedByUuid?: string | null;
 }
 
 export interface TaskUpdateParams {
@@ -35,7 +40,29 @@ export interface TaskUpdateParams {
   description?: string | null;
   status?: string;
   priority?: string;
-  storyPoints?: number | null;  // 工作量估算（单位：Agent 小时）
+  storyPoints?: number | null;
+}
+
+// API 响应格式
+export interface TaskResponse {
+  uuid: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  storyPoints: number | null;
+  assignee: {
+    type: string;
+    uuid: string;
+    name: string;
+    assignedAt: string | null;
+    assignedBy: { type: string; uuid: string; name: string } | null;
+  } | null;
+  proposalUuid: string | null;
+  project?: { uuid: string; name: string };
+  createdBy: { type: string; uuid: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Task 状态转换规则 (ARCHITECTURE.md §7.2)
@@ -54,16 +81,68 @@ export function isValidTaskStatusTransition(from: string, to: string): boolean {
   return allowed.includes(to);
 }
 
+// ===== 内部辅助函数 =====
+
+// 格式化单个 Task 为 API 响应格式
+async function formatTaskResponse(
+  task: {
+    uuid: string;
+    title: string;
+    description: string | null;
+    status: string;
+    priority: string;
+    storyPoints: number | null;
+    assigneeType: string | null;
+    assigneeUuid: string | null;
+    assignedAt: Date | null;
+    assignedByUuid: string | null;
+    proposalUuid: string | null;
+    createdByUuid: string;
+    createdAt: Date;
+    updatedAt: Date;
+    project?: { uuid: string; name: string };
+  }
+): Promise<TaskResponse> {
+  const [assignee, createdBy] = await Promise.all([
+    formatAssigneeComplete(task.assigneeType, task.assigneeUuid, task.assignedAt, task.assignedByUuid),
+    formatCreatedBy(task.createdByUuid),
+  ]);
+
+  return {
+    uuid: task.uuid,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    storyPoints: task.storyPoints,
+    assignee,
+    proposalUuid: task.proposalUuid,
+    ...(task.project && { project: task.project }),
+    createdBy,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
+// ===== Service 方法 =====
+
 // Tasks 列表查询
-export async function listTasks({ companyId, projectId, skip, take, status, priority }: TaskListParams) {
+export async function listTasks({
+  companyUuid,
+  projectUuid,
+  skip,
+  take,
+  status,
+  priority,
+}: TaskListParams): Promise<{ tasks: TaskResponse[]; total: number }> {
   const where = {
-    projectId,
-    companyId,
+    projectUuid,
+    companyUuid,
     ...(status && { status }),
     ...(priority && { priority }),
   };
 
-  const [tasks, total] = await Promise.all([
+  const [rawTasks, total] = await Promise.all([
     prisma.task.findMany({
       where,
       skip,
@@ -77,11 +156,11 @@ export async function listTasks({ companyId, projectId, skip, take, status, prio
         priority: true,
         storyPoints: true,
         assigneeType: true,
-        assigneeId: true,
+        assigneeUuid: true,
         assignedAt: true,
-        assignedBy: true,
-        proposalId: true,
-        createdBy: true,
+        assignedByUuid: true,
+        proposalUuid: true,
+        createdByUuid: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -89,39 +168,46 @@ export async function listTasks({ companyId, projectId, skip, take, status, prio
     prisma.task.count({ where }),
   ]);
 
+  const tasks = await Promise.all(rawTasks.map(formatTaskResponse));
   return { tasks, total };
 }
 
 // 获取 Task 详情
-export async function getTask(companyId: number, uuid: string) {
-  return prisma.task.findFirst({
-    where: { uuid, companyId },
+export async function getTask(
+  companyUuid: string,
+  uuid: string
+): Promise<TaskResponse | null> {
+  const task = await prisma.task.findFirst({
+    where: { uuid, companyUuid },
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  if (!task) return null;
+  return formatTaskResponse(task);
 }
 
-// 通过 ID 获取 Task（内部使用）
-export async function getTaskById(companyId: number, uuid: string) {
+// 通过 UUID 获取 Task 原始数据（内部使用，用于权限检查等）
+export async function getTaskByUuid(companyUuid: string, uuid: string) {
   return prisma.task.findFirst({
-    where: { uuid, companyId },
+    where: { uuid, companyUuid },
   });
 }
 
 // 创建 Task
-export async function createTask(params: TaskCreateParams) {
-  return prisma.task.create({
+export async function createTask(params: TaskCreateParams): Promise<TaskResponse> {
+  const task = await prisma.task.create({
     data: {
-      companyId: params.companyId,
-      projectId: params.projectId,
+      companyUuid: params.companyUuid,
+      projectUuid: params.projectUuid,
       title: params.title,
       description: params.description,
       status: "open",
       priority: params.priority || "medium",
       storyPoints: params.storyPoints,
-      proposalId: params.proposalId,
-      createdBy: params.createdBy,
+      proposalUuid: params.proposalUuid,
+      createdByUuid: params.createdByUuid,
     },
     select: {
       uuid: true,
@@ -130,86 +216,125 @@ export async function createTask(params: TaskCreateParams) {
       status: true,
       priority: true,
       storyPoints: true,
-      createdBy: true,
+      assigneeType: true,
+      assigneeUuid: true,
+      assignedAt: true,
+      assignedByUuid: true,
+      proposalUuid: true,
+      createdByUuid: true,
       createdAt: true,
       updatedAt: true,
     },
   });
+
+  return formatTaskResponse(task);
 }
 
 // 更新 Task
-export async function updateTask(id: number, data: TaskUpdateParams) {
-  return prisma.task.update({
-    where: { id },
+export async function updateTask(
+  uuid: string,
+  data: TaskUpdateParams
+): Promise<TaskResponse> {
+  const task = await prisma.task.update({
+    where: { uuid },
     data,
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  return formatTaskResponse(task);
 }
 
 // 认领 Task
-export async function claimTask({ taskId, assigneeType, assigneeId, assignedBy }: TaskClaimParams) {
-  return prisma.task.update({
-    where: { id: taskId },
+export async function claimTask({
+  taskUuid,
+  companyUuid,
+  assigneeType,
+  assigneeUuid,
+  assignedByUuid,
+}: TaskClaimParams): Promise<TaskResponse> {
+  const task = await prisma.task.update({
+    where: { uuid: taskUuid },
     data: {
       status: "assigned",
       assigneeType,
-      assigneeId,
+      assigneeUuid,
       assignedAt: new Date(),
-      assignedBy,
+      assignedByUuid,
     },
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  return formatTaskResponse(task);
 }
 
 // 放弃认领 Task
-export async function releaseTask(id: number) {
-  return prisma.task.update({
-    where: { id },
+export async function releaseTask(uuid: string): Promise<TaskResponse> {
+  const task = await prisma.task.update({
+    where: { uuid },
     data: {
       status: "open",
       assigneeType: null,
-      assigneeId: null,
+      assigneeUuid: null,
       assignedAt: null,
-      assignedBy: null,
+      assignedByUuid: null,
     },
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  return formatTaskResponse(task);
 }
 
 // 删除 Task
-export async function deleteTask(id: number) {
-  return prisma.task.delete({ where: { id } });
+export async function deleteTask(uuid: string) {
+  return prisma.task.delete({ where: { uuid } });
 }
 
 // 批量创建 Tasks（用于 Proposal 审批）
 export async function createTasksFromProposal(
-  companyId: number,
-  projectId: number,
-  proposalId: number,
-  createdBy: number,
+  companyUuid: string,
+  projectUuid: string,
+  proposalUuid: string,
+  createdByUuid: string,
   tasks: Array<{ title: string; description?: string; priority?: string; storyPoints?: number }>
-) {
+): Promise<TaskResponse[]> {
   const createPromises = tasks.map((task) =>
     prisma.task.create({
       data: {
-        companyId,
-        projectId,
+        companyUuid,
+        projectUuid,
         title: task.title,
         description: task.description || null,
         status: "open",
         priority: task.priority || "medium",
         storyPoints: task.storyPoints || null,
-        proposalId,
-        createdBy,
+        proposalUuid,
+        createdByUuid,
+      },
+      select: {
+        uuid: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        storyPoints: true,
+        assigneeType: true,
+        assigneeUuid: true,
+        assignedAt: true,
+        assignedByUuid: true,
+        proposalUuid: true,
+        createdByUuid: true,
+        createdAt: true,
+        updatedAt: true,
       },
     })
   );
 
-  return Promise.all(createPromises);
+  const rawTasks = await Promise.all(createPromises);
+  return Promise.all(rawTasks.map(formatTaskResponse));
 }

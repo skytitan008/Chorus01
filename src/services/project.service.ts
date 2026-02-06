@@ -1,16 +1,17 @@
 // src/services/project.service.ts
 // Project 服务层 (ARCHITECTURE.md §3.1 Service Layer)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
 
 export interface ProjectListParams {
-  companyId: number;
+  companyUuid: string;
   skip: number;
   take: number;
 }
 
 export interface ProjectCreateParams {
-  companyId: number;
+  companyUuid: string;
   name: string;
   description?: string | null;
 }
@@ -21,15 +22,14 @@ export interface ProjectUpdateParams {
 }
 
 // 项目列表查询
-export async function listProjects({ companyId, skip, take }: ProjectListParams) {
+export async function listProjects({ companyUuid, skip, take }: ProjectListParams) {
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
-      where: { companyId },
+      where: { companyUuid },
       skip,
       take,
       orderBy: { updatedAt: "desc" },
       select: {
-        id: true,
         uuid: true,
         name: true,
         description: true,
@@ -45,18 +45,17 @@ export async function listProjects({ companyId, skip, take }: ProjectListParams)
         },
       },
     }),
-    prisma.project.count({ where: { companyId } }),
+    prisma.project.count({ where: { companyUuid } }),
   ]);
 
   return { projects, total };
 }
 
 // 获取项目详情
-export async function getProject(companyId: number, uuid: string) {
+export async function getProject(companyUuid: string, uuid: string) {
   return prisma.project.findFirst({
-    where: { uuid, companyId },
+    where: { uuid, companyUuid },
     select: {
-      id: true,
       uuid: true,
       name: true,
       description: true,
@@ -75,19 +74,27 @@ export async function getProject(companyId: number, uuid: string) {
   });
 }
 
-// 通过 UUID 获取项目 ID
-export async function getProjectIdByUuid(companyId: number, uuid: string) {
+// 验证项目是否存在
+export async function projectExists(companyUuid: string, projectUuid: string): Promise<boolean> {
   const project = await prisma.project.findFirst({
-    where: { uuid, companyId },
-    select: { id: true },
+    where: { uuid: projectUuid, companyUuid },
+    select: { uuid: true },
   });
-  return project?.id ?? null;
+  return !!project;
+}
+
+// 通过 UUID 获取项目基本信息
+export async function getProjectByUuid(companyUuid: string, uuid: string) {
+  return prisma.project.findFirst({
+    where: { uuid, companyUuid },
+    select: { uuid: true, name: true },
+  });
 }
 
 // 创建项目
-export async function createProject({ companyId, name, description }: ProjectCreateParams) {
+export async function createProject({ companyUuid, name, description }: ProjectCreateParams) {
   return prisma.project.create({
-    data: { companyId, name, description },
+    data: { companyUuid, name, description },
     select: {
       uuid: true,
       name: true,
@@ -99,9 +106,9 @@ export async function createProject({ companyId, name, description }: ProjectCre
 }
 
 // 更新项目
-export async function updateProject(id: number, data: ProjectUpdateParams) {
+export async function updateProject(uuid: string, data: ProjectUpdateParams) {
   return prisma.project.update({
-    where: { id },
+    where: { uuid },
     data,
     select: {
       uuid: true,
@@ -114,6 +121,6 @@ export async function updateProject(id: number, data: ProjectUpdateParams) {
 }
 
 // 删除项目
-export async function deleteProject(id: number) {
-  return prisma.project.delete({ where: { id } });
+export async function deleteProject(uuid: string) {
+  return prisma.project.delete({ where: { uuid } });
 }

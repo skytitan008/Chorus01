@@ -1,5 +1,6 @@
 // src/app/api/auth/session/route.ts
 // User session API - Get current session and logout
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest, NextResponse } from "next/server";
 import { success, errors } from "@/lib/api-response";
@@ -8,7 +9,7 @@ import {
   getFullSessionFromRequest,
   clearUserSessionCookies,
 } from "@/lib/user-session";
-import { getUserById } from "@/services/user.service";
+import { getUserByUuid } from "@/services/user.service";
 
 // GET /api/auth/session - Get current user session
 export async function GET(request: NextRequest) {
@@ -18,8 +19,8 @@ export async function GET(request: NextRequest) {
     return errors.unauthorized("No active session");
   }
 
-  // Get fresh user data from database
-  const user = await getUserById(session.actorId);
+  // Get fresh user data from database (UUID-based)
+  const user = await getUserByUuid(session.actorUuid);
   if (!user) {
     const response = NextResponse.json(errors.unauthorized("User not found"));
     clearUserSessionCookies(response);

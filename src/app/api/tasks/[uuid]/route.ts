@@ -1,23 +1,20 @@
 // src/app/api/tasks/[uuid]/route.ts
 // Tasks API - 详情、更新、删除 (ARCHITECTURE.md §5.1, §7.2)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser, isAssignee } from "@/lib/auth";
+import {
+  getTask,
+  getTaskByUuid,
+  updateTask,
+  deleteTask,
+  isValidTaskStatusTransition,
+} from "@/services/task.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
-
-// Task 状态转换规则 (ARCHITECTURE.md §7.2)
-const TASK_STATUS_TRANSITIONS: Record<string, string[]> = {
-  open: ["assigned", "closed"],
-  assigned: ["open", "in_progress", "closed"],
-  in_progress: ["to_verify", "closed"],
-  to_verify: ["done", "in_progress", "closed"],
-  done: ["closed"],
-  closed: [],
-};
 
 // GET /api/tasks/[uuid] - Task 详情
 export const GET = withErrorHandler<{ uuid: string }>(
@@ -28,44 +25,13 @@ export const GET = withErrorHandler<{ uuid: string }>(
     }
 
     const { uuid } = await context.params;
-
-    const task = await prisma.task.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      include: {
-        project: {
-          select: { uuid: true, name: true },
-        },
-      },
-    });
+    const task = await getTask(auth.companyUuid, uuid);
 
     if (!task) {
       return errors.notFound("Task");
     }
 
-    return success({
-      uuid: task.uuid,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
-      storyPoints: task.storyPoints,
-      assignee: task.assigneeId
-        ? {
-            type: task.assigneeType,
-            id: task.assigneeId,
-            assignedAt: task.assignedAt?.toISOString(),
-            assignedBy: task.assignedBy,
-          }
-        : null,
-      proposalId: task.proposalId,
-      project: {
-        uuid: task.project.uuid,
-        name: task.project.name,
-      },
-      createdBy: task.createdBy,
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    });
+    return success(task);
   }
 );
 
@@ -79,10 +45,8 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const task = await prisma.task.findFirst({
-      where: { uuid, companyId: auth.companyId },
-    });
-
+    // 获取原始 Task 数据用于权限检查
+    const task = await getTaskByUuid(auth.companyUuid, uuid);
     if (!task) {
       return errors.notFound("Task");
     }
@@ -104,7 +68,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       storyPoints?: number | null;
     } = {};
 
-    // 标题更新
+    // 标题验证
     if (body.title !== undefined) {
       if (body.title.trim() === "") {
         return errors.validationError({ title: "Title cannot be empty" });
@@ -117,7 +81,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.description = body.description.trim() || null;
     }
 
-    // 优先级更新
+    // 优先级验证
     if (body.priority !== undefined) {
       const validPriorities = ["low", "medium", "high"];
       if (!validPriorities.includes(body.priority)) {
@@ -128,7 +92,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.priority = body.priority;
     }
 
-    // Story Points 更新（单位：Agent 小时）
+    // Story Points 验证（单位：Agent 小时）
     if (body.storyPoints !== undefined) {
       if (body.storyPoints !== null && (body.storyPoints < 0 || body.storyPoints > 1000)) {
         return errors.validationError({
@@ -141,14 +105,13 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     // 状态更新
     if (body.status !== undefined) {
       // 检查状态转换是否有效
-      const allowedTransitions = TASK_STATUS_TRANSITIONS[task.status] || [];
-      if (!allowedTransitions.includes(body.status)) {
+      if (!isValidTaskStatusTransition(task.status, body.status)) {
         return errors.invalidStatusTransition(task.status, body.status);
       }
 
       // 非用户只能更新自己认领的 Task 状态
       if (!isUser(auth)) {
-        if (!isAssignee(auth, task.assigneeType, task.assigneeId)) {
+        if (!isAssignee(auth, task.assigneeType, task.assigneeUuid)) {
           return errors.permissionDenied("Only assignee can update status");
         }
       }
@@ -156,40 +119,8 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.status = body.status;
     }
 
-    const updated = await prisma.task.update({
-      where: { id: task.id },
-      data: updateData,
-      include: {
-        project: {
-          select: { uuid: true, name: true },
-        },
-      },
-    });
-
-    return success({
-      uuid: updated.uuid,
-      title: updated.title,
-      description: updated.description,
-      status: updated.status,
-      priority: updated.priority,
-      storyPoints: updated.storyPoints,
-      assignee: updated.assigneeId
-        ? {
-            type: updated.assigneeType,
-            id: updated.assigneeId,
-            assignedAt: updated.assignedAt?.toISOString(),
-            assignedBy: updated.assignedBy,
-          }
-        : null,
-      proposalId: updated.proposalId,
-      project: {
-        uuid: updated.project.uuid,
-        name: updated.project.name,
-      },
-      createdBy: updated.createdBy,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    const updated = await updateTask(task.uuid, updateData);
+    return success(updated);
   }
 );
 
@@ -208,19 +139,12 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const task = await prisma.task.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true },
-    });
-
+    const task = await getTaskByUuid(auth.companyUuid, uuid);
     if (!task) {
       return errors.notFound("Task");
     }
 
-    await prisma.task.delete({
-      where: { id: task.id },
-    });
-
+    await deleteTask(task.uuid);
     return success({ deleted: true });
   }
 );

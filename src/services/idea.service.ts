@@ -1,30 +1,55 @@
 // src/services/idea.service.ts
 // Idea 服务层 (ARCHITECTURE.md §3.1 Service Layer)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
+import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
+
+// ===== 类型定义 =====
 
 export interface IdeaListParams {
-  companyId: number;
-  projectId: number;
+  companyUuid: string;
+  projectUuid: string;
   skip: number;
   take: number;
   status?: string;
 }
 
 export interface IdeaCreateParams {
-  companyId: number;
-  projectId: number;
+  companyUuid: string;
+  projectUuid: string;
   title: string;
   content?: string | null;
   attachments?: unknown;
-  createdBy: number;
+  createdByUuid: string;
 }
 
 export interface IdeaClaimParams {
-  ideaId: number;
+  ideaUuid: string;
+  companyUuid: string;
   assigneeType: string;
-  assigneeId: number;
-  assignedBy?: number | null;
+  assigneeUuid: string;
+  assignedByUuid?: string | null;
+}
+
+// API 响应格式
+export interface IdeaResponse {
+  uuid: string;
+  title: string;
+  content: string | null;
+  attachments: unknown;
+  status: string;
+  assignee: {
+    type: string;
+    uuid: string;
+    name: string;
+    assignedAt: string | null;
+    assignedBy: { type: string; uuid: string; name: string } | null;
+  } | null;
+  project?: { uuid: string; name: string };
+  createdBy: { type: string; uuid: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Idea 状态转换规则 (ARCHITECTURE.md §7.3)
@@ -43,15 +68,62 @@ export function isValidIdeaStatusTransition(from: string, to: string): boolean {
   return allowed.includes(to);
 }
 
+// ===== 内部辅助函数 =====
+
+// 格式化单个 Idea 为 API 响应格式
+async function formatIdeaResponse(
+  idea: {
+    uuid: string;
+    title: string;
+    content: string | null;
+    attachments: unknown;
+    status: string;
+    assigneeType: string | null;
+    assigneeUuid: string | null;
+    assignedAt: Date | null;
+    assignedByUuid: string | null;
+    createdByUuid: string;
+    createdAt: Date;
+    updatedAt: Date;
+    project?: { uuid: string; name: string };
+  }
+): Promise<IdeaResponse> {
+  const [assignee, createdBy] = await Promise.all([
+    formatAssigneeComplete(idea.assigneeType, idea.assigneeUuid, idea.assignedAt, idea.assignedByUuid),
+    formatCreatedBy(idea.createdByUuid),
+  ]);
+
+  return {
+    uuid: idea.uuid,
+    title: idea.title,
+    content: idea.content,
+    attachments: idea.attachments,
+    status: idea.status,
+    assignee,
+    ...(idea.project && { project: idea.project }),
+    createdBy,
+    createdAt: idea.createdAt.toISOString(),
+    updatedAt: idea.updatedAt.toISOString(),
+  };
+}
+
+// ===== Service 方法 =====
+
 // Ideas 列表查询
-export async function listIdeas({ companyId, projectId, skip, take, status }: IdeaListParams) {
+export async function listIdeas({
+  companyUuid,
+  projectUuid,
+  skip,
+  take,
+  status,
+}: IdeaListParams): Promise<{ ideas: IdeaResponse[]; total: number }> {
   const where = {
-    projectId,
-    companyId,
+    projectUuid,
+    companyUuid,
     ...(status && { status }),
   };
 
-  const [ideas, total] = await Promise.all([
+  const [rawIdeas, total] = await Promise.all([
     prisma.idea.findMany({
       where,
       skip,
@@ -64,10 +136,10 @@ export async function listIdeas({ companyId, projectId, skip, take, status }: Id
         attachments: true,
         status: true,
         assigneeType: true,
-        assigneeId: true,
+        assigneeUuid: true,
         assignedAt: true,
-        assignedBy: true,
-        createdBy: true,
+        assignedByUuid: true,
+        createdByUuid: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -75,37 +147,44 @@ export async function listIdeas({ companyId, projectId, skip, take, status }: Id
     prisma.idea.count({ where }),
   ]);
 
+  const ideas = await Promise.all(rawIdeas.map(formatIdeaResponse));
   return { ideas, total };
 }
 
 // 获取 Idea 详情
-export async function getIdea(companyId: number, uuid: string) {
-  return prisma.idea.findFirst({
-    where: { uuid, companyId },
+export async function getIdea(
+  companyUuid: string,
+  uuid: string
+): Promise<IdeaResponse | null> {
+  const idea = await prisma.idea.findFirst({
+    where: { uuid, companyUuid },
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  if (!idea) return null;
+  return formatIdeaResponse(idea);
 }
 
-// 通过 ID 获取 Idea（内部使用）
-export async function getIdeaById(companyId: number, uuid: string) {
+// 通过 UUID 获取 Idea 原始数据（内部使用，用于权限检查等）
+export async function getIdeaByUuid(companyUuid: string, uuid: string) {
   return prisma.idea.findFirst({
-    where: { uuid, companyId },
+    where: { uuid, companyUuid },
   });
 }
 
 // 创建 Idea
-export async function createIdea(params: IdeaCreateParams) {
-  return prisma.idea.create({
+export async function createIdea(params: IdeaCreateParams): Promise<IdeaResponse> {
+  const idea = await prisma.idea.create({
     data: {
-      companyId: params.companyId,
-      projectId: params.projectId,
+      companyUuid: params.companyUuid,
+      projectUuid: params.projectUuid,
       title: params.title,
       content: params.content,
       attachments: params.attachments || undefined,
       status: "open",
-      createdBy: params.createdBy,
+      createdByUuid: params.createdByUuid,
     },
     select: {
       uuid: true,
@@ -113,62 +192,81 @@ export async function createIdea(params: IdeaCreateParams) {
       content: true,
       attachments: true,
       status: true,
-      createdBy: true,
+      assigneeType: true,
+      assigneeUuid: true,
+      assignedAt: true,
+      assignedByUuid: true,
+      createdByUuid: true,
       createdAt: true,
       updatedAt: true,
     },
   });
+
+  return formatIdeaResponse(idea);
 }
 
 // 更新 Idea
 export async function updateIdea(
-  id: number,
+  uuid: string,
+  companyUuid: string,
   data: { title?: string; content?: string | null; status?: string }
-) {
-  return prisma.idea.update({
-    where: { id },
+): Promise<IdeaResponse> {
+  const idea = await prisma.idea.update({
+    where: { uuid },
     data,
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  return formatIdeaResponse(idea);
 }
 
 // 认领 Idea
-export async function claimIdea({ ideaId, assigneeType, assigneeId, assignedBy }: IdeaClaimParams) {
-  return prisma.idea.update({
-    where: { id: ideaId },
+export async function claimIdea({
+  ideaUuid,
+  companyUuid,
+  assigneeType,
+  assigneeUuid,
+  assignedByUuid,
+}: IdeaClaimParams): Promise<IdeaResponse> {
+  const idea = await prisma.idea.update({
+    where: { uuid: ideaUuid },
     data: {
       status: "assigned",
       assigneeType,
-      assigneeId,
+      assigneeUuid,
       assignedAt: new Date(),
-      assignedBy,
+      assignedByUuid,
     },
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  return formatIdeaResponse(idea);
 }
 
 // 放弃认领 Idea
-export async function releaseIdea(id: number) {
-  return prisma.idea.update({
-    where: { id },
+export async function releaseIdea(uuid: string): Promise<IdeaResponse> {
+  const idea = await prisma.idea.update({
+    where: { uuid },
     data: {
       status: "open",
       assigneeType: null,
-      assigneeId: null,
+      assigneeUuid: null,
       assignedAt: null,
-      assignedBy: null,
+      assignedByUuid: null,
     },
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  return formatIdeaResponse(idea);
 }
 
 // 删除 Idea
-export async function deleteIdea(id: number) {
-  return prisma.idea.delete({ where: { id } });
+export async function deleteIdea(uuid: string) {
+  return prisma.idea.delete({ where: { uuid } });
 }

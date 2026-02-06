@@ -1,5 +1,6 @@
 // src/app/api/agents/[uuid]/route.ts
 // Agents API - 详情、更新、删除 (ARCHITECTURE.md §5.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +26,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
     const { uuid } = await context.params;
 
     const agent = await prisma.agent.findFirst({
-      where: { uuid, companyId: auth.companyId },
+      where: { uuid, companyUuid: auth.companyUuid },
       include: {
         apiKeys: {
           where: { revokedAt: null },
@@ -51,7 +52,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       roles: agent.roles,
       persona: agent.persona,
       systemPrompt: agent.systemPrompt,
-      ownerId: agent.ownerId,
+      ownerUuid: agent.ownerUuid,
       lastActiveAt: agent.lastActiveAt?.toISOString() || null,
       apiKeys: agent.apiKeys.map((k) => ({
         uuid: k.uuid,
@@ -82,7 +83,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     const { uuid } = await context.params;
 
     const agent = await prisma.agent.findFirst({
-      where: { uuid, companyId: auth.companyId },
+      where: { uuid, companyUuid: auth.companyUuid },
     });
 
     if (!agent) {
@@ -131,7 +132,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     }
 
     const updated = await prisma.agent.update({
-      where: { id: agent.id },
+      where: { uuid: agent.uuid },
       data: updateData,
       select: {
         uuid: true,
@@ -139,7 +140,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
         roles: true,
         persona: true,
         systemPrompt: true,
-        ownerId: true,
+        ownerUuid: true,
         lastActiveAt: true,
         createdAt: true,
       },
@@ -151,7 +152,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       roles: updated.roles,
       persona: updated.persona,
       systemPrompt: updated.systemPrompt,
-      ownerId: updated.ownerId,
+      ownerUuid: updated.ownerUuid,
       lastActiveAt: updated.lastActiveAt?.toISOString() || null,
       createdAt: updated.createdAt.toISOString(),
     });
@@ -174,8 +175,8 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
     const { uuid } = await context.params;
 
     const agent = await prisma.agent.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true },
+      where: { uuid, companyUuid: auth.companyUuid },
+      select: { uuid: true },
     });
 
     if (!agent) {
@@ -184,7 +185,7 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     // 删除 Agent（API Keys 会被级联删除）
     await prisma.agent.delete({
-      where: { id: agent.id },
+      where: { uuid: agent.uuid },
     });
 
     return success({ deleted: true });

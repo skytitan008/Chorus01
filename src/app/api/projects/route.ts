@@ -1,5 +1,6 @@
 // src/app/api/projects/route.ts
 // Projects API - 列表和创建 (ARCHITECTURE.md §5.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -18,12 +19,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
-      where: { companyId: auth.companyId },
+      where: { companyUuid: auth.companyUuid },
       skip,
       take,
       orderBy: { updatedAt: "desc" },
       select: {
-        id: true,
         uuid: true,
         name: true,
         description: true,
@@ -40,7 +40,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       },
     }),
     prisma.project.count({
-      where: { companyId: auth.companyId },
+      where: { companyUuid: auth.companyUuid },
     }),
   ]);
 
@@ -86,7 +86,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const project = await prisma.project.create({
     data: {
-      companyId: auth.companyId,
+      companyUuid: auth.companyUuid,
       name: body.name.trim(),
       description: body.description?.trim() || null,
     },

@@ -1,5 +1,6 @@
 // src/app/api/api-keys/route.ts
 // API Keys API - 列表和创建 (ARCHITECTURE.md §5.1, §9.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -23,7 +24,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const { page, pageSize, skip, take } = parsePagination(request);
 
   const where = {
-    companyId: auth.companyId,
+    companyUuid: auth.companyUuid,
     revokedAt: null,
   };
 
@@ -86,10 +87,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return errors.validationError({ agentUuid: "Agent UUID is required" });
   }
 
-  // 验证 Agent 存在
+  // 验证 Agent 存在 (query by UUID)
   const agent = await prisma.agent.findFirst({
-    where: { uuid: body.agentUuid, companyId: auth.companyId },
-    select: { id: true, uuid: true, name: true, roles: true },
+    where: { uuid: body.agentUuid, companyUuid: auth.companyUuid },
+    select: { uuid: true, name: true, roles: true },
   });
 
   if (!agent) {
@@ -110,8 +111,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const apiKey = await prisma.apiKey.create({
     data: {
-      companyId: auth.companyId,
-      agentId: agent.id,
+      companyUuid: auth.companyUuid,
+      agentUuid: agent.uuid,
       keyHash: hash,
       keyPrefix: prefix,
       name: body.name?.trim() || null,

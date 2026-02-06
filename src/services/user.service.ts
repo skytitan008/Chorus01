@@ -1,5 +1,6 @@
 // src/services/user.service.ts
 // User service for OIDC-authenticated users
+// UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
 
@@ -8,18 +9,18 @@ export interface OidcUserInput {
   oidcSub: string;
   email: string;
   name?: string;
-  companyId: number;
+  companyUuid: string;
 }
 
 // Find or create user by OIDC subject
 export async function findOrCreateUserByOidc(input: OidcUserInput) {
-  const { oidcSub, email, name, companyId } = input;
+  const { oidcSub, email, name, companyUuid } = input;
 
   // First try to find existing user by OIDC subject in this company
   let user = await prisma.user.findFirst({
     where: {
       oidcSub,
-      companyId,
+      companyUuid,
     },
     select: {
       id: true,
@@ -27,7 +28,7 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
       email: true,
       name: true,
       oidcSub: true,
-      companyId: true,
+      companyUuid: true,
       company: {
         select: {
           uuid: true,
@@ -49,7 +50,7 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
           email: true,
           name: true,
           oidcSub: true,
-          companyId: true,
+          companyUuid: true,
           company: {
             select: {
               uuid: true,
@@ -66,7 +67,7 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
   const existingByEmail = await prisma.user.findFirst({
     where: {
       email,
-      companyId,
+      companyUuid,
     },
   });
 
@@ -81,7 +82,7 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
         email: true,
         name: true,
         oidcSub: true,
-        companyId: true,
+        companyUuid: true,
         company: {
           select: {
             uuid: true,
@@ -98,7 +99,7 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
       email,
       name,
       oidcSub,
-      companyId,
+      companyUuid,
     },
     select: {
       id: true,
@@ -106,7 +107,7 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
       email: true,
       name: true,
       oidcSub: true,
-      companyId: true,
+      companyUuid: true,
       company: {
         select: {
           uuid: true,
@@ -117,44 +118,23 @@ export async function findOrCreateUserByOidc(input: OidcUserInput) {
   });
 }
 
-// Get user by ID with company info
-export async function getUserById(userId: number) {
+// Get user by UUID with company info
+export async function getUserByUuid(userUuid: string) {
   return prisma.user.findUnique({
-    where: { id: userId },
+    where: { uuid: userUuid },
     select: {
       id: true,
       uuid: true,
       email: true,
       name: true,
       oidcSub: true,
-      companyId: true,
+      companyUuid: true,
       company: {
         select: {
           uuid: true,
           name: true,
           oidcIssuer: true,
           oidcClientId: true,
-        },
-      },
-    },
-  });
-}
-
-// Get user by UUID
-export async function getUserByUuid(uuid: string) {
-  return prisma.user.findFirst({
-    where: { uuid },
-    select: {
-      id: true,
-      uuid: true,
-      email: true,
-      name: true,
-      oidcSub: true,
-      companyId: true,
-      company: {
-        select: {
-          uuid: true,
-          name: true,
         },
       },
     },

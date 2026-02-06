@@ -1,5 +1,6 @@
 // src/lib/auth.ts
 // 认证中间件和工具函数 (ARCHITECTURE.md §6)
+// UUID-Based Architecture: All IDs are UUIDs
 
 import { NextRequest, NextResponse } from "next/server";
 import { extractApiKey, validateApiKey } from "./api-key";
@@ -14,7 +15,7 @@ import type {
 import { getSuperAdminFromRequest } from "./super-admin";
 import { getUserSessionFromRequest } from "./user-session";
 
-// 从请求获取认证上下文
+// 从请求获取认证上下文 (UUID-based)
 export async function getAuthContext(
   request: NextRequest
 ): Promise<AuthContext | null> {
@@ -35,11 +36,10 @@ export async function getAuthContext(
       if (result.valid && result.agent) {
         const agentContext: AgentAuthContext = {
           type: "agent",
-          companyId: result.agent.companyId,
-          actorId: result.agent.id,
-          uuid: result.agent.uuid,
+          companyUuid: result.agent.companyUuid,
+          actorUuid: result.agent.uuid,
           roles: result.agent.roles as AgentRole[],
-          ownerId: result.agent.ownerId ?? undefined,
+          ownerUuid: result.agent.ownerUuid ?? undefined,
           agentName: result.agent.name,
         };
         return agentContext;
@@ -53,16 +53,15 @@ export async function getAuthContext(
     return userSession;
   }
 
-  // 3. Fallback: Header 模拟用户认证（开发用）
-  const userIdHeader = request.headers.get("x-user-id");
-  const companyIdHeader = request.headers.get("x-company-id");
+  // 3. Fallback: Header 模拟用户认证（开发用）- UUID-based
+  const userUuidHeader = request.headers.get("x-user-uuid");
+  const companyUuidHeader = request.headers.get("x-company-uuid");
 
-  if (userIdHeader && companyIdHeader) {
+  if (userUuidHeader && companyUuidHeader) {
     const userContext: UserAuthContext = {
       type: "user",
-      companyId: parseInt(companyIdHeader, 10),
-      actorId: parseInt(userIdHeader, 10),
-      uuid: request.headers.get("x-user-uuid") || "",
+      companyUuid: companyUuidHeader,
+      actorUuid: userUuidHeader,
       email: request.headers.get("x-user-email") || undefined,
       name: request.headers.get("x-user-name") || undefined,
     };
@@ -168,31 +167,31 @@ export function requireAgentRole<T>(
   };
 }
 
-// 检查是否是资源的认领者
+// 检查是否是资源的认领者 (UUID-based)
 export function isAssignee(
   ctx: AuthContext,
   assigneeType: string | null,
-  assigneeId: number | null
+  assigneeUuid: string | null
 ): boolean {
-  if (!assigneeType || !assigneeId) return false;
+  if (!assigneeType || !assigneeUuid) return false;
 
   if (isUser(ctx)) {
     // 用户直接匹配
-    if (assigneeType === "user" && assigneeId === ctx.actorId) {
+    if (assigneeType === "user" && assigneeUuid === ctx.actorUuid) {
       return true;
     }
   }
 
   if (isAgent(ctx)) {
     // Agent 直接匹配
-    if (assigneeType === "agent" && assigneeId === ctx.actorId) {
+    if (assigneeType === "agent" && assigneeUuid === ctx.actorUuid) {
       return true;
     }
     // Agent 的 Owner 认领（"Assign to myself"）
     if (
       assigneeType === "user" &&
-      ctx.ownerId &&
-      assigneeId === ctx.ownerId
+      ctx.ownerUuid &&
+      assigneeUuid === ctx.ownerUuid
     ) {
       return true;
     }

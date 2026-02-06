@@ -1,5 +1,6 @@
 // src/app/api/auth/callback/route.ts
 // OIDC Callback API - Registers user and creates our own JWT session
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
 import { success, errors } from "@/lib/api-response";
@@ -31,20 +32,18 @@ export async function POST(request: NextRequest) {
       return errors.badRequest("OIDC is not enabled for this company");
     }
 
-    // Find or create user in database
+    // Find or create user in database (UUID-based)
     const user = await findOrCreateUserByOidc({
       oidcSub,
       email,
       name,
-      companyId: company.id,
+      companyUuid: company.uuid,
     });
 
-    // Create our own JWT session token
+    // Create our own JWT session token (UUID-based)
     const sessionPayload: UserSessionPayload = {
       type: "user",
-      userId: user.id,
       userUuid: user.uuid,
-      companyId: user.companyId,
       companyUuid: company.uuid,
       email: user.email || email,
       name: user.name || undefined,

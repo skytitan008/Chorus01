@@ -1,5 +1,6 @@
 // src/services/company.service.ts
 // Company 服务层 (Super Admin Operations)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
 import { CompanyCreateInput, CompanyUpdateInput } from "@/types/admin";
@@ -149,24 +150,25 @@ export async function deleteCompany(id: number) {
     // 获取 company 信息
     const company = await tx.company.findUnique({
       where: { id },
-      select: { id: true },
+      select: { uuid: true },
     });
 
     if (!company) {
       throw new Error("Company not found");
     }
 
-    // 删除关联数据（按依赖顺序）
-    await tx.activity.deleteMany({ where: { companyId: id } });
-    await tx.comment.deleteMany({ where: { companyId: id } });
-    await tx.proposal.deleteMany({ where: { companyId: id } });
-    await tx.task.deleteMany({ where: { companyId: id } });
-    await tx.document.deleteMany({ where: { companyId: id } });
-    await tx.idea.deleteMany({ where: { companyId: id } });
-    await tx.project.deleteMany({ where: { companyId: id } });
-    await tx.apiKey.deleteMany({ where: { companyId: id } });
-    await tx.agent.deleteMany({ where: { companyId: id } });
-    await tx.user.deleteMany({ where: { companyId: id } });
+    // 删除关联数据（按依赖顺序）- use companyUuid
+    const companyUuid = company.uuid;
+    await tx.activity.deleteMany({ where: { companyUuid } });
+    await tx.comment.deleteMany({ where: { companyUuid } });
+    await tx.proposal.deleteMany({ where: { companyUuid } });
+    await tx.task.deleteMany({ where: { companyUuid } });
+    await tx.document.deleteMany({ where: { companyUuid } });
+    await tx.idea.deleteMany({ where: { companyUuid } });
+    await tx.project.deleteMany({ where: { companyUuid } });
+    await tx.apiKey.deleteMany({ where: { companyUuid } });
+    await tx.agent.deleteMany({ where: { companyUuid } });
+    await tx.user.deleteMany({ where: { companyUuid } });
 
     // 最后删除 Company
     return tx.company.delete({ where: { id } });

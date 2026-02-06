@@ -1,11 +1,12 @@
 // src/app/api/tasks/[uuid]/release/route.ts
 // Tasks API - 放弃认领 Task (PRD §3.3.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser, isAssignee } from "@/lib/auth";
+import { getTaskByUuid, releaseTask } from "@/services/task.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -19,10 +20,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const task = await prisma.task.findFirst({
-      where: { uuid, companyId: auth.companyId },
-    });
-
+    const task = await getTaskByUuid(auth.companyUuid, uuid);
     if (!task) {
       return errors.notFound("Task");
     }
@@ -34,42 +32,12 @@ export const POST = withErrorHandler<{ uuid: string }>(
 
     // 检查权限：用户可以释放任何 Task，Agent 只能释放自己认领的
     if (!isUser(auth)) {
-      if (!isAssignee(auth, task.assigneeType, task.assigneeId)) {
+      if (!isAssignee(auth, task.assigneeType, task.assigneeUuid)) {
         return errors.permissionDenied("Only assignee can release this task");
       }
     }
 
-    const updated = await prisma.task.update({
-      where: { id: task.id },
-      data: {
-        status: "open",
-        assigneeType: null,
-        assigneeId: null,
-        assignedAt: null,
-        assignedBy: null,
-      },
-      include: {
-        project: {
-          select: { uuid: true, name: true },
-        },
-      },
-    });
-
-    return success({
-      uuid: updated.uuid,
-      title: updated.title,
-      description: updated.description,
-      status: updated.status,
-      priority: updated.priority,
-      assignee: null,
-      proposalId: updated.proposalId,
-      project: {
-        uuid: updated.project.uuid,
-        name: updated.project.name,
-      },
-      createdBy: updated.createdBy,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    const updated = await releaseTask(task.uuid);
+    return success(updated);
   }
 );

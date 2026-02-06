@@ -1,11 +1,13 @@
 // src/app/api/projects/[uuid]/tasks/route.ts
 // Tasks API - 列表和创建 (ARCHITECTURE.md §5.1, PRD §3.3.1)
+// UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser, isPmAgent } from "@/lib/auth";
+import { projectExists } from "@/services/project.service";
+import { listTasks, createTask } from "@/services/task.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -17,79 +19,29 @@ export const GET = withErrorHandler<{ uuid: string }>(
       return errors.unauthorized();
     }
 
-    const { uuid } = await context.params;
+    const { uuid: projectUuid } = await context.params;
     const { page, pageSize, skip, take } = parsePagination(request);
 
     // 解析筛选参数
     const url = new URL(request.url);
-    const statusFilter = url.searchParams.get("status");
-    const priorityFilter = url.searchParams.get("priority");
+    const statusFilter = url.searchParams.get("status") || undefined;
+    const priorityFilter = url.searchParams.get("priority") || undefined;
 
-    // 查找项目
-    const project = await prisma.project.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true },
-    });
-
-    if (!project) {
+    // 验证项目存在
+    if (!(await projectExists(auth.companyUuid, projectUuid))) {
       return errors.notFound("Project");
     }
 
-    const where = {
-      projectId: project.id,
-      companyId: auth.companyId,
-      ...(statusFilter && { status: statusFilter }),
-      ...(priorityFilter && { priority: priorityFilter }),
-    };
+    const { tasks, total } = await listTasks({
+      companyUuid: auth.companyUuid,
+      projectUuid,
+      skip,
+      take,
+      status: statusFilter,
+      priority: priorityFilter,
+    });
 
-    const [tasks, total] = await Promise.all([
-      prisma.task.findMany({
-        where,
-        skip,
-        take,
-        orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-        select: {
-          uuid: true,
-          title: true,
-          description: true,
-          status: true,
-          priority: true,
-          storyPoints: true,
-          assigneeType: true,
-          assigneeId: true,
-          assignedAt: true,
-          assignedBy: true,
-          proposalId: true,
-          createdBy: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      prisma.task.count({ where }),
-    ]);
-
-    const data = tasks.map((task) => ({
-      uuid: task.uuid,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
-      storyPoints: task.storyPoints,
-      assignee: task.assigneeId
-        ? {
-            type: task.assigneeType,
-            id: task.assigneeId,
-            assignedAt: task.assignedAt?.toISOString(),
-            assignedBy: task.assignedBy,
-          }
-        : null,
-      proposalId: task.proposalId,
-      createdBy: task.createdBy,
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    }));
-
-    return paginated(data, page, pageSize, total);
+    return paginated(tasks, page, pageSize, total);
   }
 );
 
@@ -106,15 +58,10 @@ export const POST = withErrorHandler<{ uuid: string }>(
       return errors.forbidden("Only users and PM agents can create tasks");
     }
 
-    const { uuid } = await context.params;
+    const { uuid: projectUuid } = await context.params;
 
-    // 查找项目
-    const project = await prisma.project.findFirst({
-      where: { uuid, companyId: auth.companyId },
-      select: { id: true },
-    });
-
-    if (!project) {
+    // 验证项目存在
+    if (!(await projectExists(auth.companyUuid, projectUuid))) {
       return errors.notFound("Project");
     }
 
@@ -147,42 +94,16 @@ export const POST = withErrorHandler<{ uuid: string }>(
       });
     }
 
-    const task = await prisma.task.create({
-      data: {
-        companyId: auth.companyId,
-        projectId: project.id,
-        title: body.title.trim(),
-        description: body.description?.trim() || null,
-        status: "open",
-        priority,
-        storyPoints: storyPoints || null,
-        createdBy: auth.actorId,
-      },
-      select: {
-        uuid: true,
-        title: true,
-        description: true,
-        status: true,
-        priority: true,
-        storyPoints: true,
-        createdBy: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const task = await createTask({
+      companyUuid: auth.companyUuid,
+      projectUuid,
+      title: body.title.trim(),
+      description: body.description?.trim() || null,
+      priority,
+      storyPoints: storyPoints || null,
+      createdByUuid: auth.actorUuid,
     });
 
-    return success({
-      uuid: task.uuid,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
-      storyPoints: task.storyPoints,
-      assignee: null,
-      proposalId: null,
-      createdBy: task.createdBy,
-      createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString(),
-    });
+    return success(task);
   }
 );
