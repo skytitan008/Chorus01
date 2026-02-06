@@ -2,16 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { CompanyListItem } from "@/types/admin";
 
 export default function CompaniesPage() {
@@ -40,7 +30,11 @@ export default function CompaniesPage() {
   };
 
   const handleDelete = async (uuid: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone and will delete all associated data.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${name}"? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -61,17 +55,17 @@ export default function CompaniesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-full bg-[#FAF8F4] px-8 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Companies</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold text-[#171717]">Companies</h1>
+          <p className="mt-1 text-sm text-[#737373]">
             {total} registered organization{total !== 1 ? "s" : ""}
           </p>
         </div>
         <Link href="/admin/companies/new">
-          <Button>
+          <button className="inline-flex items-center gap-2 rounded-lg bg-[#171717] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2C2C2C]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -80,76 +74,107 @@ export default function CompaniesPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="mr-2 h-4 w-4"
+              className="h-4 w-4"
             >
               <path d="M12 5v14M5 12h14" />
             </svg>
             Add Company
-          </Button>
+          </button>
         </Link>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email Domains</TableHead>
-              <TableHead>OIDC Status</TableHead>
-              <TableHead className="text-right">Users</TableHead>
-              <TableHead className="text-right">Agents</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="overflow-hidden rounded-xl border border-[#E5E2DC] bg-white">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[#E5E2DC]">
+              <th className="px-4 py-3 text-left text-sm font-medium text-[#737373]">
+                Name
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-[#737373]">
+                Email Domains
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-[#737373]">
+                OIDC Status
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-[#737373]">
+                Users
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-[#737373]">
+                Agents
+              </th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-[#737373]">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-[#737373]">
                   Loading...
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : companies.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  <div className="text-muted-foreground">
-                    No companies found.{" "}
-                    <Link href="/admin/companies/new" className="text-primary hover:underline">
-                      Add your first company
-                    </Link>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-[#737373]">
+                  No companies found.{" "}
+                  <Link
+                    href="/admin/companies/new"
+                    className="text-[#171717] underline hover:no-underline"
+                  >
+                    Add your first company
+                  </Link>
+                </td>
+              </tr>
             ) : (
               companies.map((company) => (
-                <TableRow key={company.uuid}>
-                  <TableCell className="font-medium">{company.name}</TableCell>
-                  <TableCell>
+                <tr
+                  key={company.uuid}
+                  className="border-b border-[#E5E2DC] last:border-b-0"
+                >
+                  <td className="px-4 py-3 font-medium text-[#171717]">
+                    {company.name}
+                  </td>
+                  <td className="px-4 py-3">
                     {company.emailDomains.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {company.emailDomains.map((domain) => (
-                          <Badge key={domain} variant="secondary">
+                          <span
+                            key={domain}
+                            className="rounded-md bg-[#F5F5F5] px-2 py-0.5 text-xs text-[#737373]"
+                          >
                             {domain}
-                          </Badge>
+                          </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-[#A3A3A3]">—</span>
                     )}
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className="px-4 py-3">
                     {company.oidcEnabled ? (
-                      <Badge variant="success">Configured</Badge>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        Configured
+                      </span>
                     ) : (
-                      <Badge variant="warning">Not configured</Badge>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Not configured
+                      </span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-right">{company.userCount}</TableCell>
-                  <TableCell className="text-right">{company.agentCount}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                  </td>
+                  <td className="px-4 py-3 text-right text-[#737373]">
+                    {company.userCount}
+                  </td>
+                  <td className="px-4 py-3 text-right text-[#737373]">
+                    {company.agentCount}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
                       <Link href={`/admin/companies/${company.uuid}`}>
-                        <Button variant="ghost" size="sm">
+                        <button className="rounded-lg p-2 text-[#737373] hover:bg-[#F5F5F5] hover:text-[#171717]">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -163,11 +188,10 @@ export default function CompaniesPage() {
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                             <path d="m15 5 4 4" />
                           </svg>
-                        </Button>
+                        </button>
                       </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <button
+                        className="rounded-lg p-2 text-[#DC2626] hover:bg-red-50"
                         onClick={() => handleDelete(company.uuid, company.name)}
                       >
                         <svg
@@ -178,7 +202,7 @@ export default function CompaniesPage() {
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="h-4 w-4 text-destructive"
+                          className="h-4 w-4"
                         >
                           <path d="M3 6h18" />
                           <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
@@ -186,14 +210,14 @@ export default function CompaniesPage() {
                           <line x1="10" y1="11" x2="10" y2="17" />
                           <line x1="14" y1="11" x2="14" y2="17" />
                         </svg>
-                      </Button>
+                      </button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
     </div>
   );

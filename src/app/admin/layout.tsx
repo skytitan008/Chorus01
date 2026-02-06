@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 interface AdminUser {
   email: string;
@@ -51,8 +50,8 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-[#FAF8F4]">
+        <div className="text-[#737373]">Loading...</div>
       </div>
     );
   }
@@ -110,12 +109,12 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[#FAF8F4]">
       {/* Sidebar */}
-      <aside className="flex w-56 flex-col border-r bg-card">
+      <aside className="flex w-56 flex-col border-r border-[#E5E2DC] bg-white">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2 border-b px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-destructive">
+        <div className="flex h-16 items-center gap-2 border-b border-[#E5E2DC] px-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-[#DC2626]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -124,12 +123,12 @@ export default function AdminLayout({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4 text-destructive-foreground"
+              className="h-4 w-4 text-white"
             >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
-          <span className="font-semibold">Super Admin</span>
+          <span className="font-semibold text-[#171717]">Super Admin</span>
         </div>
 
         {/* Navigation */}
@@ -142,10 +141,10 @@ export default function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                    ? "bg-[#F5F5F5] text-[#171717]"
+                    : "text-[#737373] hover:bg-[#F5F5F5] hover:text-[#171717]"
                 }`}
               >
                 {item.icon}
@@ -156,14 +155,12 @@ export default function AdminLayout({
         </nav>
 
         {/* User & Logout */}
-        <div className="border-t p-4">
-          <div className="mb-2 truncate text-sm text-muted-foreground">
+        <div className="border-t border-[#E5E2DC] p-4">
+          <div className="mb-2 truncate text-sm text-[#737373]">
             {user.email}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-muted-foreground"
+          <button
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#737373] hover:bg-[#F5F5F5] hover:text-[#171717]"
             onClick={handleLogout}
           >
             <svg
@@ -174,21 +171,19 @@ export default function AdminLayout({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="mr-2 h-4 w-4"
+              className="h-4 w-4"
             >
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             Sign Out
-          </Button>
+          </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-background">
-        <div className="p-8">{children}</div>
-      </main>
+      <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
 }
