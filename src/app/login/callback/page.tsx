@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   createUserManager,
   getStoredOidcConfig,
-  clearOidcConfig,
   extractUserInfo,
 } from "@/lib/oidc";
-import { storeAccessToken } from "@/lib/auth-client";
+import { initUserManager } from "@/lib/auth-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Music, Loader2 } from "lucide-react";
@@ -18,7 +17,17 @@ export default function OidcCallbackPage() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Processing login...");
 
+  // Guard against React Strict Mode double execution
+  // Authorization codes are one-time use, so we must prevent double callback processing
+  const callbackProcessed = useRef(false);
+
   useEffect(() => {
+    // Prevent double execution in React Strict Mode (development)
+    if (callbackProcessed.current) {
+      return;
+    }
+    callbackProcessed.current = true;
+
     handleCallback();
   }, []);
 
@@ -44,12 +53,12 @@ export default function OidcCallbackPage() {
         throw new Error("No user returned from OIDC provider");
       }
 
-      setStatus("Creating session...");
+      setStatus("Registering user...");
 
       // Extract user info from OIDC response
       const userInfo = extractUserInfo(user);
 
-      // Send to backend to register user
+      // Register user in backend (just creates user record, no JWT)
       const response = await fetch("/api/auth/callback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,9 +67,6 @@ export default function OidcCallbackPage() {
           oidcSub: userInfo.sub,
           email: userInfo.email,
           name: userInfo.name,
-          accessToken: userInfo.accessToken,
-          refreshToken: userInfo.refreshToken,
-          expiresAt: userInfo.expiresAt,
         }),
       });
 
@@ -70,22 +76,20 @@ export default function OidcCallbackPage() {
         throw new Error(data.error?.message || "Failed to register user");
       }
 
-      // Store our JWT access token for Bearer auth
-      storeAccessToken(data.data.accessToken);
-
-      // Clear stored config
-      clearOidcConfig();
+      // Initialize UserManager singleton for future use
+      // The OIDC tokens are already stored by oidc-client-ts in localStorage
+      // The config is also stored in localStorage for recreating UserManager after page navigation
+      initUserManager(oidcConfig);
 
       setStatus("Login successful! Redirecting...");
 
-      // Redirect to projects page for OIDC users
+      // Redirect to projects page
       router.push("/projects");
     } catch (err) {
       console.error("OIDC callback error:", err);
       setError(
         err instanceof Error ? err.message : "Authentication failed"
       );
-      clearOidcConfig();
     }
   };
 

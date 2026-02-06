@@ -1,102 +1,79 @@
 // src/lib/auth-client.ts
-// Client-side auth utilities for managing access tokens
+// Client-side auth utilities for OIDC token management
+// Uses oidc-client-ts UserManager for token storage and refresh
 
-// Token storage key
-const ACCESS_TOKEN_KEY = "chorus_access_token";
-const TOKEN_EXPIRY_KEY = "chorus_token_expiry";
+import { UserManager, User } from "oidc-client-ts";
+import { createUserManager, getStoredOidcConfig, storeOidcConfig, clearOidcConfig, type OidcConfig } from "./oidc";
 
-// Token refresh threshold (refresh when less than 2 minutes remaining)
-const REFRESH_THRESHOLD_MS = 2 * 60 * 1000;
+// Singleton UserManager instance
+let userManager: UserManager | null = null;
 
-// Store access token
-export function storeAccessToken(token: string): void {
-  if (typeof window === "undefined") return;
-
-  // Decode JWT to get expiry (without verification - just for timing)
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const expiryMs = payload.exp * 1000;
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryMs.toString());
-  } catch {
-    // If decode fails, still store but without expiry tracking
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  }
-}
-
-// Get access token
-export function getAccessToken(): string | null {
+// Get or create UserManager
+export function getUserManager(): UserManager | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
-}
 
-// Clear access token
-export function clearAccessToken(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(TOKEN_EXPIRY_KEY);
-}
-
-// Check if token needs refresh
-export function tokenNeedsRefresh(): boolean {
-  if (typeof window === "undefined") return false;
-
-  const expiryStr = localStorage.getItem(TOKEN_EXPIRY_KEY);
-  if (!expiryStr) return true;
-
-  const expiryMs = parseInt(expiryStr, 10);
-  return Date.now() + REFRESH_THRESHOLD_MS > expiryMs;
-}
-
-// Check if token is expired
-export function isTokenExpired(): boolean {
-  if (typeof window === "undefined") return true;
-
-  const expiryStr = localStorage.getItem(TOKEN_EXPIRY_KEY);
-  if (!expiryStr) return true;
-
-  const expiryMs = parseInt(expiryStr, 10);
-  return Date.now() > expiryMs;
-}
-
-// Refresh access token
-export async function refreshAccessToken(): Promise<string | null> {
-  try {
-    const response = await fetch("/api/auth/refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    const data = await response.json();
-
-    if (data.success && data.data.accessToken) {
-      storeAccessToken(data.data.accessToken);
-      return data.data.accessToken;
+  if (!userManager) {
+    const config = getStoredOidcConfig();
+    if (config) {
+      userManager = createUserManager(config);
     }
+  }
+  return userManager;
+}
 
-    return null;
+// Initialize UserManager with config
+export function initUserManager(config: OidcConfig): UserManager {
+  storeOidcConfig(config);
+  userManager = createUserManager(config);
+  return userManager;
+}
+
+// Clear UserManager (on logout)
+export function clearUserManager(): void {
+  userManager = null;
+}
+
+// Get current user from UserManager
+export async function getOidcUser(): Promise<User | null> {
+  const manager = getUserManager();
+  if (!manager) return null;
+
+  try {
+    return await manager.getUser();
   } catch {
     return null;
   }
 }
 
-// Get valid access token (refresh if needed)
-export async function getValidAccessToken(): Promise<string | null> {
-  const token = getAccessToken();
+// Get valid access token (will trigger silent renew if needed)
+export async function getAccessToken(): Promise<string | null> {
+  const user = await getOidcUser();
 
-  if (!token || isTokenExpired()) {
-    // Token missing or expired, try to refresh
-    return refreshAccessToken();
+  if (!user) return null;
+
+  // Check if token is expired
+  if (user.expired) {
+    // Try silent renew
+    const manager = getUserManager();
+    if (manager) {
+      try {
+        const renewedUser = await manager.signinSilent();
+        return renewedUser?.access_token || null;
+      } catch {
+        // Silent renew failed, user needs to re-login
+        return null;
+      }
+    }
+    return null;
   }
 
-  if (tokenNeedsRefresh()) {
-    // Token will expire soon, refresh in background
-    refreshAccessToken().catch(() => {
-      // Ignore background refresh errors
-    });
-  }
+  return user.access_token;
+}
 
-  return token;
+// Check if user is authenticated
+export async function isAuthenticated(): Promise<boolean> {
+  const user = await getOidcUser();
+  return user !== null && !user.expired;
 }
 
 // Create authenticated fetch wrapper
@@ -104,7 +81,7 @@ export async function authFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token = await getValidAccessToken();
+  const token = await getAccessToken();
 
   const headers = new Headers(options.headers);
 
@@ -128,4 +105,27 @@ export function createAuthFetcher() {
     }
     return response.json();
   };
+}
+
+// Login redirect
+export async function login(): Promise<void> {
+  const manager = getUserManager();
+  if (manager) {
+    await manager.signinRedirect();
+  }
+}
+
+// Logout
+export async function logout(): Promise<void> {
+  const manager = getUserManager();
+  if (manager) {
+    try {
+      await manager.signoutRedirect();
+    } catch {
+      // Signout redirect may fail, clear user anyway
+      await manager.removeUser();
+    }
+  }
+  clearUserManager();
+  clearOidcConfig();
 }

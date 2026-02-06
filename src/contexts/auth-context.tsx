@@ -9,21 +9,16 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { UserManager } from "oidc-client-ts";
+import { User } from "oidc-client-ts";
 import {
-  createUserManager,
-  getStoredOidcConfig,
-  extractUserInfo,
-  type OidcConfig,
-} from "@/lib/oidc";
-import {
-  storeAccessToken,
-  clearAccessToken,
-  getValidAccessToken,
+  getUserManager,
+  getOidcUser,
   authFetch,
+  logout as authLogout,
+  clearUserManager,
 } from "@/lib/auth-client";
 
-// User info from session
+// User info from OIDC
 interface UserInfo {
   uuid: string;
   email: string;
@@ -48,125 +43,89 @@ interface AuthContextState {
 
 const AuthContext = createContext<AuthContextState | null>(null);
 
-// Token refresh interval (check every 5 minutes)
-const REFRESH_CHECK_INTERVAL = 5 * 60 * 1000;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userManager, setUserManager] = useState<UserManager | null>(null);
 
-  // Fetch current session
+  // Fetch current session from backend
   const fetchSession = useCallback(async () => {
     try {
-      // Use authFetch to include Bearer token
       const response = await authFetch("/api/auth/session");
       const data = await response.json();
 
       if (data.success) {
         setUser(data.data.user);
         setCompany(data.data.company);
-
-        // Check if OIDC tokens need refresh
-        if (data.data.oidc?.needsRefresh && userManager) {
-          await refreshOidcTokens();
-        }
-
         return true;
       }
       return false;
     } catch {
       return false;
     }
-  }, [userManager]);
+  }, []);
 
   // Initialize session on mount
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await fetchSession();
+
+      // Check if we have an OIDC user
+      const oidcUser = await getOidcUser();
+
+      if (oidcUser && !oidcUser.expired) {
+        // We have a valid OIDC session, fetch user info from backend
+        await fetchSession();
+      }
+
       setLoading(false);
     };
 
     init();
-  }, []);
+  }, [fetchSession]);
 
-  // Set up OIDC UserManager for token refresh
+  // Set up OIDC event handlers
   useEffect(() => {
-    const oidcConfig = getStoredOidcConfig();
-    if (oidcConfig) {
-      const manager = createUserManager(oidcConfig);
-      setUserManager(manager);
+    const manager = getUserManager();
+    if (!manager) return;
 
-      // Set up automatic token refresh event handlers
-      manager.events.addAccessTokenExpiring(() => {
-        console.log("Access token expiring, refreshing...");
-        refreshOidcTokens();
-      });
+    // Handle token expiring (oidc-client-ts will auto-renew)
+    const handleExpiring = () => {
+      console.log("OIDC token expiring, will be auto-renewed");
+    };
 
-      manager.events.addAccessTokenExpired(() => {
-        console.log("Access token expired");
-        handleSessionExpired();
-      });
+    // Handle token expired
+    const handleExpired = () => {
+      console.log("OIDC token expired");
+      handleSessionExpired();
+    };
 
-      manager.events.addSilentRenewError((err) => {
-        console.error("Silent renew error:", err);
-        handleSessionExpired();
-      });
+    // Handle silent renew error
+    const handleRenewError = (err: Error) => {
+      console.error("Silent renew error:", err);
+      handleSessionExpired();
+    };
 
-      return () => {
-        manager.events.removeAccessTokenExpiring(() => {});
-        manager.events.removeAccessTokenExpired(() => {});
-        manager.events.removeSilentRenewError(() => {});
-      };
-    }
+    // Handle user loaded (after silent renew)
+    const handleUserLoaded = (user: User) => {
+      console.log("OIDC user loaded/renewed");
+      // Session is still valid, no action needed
+    };
+
+    manager.events.addAccessTokenExpiring(handleExpiring);
+    manager.events.addAccessTokenExpired(handleExpired);
+    manager.events.addSilentRenewError(handleRenewError);
+    manager.events.addUserLoaded(handleUserLoaded);
+
+    return () => {
+      manager.events.removeAccessTokenExpiring(handleExpiring);
+      manager.events.removeAccessTokenExpired(handleExpired);
+      manager.events.removeSilentRenewError(handleRenewError);
+      manager.events.removeUserLoaded(handleUserLoaded);
+    };
   }, []);
-
-  // Periodic session refresh check
-  useEffect(() => {
-    if (!user) return;
-
-    const interval = setInterval(() => {
-      fetchSession();
-    }, REFRESH_CHECK_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [user, fetchSession]);
-
-  // Refresh OIDC tokens using silent renew
-  const refreshOidcTokens = async () => {
-    if (!userManager) return;
-
-    try {
-      const renewedUser = await userManager.signinSilent();
-      if (renewedUser) {
-        const userInfo = extractUserInfo(renewedUser);
-
-        // Update backend session with new tokens
-        const response = await fetch("/api/auth/refresh", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            oidcAccessToken: userInfo.accessToken,
-            oidcRefreshToken: userInfo.refreshToken,
-            oidcExpiresAt: userInfo.expiresAt,
-          }),
-        });
-
-        const data = await response.json();
-
-        // Store new access token
-        if (data.success && data.data.accessToken) {
-          storeAccessToken(data.data.accessToken);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to refresh OIDC tokens:", err);
-    }
-  };
 
   // Handle session expired
   const handleSessionExpired = () => {
@@ -182,25 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear backend session
       await fetch("/api/auth/session", { method: "DELETE" });
 
-      // Clear local access token
-      clearAccessToken();
-
-      // Clear OIDC session if available
-      if (userManager) {
-        try {
-          await userManager.signoutRedirect();
-        } catch {
-          // OIDC logout may fail if provider doesn't support it
-        }
-      }
+      // OIDC logout
+      await authLogout();
 
       setUser(null);
       setCompany(null);
       router.push("/login");
     } catch (err) {
       console.error("Logout error:", err);
-      // Clear token and redirect even on error
-      clearAccessToken();
+      // Clear state and redirect even on error
+      clearUserManager();
       router.push("/login");
     }
   };

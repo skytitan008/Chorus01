@@ -20,7 +20,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { getAccessToken, clearAccessToken, authFetch } from "@/lib/auth-client";
+import { getAccessToken, authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
 
 interface User {
   uuid: string;
@@ -81,7 +81,7 @@ export default function DashboardLayout({
   }, [pathname, projects, currentProject?.uuid]);
 
   const checkSession = async () => {
-    const token = getAccessToken();
+    const token = await getAccessToken();
 
     if (!token) {
       // No token, redirect to login
@@ -91,15 +91,11 @@ export default function DashboardLayout({
 
     try {
       // Verify token and get user info from API
-      const response = await fetch("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch("/api/auth/session");
 
       if (!response.ok) {
         // Token invalid, clear and redirect to login
-        clearAccessToken();
+        clearUserManager();
         router.push("/login");
         return;
       }
@@ -113,13 +109,13 @@ export default function DashboardLayout({
         });
       } else {
         // Invalid response, redirect to login
-        clearAccessToken();
+        clearUserManager();
         router.push("/login");
         return;
       }
     } catch (error) {
       console.error("Session check failed:", error);
-      clearAccessToken();
+      clearUserManager();
       router.push("/login");
       return;
     }
@@ -162,7 +158,11 @@ export default function DashboardLayout({
   };
 
   const handleLogout = async () => {
-    clearAccessToken();
+    try {
+      await authLogout();
+    } catch {
+      clearUserManager();
+    }
     localStorage.removeItem("currentProjectUuid");
     router.push("/login");
   };

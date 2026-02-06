@@ -1,6 +1,10 @@
 // src/app/api/auth/refresh/route.ts
-// Token refresh API - Refresh user session tokens
+// Token refresh API - For SuperAdmin session only
 // UUID-Based Architecture: All operations use UUIDs
+//
+// NOTE: Normal OIDC users do NOT use this endpoint.
+// OIDC token refresh is handled entirely on the frontend by oidc-client-ts.
+// This endpoint is ONLY for SuperAdmin users who use cookie-based sessions.
 
 import { NextRequest, NextResponse } from "next/server";
 import { success, errors } from "@/lib/api-response";
@@ -15,8 +19,7 @@ import {
 import { getUserByUuid } from "@/services/user.service";
 
 // POST /api/auth/refresh
-// Body: { oidcAccessToken?, oidcRefreshToken?, oidcExpiresAt? }
-// Refreshes the session tokens, optionally with new OIDC tokens
+// Refreshes the SuperAdmin session tokens (cookie-based)
 export async function POST(request: NextRequest) {
   try {
     // Get refresh token from cookie
@@ -37,31 +40,14 @@ export async function POST(request: NextRequest) {
       return errors.unauthorized("User not found");
     }
 
-    // Get new OIDC tokens from request body (if provided)
-    let oidcAccessToken: string | undefined;
-    let oidcRefreshToken: string | undefined;
-    let oidcExpiresAt: number | undefined;
-
-    try {
-      const body = await request.json();
-      oidcAccessToken = body.oidcAccessToken;
-      oidcRefreshToken = body.oidcRefreshToken;
-      oidcExpiresAt = body.oidcExpiresAt;
-    } catch {
-      // Empty body is okay - just refresh the session tokens
-    }
-
     // Create new session payload (UUID-based)
     const sessionPayload: UserSessionPayload = {
       type: "user",
       userUuid: user.uuid,
       companyUuid: user.companyUuid,
-      email: user.email || "", // Email should always exist, fallback to empty
+      email: user.email || "",
       name: user.name || undefined,
       oidcSub: user.oidcSub || "",
-      oidcAccessToken,
-      oidcRefreshToken,
-      oidcExpiresAt,
     };
 
     // Create new tokens
@@ -70,7 +56,7 @@ export async function POST(request: NextRequest) {
       createUserRefreshToken(sessionPayload),
     ]);
 
-    // Build response with cookies and token
+    // Build response with cookies
     const response = NextResponse.json(
       success({
         user: {
@@ -82,8 +68,6 @@ export async function POST(request: NextRequest) {
           uuid: user.company.uuid,
           name: user.company.name,
         },
-        // Return new access token for Bearer auth
-        accessToken: newAccessToken,
         refreshed: true,
       })
     );

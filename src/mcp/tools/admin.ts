@@ -36,6 +36,38 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
+  // chorus_admin_create_idea - 创建 Idea（代理人类提出需求）
+  server.registerTool(
+    "chorus_admin_create_idea",
+    {
+      description: "创建 Idea（Admin 专属，代理人类提出需求）",
+      inputSchema: z.object({
+        projectUuid: z.string().describe("项目 UUID"),
+        title: z.string().describe("Idea 标题"),
+        content: z.string().optional().describe("Idea 详细描述"),
+      }),
+    },
+    async ({ projectUuid, title, content }) => {
+      // 验证项目存在
+      const project = await projectService.getProject(auth.companyUuid, projectUuid);
+      if (!project) {
+        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+      }
+
+      const idea = await ideaService.createIdea({
+        companyUuid: auth.companyUuid,
+        projectUuid,
+        title,
+        content: content || null,
+        createdByUuid: auth.actorUuid,  // Admin Agent 作为创建者
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(idea, null, 2) }],
+      };
+    }
+  );
+
   // chorus_admin_approve_proposal - 审批通过 Proposal
   server.registerTool(
     "chorus_admin_approve_proposal",

@@ -1,25 +1,23 @@
 // src/app/api/auth/callback/route.ts
-// OIDC Callback API - Registers user and creates our own JWT session
+// OIDC Callback API - Registers user in database
 // UUID-Based Architecture: All operations use UUIDs
+// Note: No longer creates Chorus JWT - frontend uses OIDC access token directly
 
 import { NextRequest } from "next/server";
 import { success, errors } from "@/lib/api-response";
 import { findOrCreateUserByOidc, getCompanyByUuid } from "@/services/user.service";
-import {
-  createUserAccessToken,
-  type UserSessionPayload,
-} from "@/lib/user-session";
 
 // POST /api/auth/callback
-// Body: { companyUuid, oidcSub, email, name?, accessToken, refreshToken?, expiresAt? }
+// Body: { companyUuid, oidcSub, email, name? }
+// Creates or updates user in database after OIDC login
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { companyUuid, oidcSub, email, name, accessToken, refreshToken, expiresAt } = body;
+    const { companyUuid, oidcSub, email, name } = body;
 
     // Validate required fields
-    if (!companyUuid || !oidcSub || !email || !accessToken) {
-      return errors.badRequest("Missing required fields: companyUuid, oidcSub, email, accessToken");
+    if (!companyUuid || !oidcSub || !email) {
+      return errors.badRequest("Missing required fields: companyUuid, oidcSub, email");
     }
 
     // Get company
@@ -40,23 +38,7 @@ export async function POST(request: NextRequest) {
       companyUuid: company.uuid,
     });
 
-    // Create our own JWT session token (UUID-based)
-    const sessionPayload: UserSessionPayload = {
-      type: "user",
-      userUuid: user.uuid,
-      companyUuid: company.uuid,
-      email: user.email || email,
-      name: user.name || undefined,
-      oidcSub: user.oidcSub || oidcSub,
-      oidcAccessToken: accessToken,
-      oidcRefreshToken: refreshToken,
-      oidcExpiresAt: expiresAt,
-    };
-
-    // Create our JWT access token
-    const jwtAccessToken = await createUserAccessToken(sessionPayload);
-
-    // Return user info and our JWT token
+    // Return user info (no JWT - frontend uses OIDC access token directly)
     return success({
       user: {
         uuid: user.uuid,
@@ -67,8 +49,6 @@ export async function POST(request: NextRequest) {
         uuid: company.uuid,
         name: company.name,
       },
-      // Return our JWT for Bearer auth (not the raw OIDC token)
-      accessToken: jwtAccessToken,
     });
   } catch (error) {
     console.error("OIDC callback error:", error);

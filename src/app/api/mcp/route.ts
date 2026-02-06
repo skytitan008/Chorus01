@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       type: "agent",
       companyUuid: validation.agent.companyUuid,
       actorUuid: validation.agent.uuid,
-      roles: validation.agent.roles as ("pm" | "developer")[],
+      roles: validation.agent.roles as ("pm" | "developer" | "admin")[],
       ownerUuid: validation.agent.ownerUuid ?? undefined,
       agentName: validation.agent.name,
     };

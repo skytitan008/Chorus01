@@ -1,7 +1,7 @@
 // src/lib/oidc.ts
 // OIDC Client utilities using oidc-client-ts (PKCE mode)
 
-import { UserManager, UserManagerSettings, User } from "oidc-client-ts";
+import { UserManager, UserManagerSettings, User, WebStorageStateStore } from "oidc-client-ts";
 
 // OIDC configuration for a company
 export interface OidcConfig {
@@ -18,6 +18,11 @@ export function createOidcSettings(config: OidcConfig): UserManagerSettings {
       ? window.location.origin
       : process.env.NEXTAUTH_URL || "http://localhost:3000";
 
+  // Use localStorage for persistent token storage
+  const userStore = typeof window !== "undefined"
+    ? new WebStorageStateStore({ store: window.localStorage })
+    : undefined;
+
   return {
     authority: config.issuer,
     client_id: config.clientId,
@@ -29,9 +34,8 @@ export function createOidcSettings(config: OidcConfig): UserManagerSettings {
     silent_redirect_uri: `${baseUrl}/login/silent-refresh`,
     accessTokenExpiringNotificationTimeInSeconds: 60, // Notify 60s before expiry
     // PKCE is enabled by default in oidc-client-ts
-    // Store state in sessionStorage for security
-    stateStore: undefined, // Use default sessionStorage
-    userStore: undefined, // Use default sessionStorage
+    // Use localStorage for user/token storage (persistent across tabs/sessions)
+    userStore,
     // Extra query params to pass company context
     extraQueryParams: {
       company: config.companyUuid,
@@ -45,18 +49,19 @@ export function createUserManager(config: OidcConfig): UserManager {
   return new UserManager(settings);
 }
 
-// Store OIDC config in sessionStorage for callback use
+// Store OIDC config in localStorage for persistent use
+// This config is needed to recreate UserManager after page navigation
 export function storeOidcConfig(config: OidcConfig): void {
   if (typeof window !== "undefined") {
-    sessionStorage.setItem("oidc_config", JSON.stringify(config));
+    localStorage.setItem("oidc_config", JSON.stringify(config));
   }
 }
 
-// Retrieve OIDC config from sessionStorage
+// Retrieve OIDC config from localStorage
 export function getStoredOidcConfig(): OidcConfig | null {
   if (typeof window === "undefined") return null;
 
-  const stored = sessionStorage.getItem("oidc_config");
+  const stored = localStorage.getItem("oidc_config");
   if (!stored) return null;
 
   try {
@@ -66,10 +71,10 @@ export function getStoredOidcConfig(): OidcConfig | null {
   }
 }
 
-// Clear stored OIDC config
+// Clear stored OIDC config (called on logout)
 export function clearOidcConfig(): void {
   if (typeof window !== "undefined") {
-    sessionStorage.removeItem("oidc_config");
+    localStorage.removeItem("oidc_config");
   }
 }
 

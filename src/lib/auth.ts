@@ -14,6 +14,7 @@ import type {
 } from "@/types/auth";
 import { getSuperAdminFromRequest } from "./super-admin";
 import { getUserSessionFromRequest } from "./user-session";
+import { verifyOidcAccessToken, isOidcToken } from "./oidc-auth";
 
 // 从请求获取认证上下文 (UUID-based)
 export async function getAuthContext(
@@ -23,16 +24,11 @@ export async function getAuthContext(
 
   // 1. 尝试 Bearer Token 认证
   if (authHeader?.toLowerCase().startsWith("bearer ")) {
-    // 1a. 先尝试 User JWT Token (Bearer token 格式)
-    const userSession = await getUserSessionFromRequest(request);
-    if (userSession) {
-      return userSession;
-    }
+    const token = authHeader.substring(7).trim();
 
-    // 1b. 尝试 API Key 认证（Agent）- API Key 也是 Bearer 格式
-    const apiKey = extractApiKey(authHeader);
-    if (apiKey) {
-      const result = await validateApiKey(apiKey);
+    // 1a. API Key 认证（Agent）- API Key 以 "cho_" 开头
+    if (token.startsWith("cho_")) {
+      const result = await validateApiKey(token);
       if (result.valid && result.agent) {
         const agentContext: AgentAuthContext = {
           type: "agent",
@@ -45,9 +41,23 @@ export async function getAuthContext(
         return agentContext;
       }
     }
+
+    // 1b. OIDC Access Token 认证（普通用户）
+    if (isOidcToken(token)) {
+      const userContext = await verifyOidcAccessToken(token);
+      if (userContext) {
+        return userContext;
+      }
+    }
+
+    // 1c. Chorus JWT Token 认证（SuperAdmin 或旧系统兼容）
+    const userSession = await getUserSessionFromRequest(request);
+    if (userSession) {
+      return userSession;
+    }
   }
 
-  // 2. 尝试 Session Cookie 认证（User）- 无 Authorization header 时
+  // 2. 尝试 Session Cookie 认证（SuperAdmin）- 无 Authorization header 时
   const userSession = await getUserSessionFromRequest(request);
   if (userSession) {
     return userSession;

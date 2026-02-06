@@ -87,12 +87,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // 验证角色
-  const validRoles = ["pm_agent", "developer_agent", "pm", "developer"];
+  const validRoles = ["pm_agent", "developer_agent", "admin_agent", "pm", "developer", "admin"];
   const roles = body.roles || ["developer_agent"];
   for (const role of roles) {
     if (!validRoles.includes(role)) {
       return errors.validationError({
-        roles: "Roles must be pm_agent or developer_agent",
+        roles: "Roles must be pm_agent, developer_agent, or admin_agent",
       });
     }
   }
