@@ -2,12 +2,28 @@
 
 ## 总览
 
-基于 PRD v0.14，分 6 个里程碑完成 MVP 开发。
+基于 PRD v0.17，分 6 个里程碑完成 MVP 开发。
 
 **参考文档**：
 - PRD: `docs/PRD_Chorus.md`
 - 技术架构: `docs/ARCHITECTURE.md`
 - UI 设计: `docs/design.pen`
+
+**当前状态**: M3 Web UI 进行中（基础页面完成，交互功能待完善）
+
+---
+
+## 进度概览
+
+| 里程碑 | 状态 | 完成度 |
+|-------|------|--------|
+| M0: 项目骨架 | ✅ 完成 | 100% |
+| M1: 后端 API | ✅ 完成 | 100% |
+| M2: MCP Server | ✅ 完成 | 100% |
+| M2.5: Super Admin | ✅ 完成 | 100% |
+| M3: Web UI | 🔄 进行中 | 60% |
+| M4: Skill 文件 | ⏳ 待开始 | 0% |
+| M5: 联调测试 | ⏳ 待开始 | 0% |
 
 ---
 
@@ -52,7 +68,7 @@ pnpm db:generate
 
 ---
 
-## M0: 项目骨架 (Week 1)
+## M0: 项目骨架 (Week 1) ✅ 完成
 
 ### 目标
 搭建完整的项目基础设施，确保开发环境可用。
@@ -110,7 +126,7 @@ pnpm db:generate
 
 ---
 
-## M1: 后端 API (Week 2)
+## M1: 后端 API (Week 2) ✅ 完成
 
 ### 目标
 实现所有核心实体的 CRUD API。
@@ -252,7 +268,7 @@ pnpm db:generate
 
 ---
 
-## M2: MCP Server (Week 3)
+## M2: MCP Server (Week 3) ✅ 完成
 
 ### 目标
 实现 MCP HTTP 端点，让 Claude Code 可以调用 Chorus API。
@@ -302,6 +318,9 @@ pnpm db:generate
 > 架构参考: `ARCHITECTURE.md` §5.2 MCP API - PM Agent 工具
 
 - [x] chorus_pm_create_proposal - 创建提议（PRD/任务拆分/技术方案）
+- [x] chorus_pm_create_document - 创建文档
+- [x] chorus_pm_create_tasks - 批量创建任务
+- [x] chorus_pm_update_document - 更新文档
 - [x] chorus_claim_idea - 认领 Idea（open → assigned）
 - [x] chorus_release_idea - 放弃认领 Idea（assigned → open）
 - [x] chorus_update_idea_status - 更新 Idea 状态（仅认领者）
@@ -316,11 +335,27 @@ pnpm db:generate
 - [x] chorus_submit_for_verify - 提交任务等待人类验证
 - [x] chorus_report_work - 报告工作完成
 
-#### M2.6 权限验证 ✅
+#### M2.6 Admin Agent 专属工具 ✅
+> PRD 参考: `PRD_Chorus.md` §5.4 MCP 工具列表 - Admin 专属
+> 架构参考: `ARCHITECTURE.md` §5.2 MCP API - Admin Agent 工具
+
+- [x] chorus_admin_create_project - 创建新项目
+- [x] chorus_admin_create_idea - 创建 Idea（代理人类提出需求）
+- [x] chorus_admin_approve_proposal - 审批 Proposal
+- [x] chorus_admin_reject_proposal - 拒绝 Proposal
+- [x] chorus_admin_verify_task - 验证 Task（to_verify → done）
+- [x] chorus_admin_reopen_task - 重新打开 Task
+- [x] chorus_admin_close_task - 关闭 Task
+- [x] chorus_admin_close_idea - 关闭 Idea
+- [x] chorus_admin_delete_idea - 删除 Idea
+- [x] chorus_admin_delete_task - 删除 Task
+- [x] chorus_admin_delete_document - 删除 Document
+
+#### M2.7 权限验证 ✅
 > 架构参考: `ARCHITECTURE.md` §6.3 权限模型
 
 - [x] API Key 解析
-- [x] 角色验证（PM/Developer）
+- [x] 角色验证（PM/Developer/Admin）
 - [x] 权限检查中间件（内置于 createMcpServer）
   > 代码位置: `src/mcp/server.ts` (角色基础工具注册)
 
@@ -331,7 +366,7 @@ pnpm db:generate
 
 ---
 
-## M2.5: Super Admin 认证 (Week 3)
+## M2.5: Super Admin 认证 (Week 3) ✅ 完成
 
 ### 目标
 实现 Super Admin 登录和 Company 管理，作为多租户系统的 Bootstrap 入口。
@@ -414,7 +449,7 @@ shadcn 组件：
 | 新建 Company | `/admin/companies/new` | 创建表单 | ✅ |
 | Company 详情 | `/admin/companies/[uuid]` | 详情/编辑/OIDC 配置 | ✅ |
 
-#### M2.5.7 验证 🔄 进行中
+#### M2.5.7 验证 ✅
 
 - [x] API 测试通过
   - [x] `/api/auth/identify` - Super Admin 邮箱识别
@@ -422,50 +457,8 @@ shadcn 组件：
   - [x] `/api/admin/session` - 会话检查
   - [x] `/api/admin/companies` - CRUD 操作
 - [x] 登录页面渲染正常
-- [ ] 完整 UI 流程测试（Playwright）
-- [ ] Company OIDC 配置验证
-
-### 关键文件
-
-```
-src/
-├── app/
-│   ├── login/
-│   │   ├── page.tsx              # 邮箱输入页
-│   │   └── admin/page.tsx        # Super Admin 密码页
-│   ├── admin/
-│   │   ├── layout.tsx            # Admin 布局 + 认证检查
-│   │   ├── page.tsx              # Dashboard
-│   │   └── companies/
-│   │       ├── page.tsx          # Company 列表
-│   │       ├── new/page.tsx      # 创建 Company
-│   │       └── [uuid]/page.tsx   # Company 详情/编辑
-│   └── api/
-│       ├── auth/identify/route.ts     # 邮箱识别
-│       └── admin/
-│           ├── login/route.ts         # 登录
-│           ├── session/route.ts       # 会话管理
-│           └── companies/
-│               ├── route.ts           # 列表/创建
-│               └── [uuid]/route.ts    # 详情/更新/删除
-├── components/ui/
-│   ├── input.tsx
-│   ├── label.tsx
-│   ├── table.tsx
-│   └── badge.tsx
-├── lib/
-│   └── super-admin.ts            # 认证工具
-├── services/
-│   └── company.service.ts        # Company CRUD
-└── types/
-    ├── auth.ts                   # 认证类型
-    └── admin.ts                  # Admin 类型
-```
-
-### 已知问题
-
-1. **bcrypt hash 转义**: .env 文件中的 `$` 字符需要使用单引号包裹并转义 `\$`
-2. **测试密码**: 开发环境使用 `admin123`（生产环境需更换）
+- [x] 完整 UI 流程测试（手动验证）
+- [x] Company OIDC 配置验证
 
 ### 交付物
 - Super Admin 登录流程
@@ -475,7 +468,7 @@ src/
 
 ---
 
-## M3: Web UI (Week 4)
+## M3: Web UI (Week 4) 🔄 进行中
 
 ### 目标
 实现核心页面的 Web 界面。
@@ -483,121 +476,172 @@ src/
 > **架构参考**: `ARCHITECTURE.md` §3.2 目录结构 - src/app/, src/components/
 > **设计参考**: `docs/design.pen` 包含所有页面设计稿
 
+### 整体进度: 60%
+
+**已完成**:
+- ✅ Server Components + Server Actions 架构重构
+- ✅ i18n 国际化（中英文）
+- ✅ Stateful URL 路径重构 (`/projects/[uuid]/...`)
+- ✅ 基础页面渲染和数据展示
+
+**待完成**:
+- ⏳ 交互功能（拖拽、模态框、表单）
+- ⏳ Dashboard 跨项目统计
+- ⏳ Knowledge 统一搜索
+- ⏳ 丰富的 UI 组件
+
 ### 任务清单
 
-#### M3.1 布局和导航
+#### M3.1 布局和导航 🔄 部分完成
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/components/layout/
 > 设计参考: `design.pen` 所有页面的 Sidebar 组件
 
-- [ ] 全局布局（侧边栏 + 主内容）
-- [ ] 项目切换器
-- [ ] 用户菜单
+- [x] 全局布局（侧边栏 + 主内容）
+- [x] 项目导航（通过 URL `/projects/[uuid]/...`）
+- [ ] **项目切换器下拉菜单** - PRD §3.2 Dashboard 设计
+- [ ] **用户菜单完善**（当前仅显示邮箱，缺少下拉菜单）
 
-#### M3.2 Dashboard
+#### M3.2 Dashboard ⏳ 未完成
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/app/page.tsx
+> PRD 参考: `PRD_Chorus.md` §3.2 Dashboard
 
-- [ ] 跨项目统计卡片
-- [ ] 最近活动
-- [ ] 快捷入口
+- [ ] **跨项目统计卡片**（总 Tasks、总 Ideas、待审批 Proposals）
+- [ ] **最近活动**（跨项目活动流）
+- [ ] **快捷入口**（最近访问项目、待处理事项）
 
-#### M3.3 Projects
+**当前状态**: Dashboard 直接重定向到 /projects 列表页
+
+#### M3.3 Projects ✅ 完成
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/app/projects/
 > 设计参考: `design.pen` - "Chorus - Projects", "Chorus - New Project", "Chorus - Project Overview"
 
-- [ ] 项目列表页
-- [ ] 项目创建表单
-- [ ] Project Overview 页
+- [x] 项目列表页 (Server Component)
+- [x] 项目创建表单 (Server Actions)
+- [x] Project Overview 页
 
-#### M3.4 Ideas
+#### M3.4 Ideas 🔄 部分完成
 > PRD 参考: `PRD_Chorus.md` §4.1 F5 Idea 六阶段状态、认领方式
 > 架构参考: `ARCHITECTURE.md` §7.3 Idea 状态流转
 > 设计参考: `design.pen` - "Chorus - Project Ideas", "Modal - Claim Assignment"
 
-- [ ] Ideas 列表页
-  - 显示 Open/Assigned/In Progress/Pending Review/Completed/Closed 状态标签
-  - Open 状态显示 "Claim" 按钮
-- [ ] Idea 创建表单（文本 + 附件上传）
-- [ ] Claim 模态框
-  - Radio: "Assign to myself"（所有我的 Agent 都能处理）
-  - Radio: "Assign to [Agent Name]"（下拉选择特定 Agent）
-- [ ] Idea 详情视图
+- [x] Ideas 列表页 (Server Component)
+  - [x] 显示状态标签（Open/Assigned/In Progress 等）
+  - [x] Open 状态显示 "Claim" 按钮
+- [ ] **Idea 创建表单**（文本 + 附件上传）
+  > PRD 参考: `PRD_Chorus.md` §4.1 F5 Idea 支持文本和附件
+- [ ] **Claim 模态框**
+  > PRD 参考: `PRD_Chorus.md` §3.3.1 认领方式
+  - [ ] Radio: "Assign to myself"（所有我的 Agent 都能处理）
+  - [ ] Radio: "Assign to [Agent Name]"（下拉选择特定 Agent）
+- [x] Idea 详情视图 (Server Component)
 
-#### M3.5 Knowledge
+#### M3.5 Knowledge ⏳ 未完成
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/app/projects/[id]/knowledge/
+> PRD 参考: `PRD_Chorus.md` §3.3.2 知识库
 
-- [ ] 统一搜索界面
-- [ ] 搜索结果展示
+- [ ] **统一搜索界面**
+- [ ] **搜索结果展示**（Ideas、Documents、Tasks、Proposals）
+- [ ] **搜索过滤器**（类型、状态、时间范围）
 
-#### M3.6 Documents
+**当前状态**: Knowledge 页面不存在
+
+#### M3.6 Documents 🔄 部分完成
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/components/document/
 > 设计参考: `design.pen` - "Chorus - Documents List", "Chorus - Document Preview"
 
-- [ ] Documents 列表页
-- [ ] Document 详情/预览页
-- [ ] Document 编辑（Markdown）
+- [x] Documents 列表页 (Server Component)
+- [x] Document 详情/预览页 (Server Component)
+- [ ] **Document 编辑器**（Markdown 编辑）
+  > PRD 参考: `PRD_Chorus.md` §4.1 F5 Document 管理
+- [ ] **Document 版本历史**
 
-#### M3.7 Proposals
+#### M3.7 Proposals 🔄 部分完成
 > PRD 参考: `PRD_Chorus.md` §4.1 F5 Proposal 输入输出模型
 > 架构参考: `ARCHITECTURE.md` §7.4 提议审批流程, §3.2 目录结构 - src/components/proposal/
 > 设计参考: `design.pen` - "Chorus - Project Proposals", "Chorus - Proposal Output (PRD)", "Chorus - Proposal Output (Tasks)", "Chorus - Proposal Output (Document Diff)"
 
-- [ ] Proposals 列表页
-- [ ] Proposal 详情页
-  - 显示输入来源（Ideas 或 Document）
-  - 显示输出预览（Document 草稿或 Task 列表）
-- [ ] 审批界面（批准/拒绝/修改）
+- [x] Proposals 列表页 (Server Component)
+- [x] Proposal 详情页 (Server Component)
+  - [x] 显示输入来源（Ideas 或 Document）
+  - [x] 显示输出预览（Document 草稿或 Task 列表）
+- [x] 审批按钮（批准/拒绝）(Server Actions)
+- [ ] **Document Diff 视图**（对比修改前后）
+  > 设计参考: `design.pen` - "Chorus - Proposal Output (Document Diff)"
+- [ ] **修改请求功能**（返回修改）
 
-#### M3.8 Tasks (Kanban)
+#### M3.8 Tasks (Kanban) 🔄 部分完成
 > PRD 参考: `PRD_Chorus.md` §3.3.1 任务系统（六阶段工作流、认领规则）
 > 架构参考: `ARCHITECTURE.md` §7.2 任务状态流转, §3.2 目录结构 - src/components/kanban/
 > 设计参考: `design.pen` - "Chorus - Project Tasks (Kanban)", "Task Detail Panel", "Modal - Claim Task"
 
-- [ ] 四列看板（Todo/In Progress/To Verify/Done）
-  - Todo 列包含 Open + Assigned 状态
-  - Open 状态卡片显示 "Claim" 按钮
-- [ ] 拖拽移动
-- [ ] 任务卡片
-  - 显示状态标签（Open/Assigned/In Progress 等）
-  - 显示 Assigned to 信息
-- [ ] 任务详情侧边栏
-- [ ] Claim 模态框
-  - Radio: "Assign to myself"（所有我的 Developer Agent 都能处理）
-  - Radio: "Assign to [Agent Name]"（下拉选择特定 Agent）
-- [ ] 验证按钮（To Verify → Done，Human 专属）
+- [x] 四列看板布局（Todo/In Progress/To Verify/Done）
+  - [x] Todo 列包含 Open + Assigned 状态
+  - [x] Open 状态卡片显示 "Claim" 按钮样式
+- [ ] **拖拽移动功能**
+  > 需要安装 dnd-kit 或类似库
+- [x] 任务卡片
+  - [x] 显示状态标签
+  - [x] 显示 Assigned to 信息
+  - [x] 显示 Story Points (Agent Hours)
+- [x] 任务详情页（独立页面，非侧边栏）
+- [ ] **任务详情侧边栏**（PRD 设计为 slide-out panel）
+- [ ] **Claim 模态框**
+  > PRD 参考: `PRD_Chorus.md` §3.3.1 认领方式
+  - [ ] Radio: "Assign to myself"
+  - [ ] Radio: "Assign to [Agent Name]"
+- [ ] **验证按钮**（To Verify → Done，Human 专属）
+  > PRD 参考: `PRD_Chorus.md` §3.3.1 To Verify 状态
+- [ ] **状态更新按钮**（In Progress → To Verify 等）
 
-#### M3.9 Activity
+#### M3.9 Activity 🔄 部分完成
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/components/activity/
+> PRD 参考: `PRD_Chorus.md` §3.3.3 活动流
 
-- [ ] 活动流列表
-- [ ] 活动筛选
+- [x] 活动流列表 (Server Component)
+- [ ] **活动筛选**（按类型、按参与者）
+- [ ] **活动详情展开**
 
-#### M3.10 Agents
+#### M3.10 Agents ⏳ 未完成（合并到 Settings）
 > PRD 参考: `PRD_Chorus.md` §4.1 F5.5 Agent 管理页面
 > 架构参考: `ARCHITECTURE.md` §3.2 目录结构 - src/app/agents/
 > 设计参考: `design.pen` - "Chorus - All Agents"
 
-- [ ] Agent 列表页
-- [ ] Agent 创建表单
-- [ ] 角色标签展示（PM Agent / Developer Agent，可多选）
+- [ ] **独立 Agent 列表页**
+  > 当前 Agent 管理合并到 Settings 页面
+- [ ] **Agent 创建表单**（独立页面）
+- [ ] **Agent 详情页**（活动历史、统计）
+- [x] 角色标签展示（PM / Developer / Admin）（在 Settings 中）
 
-#### M3.11 Settings
+**当前状态**: Agent 管理功能合并在 Settings 页面的 API Key 管理中
+
+#### M3.11 Settings ✅ 完成
 > PRD 参考: `PRD_Chorus.md` §4.1 F5.6 API Key 管理
 > 架构参考: `ARCHITECTURE.md` §9.1 API Key 安全
 > 设计参考: `design.pen` - "Chorus - Settings", "Modal - Create API Key"
 
-- [ ] API Key 列表
-- [ ] 创建 API Key 模态框
-- [ ] 角色选择（可多选：PM Agent / Developer Agent）
-- [ ] Key 复制/撤销
+- [x] API Key 列表 (Server Actions)
+- [x] 创建 API Key 模态框
+- [x] 角色选择（可多选：PM / Developer / Admin）
+- [x] Persona 编辑（预设模板 + 自定义）
+- [x] Admin 角色危险警告
+- [x] Key 复制/撤销
+- [x] 语言切换（i18n）
+
+#### M3.12 i18n 国际化 ✅ 完成
+> 新增功能
+
+- [x] next-intl 集成
+- [x] 中文/英文切换
+- [x] 所有页面文案国际化
 
 ### 交付物
-- 完整的 Web UI
-- 响应式设计
-- 组件库
+- [ ] 完整的 Web UI
+- [ ] 响应式设计
+- [ ] 组件库
 
 ---
 
-## M4: Skill 文件 (Week 5)
+## M4: Skill 文件 (Week 5) ⏳ 未开始
 
 ### 目标
 编写 Agent 使用平台的指导文件。
@@ -605,40 +649,56 @@ src/
 > **PRD 参考**: `PRD_Chorus.md` §3.4 Claude Code 集成方案
 > **架构参考**: `ARCHITECTURE.md` §3.2 目录结构 - skill/
 
+### 当前状态: 0% - 尚未创建任何 Skill 文件
+
 ### 任务清单
 
-#### M4.1 PM Agent Skill
+#### M4.1 PM Agent Skill ⏳
 > PRD 参考: `PRD_Chorus.md` §3.3.4 PM Agent 支持
 > 架构参考: `ARCHITECTURE.md` §5.2 MCP API - PM Agent 工具
 
-- [ ] skill/pm/SKILL.md - API 使用说明
+- [ ] **skill/pm/SKILL.md** - API 使用说明
   - 描述所有 PM 专属 MCP 工具
   - 描述 Idea 认领流程
   - 描述 Proposal 创建最佳实践
-- [ ] skill/pm/HEARTBEAT.md - 定期检查清单
+- [ ] **skill/pm/HEARTBEAT.md** - 定期检查清单
   - 检查新的 Open Ideas
   - 检查 Proposal 审批状态
   - 分析项目进度
-- [ ] 提议创建最佳实践
+- [ ] 提议创建最佳实践示例
 
-#### M4.2 Developer Agent Skill
+#### M4.2 Developer Agent Skill ⏳
 > PRD 参考: `PRD_Chorus.md` §3.3.4 Developer Agent 专属工具
 > 架构参考: `ARCHITECTURE.md` §5.2 MCP API - Developer Agent 工具
 
-- [ ] skill/developer/SKILL.md - API 使用说明
+- [ ] **skill/developer/SKILL.md** - API 使用说明
   - 描述所有 Developer 专属 MCP 工具
   - 描述 Task 认领流程
   - 描述任务执行和报告流程
-- [ ] skill/developer/HEARTBEAT.md - 定期检查清单
+- [ ] **skill/developer/HEARTBEAT.md** - 定期检查清单
   - 检查分配给自己的任务
   - 检查 Open 任务（可认领）
   - 报告工作进度
-- [ ] 任务执行最佳实践
+- [ ] 任务执行最佳实践示例
 
-#### M4.3 CLAUDE.md 模板
-- [ ] 项目级配置模板
-- [ ] 心跳触发说明
+#### M4.3 Admin Agent Skill ⏳
+> PRD 参考: `PRD_Chorus.md` §3.3.4 Admin Agent 角色
+> 架构参考: `ARCHITECTURE.md` §5.2 MCP API - Admin Agent 工具
+
+- [ ] **skill/admin/SKILL.md** - 审批/验证操作指南
+  - 描述所有 Admin 专属 MCP 工具
+  - Proposal 审批流程和标准
+  - Task 验证流程和标准
+  - 危险操作警告
+- [ ] **skill/admin/HEARTBEAT.md** - 定期检查清单
+  - 检查待审批 Proposals
+  - 检查待验证 Tasks
+
+#### M4.4 CLAUDE.md 模板 ⏳
+- [ ] **项目级配置模板**
+- [ ] **心跳触发说明**
   > PRD 参考: `PRD_Chorus.md` §3.4 心跳实现思路
+- [ ] **MCP Server 配置示例**
 
 ### 交付物
 - 完整的 Skill 文件
@@ -647,50 +707,53 @@ src/
 
 ---
 
-## M5: 联调测试 (Week 6)
+## M5: 联调测试 (Week 6) ⏳ 未开始
 
 ### 目标
 端到端验证，确保所有功能可用。
 
 > **架构参考**: `ARCHITECTURE.md` §7 核心流程
 
+### 当前状态: 0% - 尚未开始系统测试
+
 ### 任务清单
 
-#### M5.1 集成测试
+#### M5.1 集成测试 ⏳
 > 架构参考: `ARCHITECTURE.md` §6.3 权限模型
 
-- [ ] API 集成测试
-- [ ] MCP 工具测试
-- [ ] 权限测试
+- [ ] **API 集成测试**
+- [ ] **MCP 工具测试**
+- [ ] **权限测试**
   - 测试 PM 专属工具权限
   - 测试 Developer 专属工具权限
+  - 测试 Admin 专属工具权限
   - 测试认领者权限（只有认领者可更新状态）
 
-#### M5.2 端到端测试
+#### M5.2 端到端测试 ⏳
 > PRD 参考: `PRD_Chorus.md` §4.1 F5 详细工作流
 > 架构参考: `ARCHITECTURE.md` §7.1 Reversed Conversation 工作流, §7.2 任务状态流转, §7.3 Idea 状态流转
 
-- [ ] PM Agent 工作流测试
+- [ ] **PM Agent 工作流测试**
   - Idea 认领 → Proposal 创建 → 等待审批
-- [ ] Developer Agent 工作流测试
+- [ ] **Developer Agent 工作流测试**
   - Task 认领 → 执行 → 提交验证 → 报告完成
-- [ ] Human 审批工作流测试
+- [ ] **Human 审批工作流测试**
   - Proposal 审批 → Document/Task 自动创建
   - Task 验证 → Done
-- [ ] 认领分配测试
+- [ ] **认领分配测试**
   - Human "Assign to myself" → 所有 Agent 可见
   - Human "Assign to specific Agent" → 仅该 Agent 可见
 
-#### M5.3 Demo 准备
-- [ ] 演示数据种子
-- [ ] 演示脚本
-- [ ] 录屏/截图
+#### M5.3 Demo 准备 ⏳
+- [ ] **演示数据种子**
+- [ ] **演示脚本**
+- [ ] **录屏/截图**
 
-#### M5.4 文档完善
-- [ ] README 更新
-- [ ] 部署文档
+#### M5.4 文档完善 ⏳
+- [ ] **README 更新**
+- [ ] **部署文档**
   > 架构参考: `ARCHITECTURE.md` §8 部署架构
-- [ ] API 文档
+- [ ] **API 文档**
 
 ### 交付物
 - 通过所有测试
@@ -702,47 +765,78 @@ src/
 ## 依赖关系
 
 ```
-M0 (项目骨架)
+M0 (项目骨架) ✅
  ↓
-M1 (后端 API) ←─────────────┐
- ↓                          │
-M2 (MCP Server) ───────────→│
- ↓                          │
-M2.5 (Super Admin) ─────────┤  ← 当前进度
- ↓                          │
-M3 (Web UI) ←───────────────┘
+M1 (后端 API) ✅
  ↓
-M4 (Skill 文件)
+M2 (MCP Server) ✅
  ↓
-M5 (联调测试)
+M2.5 (Super Admin) ✅
+ ↓
+M3 (Web UI) 🔄 ← 当前进度（60%）
+ ↓
+M4 (Skill 文件) ⏳
+ ↓
+M5 (联调测试) ⏳
 ```
+
+---
+
+## M3 待完成功能优先级
+
+### P0 - 核心交互（必须完成）
+
+| 功能 | 页面 | 复杂度 | 说明 |
+|-----|------|--------|------|
+| Idea 创建表单 | Ideas | 中 | 支持文本 + 附件上传 |
+| Claim 模态框 | Ideas/Tasks | 中 | 选择 "Assign to myself" 或特定 Agent |
+| Task 验证按钮 | Task Detail | 低 | To Verify → Done (Human only) |
+| Task 状态按钮 | Task Detail | 低 | In Progress → To Verify 等 |
+
+### P1 - 重要功能
+
+| 功能 | 页面 | 复杂度 | 说明 |
+|-----|------|--------|------|
+| Kanban 拖拽 | Tasks | 高 | 需要 dnd-kit 集成 |
+| Knowledge 搜索 | Knowledge | 中 | 统一搜索 Ideas/Docs/Tasks |
+| Document 编辑 | Documents | 高 | Markdown 编辑器 |
+| Dashboard 统计 | Dashboard | 中 | 跨项目聚合数据 |
+
+### P2 - 体验优化
+
+| 功能 | 页面 | 复杂度 | 说明 |
+|-----|------|--------|------|
+| Task 侧边栏 | Tasks | 中 | 替代独立页面 |
+| Document Diff | Proposals | 高 | 对比视图 |
+| Activity 筛选 | Activity | 低 | 按类型/参与者筛选 |
+| Agent 独立页 | Agents | 中 | 从 Settings 分离 |
 
 ---
 
 ## 设计稿索引
 
-| 页面名称 | 设计稿节点 | 对应功能 |
+| 页面名称 | 设计稿节点 | 实现状态 |
 |---------|-----------|---------|
-| Login - Email Input | - | 登录邮箱输入页 |
-| Super Admin - Password Login | - | Super Admin 密码登录页 |
-| Super Admin - Companies | - | Company 管理列表页 |
-| Chorus - Projects | f2Faj | 项目列表 |
-| Chorus - New Project | MsJV4 | 创建项目表单 |
-| Chorus - Project Overview | QQV0z | 项目概览 |
-| Chorus - Project Ideas | rNq1h | Ideas 列表 + Claim 功能 |
-| Chorus - Project Proposals | XlN0Q | Proposals 列表 |
-| Chorus - Proposal Output (PRD) | dF5OI | PRD 类型 Proposal 详情 |
-| Chorus - Proposal Output (Tasks) | mlAGV | Tasks 类型 Proposal 详情 |
-| Chorus - Proposal Output (Document Diff) | aop75 | 文档 Diff 视图 |
-| Chorus - Project Tasks (Kanban) | 511Kf | Kanban 看板 + Claim 功能 |
-| Task Detail Panel | 1wqLo | 任务详情侧边栏 |
-| Chorus - Documents List | q2i2n | 文档列表 |
-| Chorus - Document Preview | B1x5H | 文档预览 |
-| Chorus - All Agents | 3xsuC | Agent 管理 |
-| Chorus - Settings | WU9KX | 设置页面（API Key） |
-| Modal - Create API Key | BjBrG | 创建 API Key 模态框 |
-| Modal - Claim Assignment | VobiB | Ideas Claim 模态框 |
-| Modal - Claim Task | QAR54 | Tasks Claim 模态框 |
+| Login - Email Input | - | ✅ |
+| Super Admin - Password Login | - | ✅ |
+| Super Admin - Companies | - | ✅ |
+| Chorus - Projects | f2Faj | ✅ |
+| Chorus - New Project | MsJV4 | ✅ |
+| Chorus - Project Overview | QQV0z | ✅ |
+| Chorus - Project Ideas | rNq1h | 🔄 缺少创建表单和 Claim 模态框 |
+| Chorus - Project Proposals | XlN0Q | ✅ |
+| Chorus - Proposal Output (PRD) | dF5OI | ✅ |
+| Chorus - Proposal Output (Tasks) | mlAGV | ✅ |
+| Chorus - Proposal Output (Document Diff) | aop75 | ⏳ 未实现 |
+| Chorus - Project Tasks (Kanban) | 511Kf | 🔄 缺少拖拽和 Claim 模态框 |
+| Task Detail Panel | 1wqLo | 🔄 实现为独立页面，非侧边栏 |
+| Chorus - Documents List | q2i2n | ✅ |
+| Chorus - Document Preview | B1x5H | ✅ |
+| Chorus - All Agents | 3xsuC | ⏳ 合并到 Settings |
+| Chorus - Settings | WU9KX | ✅ |
+| Modal - Create API Key | BjBrG | ✅ |
+| Modal - Claim Assignment | VobiB | ⏳ 未实现 |
+| Modal - Claim Task | QAR54 | ⏳ 未实现 |
 
 ---
 
@@ -750,8 +844,9 @@ M5 (联调测试)
 
 | 风险 | 概率 | 缓解 |
 |-----|------|------|
-| Prisma schema 变更频繁 | 高 | 先完成数据模型设计评审 |
-| MCP SDK 不熟悉 | 中 | 提前研究文档和示例 |
-| UI 工作量大 | 高 | 使用 shadcn/ui 加速 |
-| 认证复杂度 | 中 | MVP 先用简化方案 |
-| 认领逻辑复杂 | 中 | 先实现 Agent 自己认领，再实现 Human 分配 |
+| Prisma schema 变更频繁 | 高 | ✅ 已完成数据模型设计评审 |
+| MCP SDK 不熟悉 | 中 | ✅ 已完成 MCP Server 实现 |
+| UI 工作量大 | 高 | 🔄 使用 shadcn/ui 加速，Server Actions 简化 |
+| 认证复杂度 | 中 | ✅ MVP 使用简化 OIDC 方案 |
+| 认领逻辑复杂 | 中 | 🔄 基础认领完成，模态框待实现 |
+| 拖拽功能复杂 | 高 | ⏳ 需要评估 dnd-kit 集成工作量 |
