@@ -356,7 +356,7 @@ export default function DashboardLayout({
               variant="ghost"
               size="icon"
               onClick={handleLogout}
-              title="Sign out"
+              title={t("common.signOut")}
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
             >
               <LogOut className="h-4 w-4" />

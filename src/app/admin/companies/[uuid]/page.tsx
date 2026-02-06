@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,7 @@ export default function CompanyDetailPage({
 }: {
   params: Promise<{ uuid: string }>;
 }) {
+  const t = useTranslations();
   const { uuid } = use(params);
   const router = useRouter();
   const [company, setCompany] = useState<CompanyDetail | null>(null);
@@ -74,10 +76,10 @@ export default function CompanyDetailPage({
         setOidcIssuer(c.oidcIssuer || "");
         setOidcClientId(c.oidcClientId || "");
       } else {
-        setError(data.error?.message || "Company not found");
+        setError(data.error?.message || t("admin.companyNotFound"));
       }
     } catch {
-      setError("Failed to load company");
+      setError(t("admin.failedToLoad"));
     } finally {
       setLoading(false);
     }
@@ -114,14 +116,14 @@ export default function CompanyDetailPage({
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.error?.message || "Failed to update company");
+        setError(data.error?.message || t("admin.failedToUpdate"));
         return;
       }
 
-      setSuccess("Company updated successfully");
+      setSuccess(t("admin.companyUpdated"));
       fetchCompany();
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("admin.networkError"));
     } finally {
       setSaving(false);
     }
@@ -130,7 +132,7 @@ export default function CompanyDetailPage({
   const handleDelete = async () => {
     if (
       !confirm(
-        `Are you sure you want to delete "${company?.name}"? This action cannot be undone and will delete all associated data.`
+        t("admin.deleteCompanyConfirmFull", { name: company?.name || "" })
       )
     ) {
       return;
@@ -145,17 +147,17 @@ export default function CompanyDetailPage({
         router.push("/admin/companies");
       } else {
         const data = await response.json();
-        setError(data.error?.message || "Failed to delete company");
+        setError(data.error?.message || t("admin.failedToDelete"));
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("admin.networkError"));
     }
   };
 
   if (loading) {
     return (
       <div className="flex min-h-full items-center justify-center bg-background">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t("common.loading")}</div>
       </div>
     );
   }
@@ -167,12 +169,12 @@ export default function CompanyDetailPage({
           <Link href="/admin/companies">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Companies
+              {t("admin.backToCompanies")}
             </Button>
           </Link>
         </div>
         <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
-          {error || "Company not found"}
+          {error || t("admin.companyNotFound")}
         </div>
       </div>
     );
@@ -185,7 +187,7 @@ export default function CompanyDetailPage({
         <Link href="/admin/companies">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Companies
+            {t("admin.backToCompanies")}
           </Button>
         </Link>
       </div>
@@ -197,12 +199,12 @@ export default function CompanyDetailPage({
             {company.name}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Created {new Date(company.createdAt).toLocaleDateString()}
+            {t("admin.createdOn", { date: new Date(company.createdAt).toLocaleDateString() })}
           </p>
         </div>
         <Button variant="destructive" onClick={handleDelete}>
           <Trash2 className="mr-2 h-4 w-4" />
-          Delete Company
+          {t("admin.deleteCompany")}
         </Button>
       </div>
 
@@ -212,7 +214,7 @@ export default function CompanyDetailPage({
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Users
+                {t("admin.tableUsers")}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -226,7 +228,7 @@ export default function CompanyDetailPage({
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Agents
+                {t("admin.tableAgents")}
               </CardTitle>
               <Bot className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -240,7 +242,7 @@ export default function CompanyDetailPage({
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Projects
+                {t("admin.projects")}
               </CardTitle>
               <FolderKanban className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -259,13 +261,13 @@ export default function CompanyDetailPage({
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <CardTitle className="text-sm font-medium">
-                Basic Information
+                {t("admin.basicInfo")}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Company Name</Label>
+              <Label htmlFor="name">{t("admin.companyName")}</Label>
               <Input
                 id="name"
                 value={name}
@@ -276,16 +278,16 @@ export default function CompanyDetailPage({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="emailDomains">Email Domains</Label>
+              <Label htmlFor="emailDomains">{t("admin.emailDomains")}</Label>
               <Input
                 id="emailDomains"
                 value={emailDomains}
                 onChange={(e) => setEmailDomains(e.target.value)}
-                placeholder="acme.com, acme.org"
+                placeholder={t("admin.emailDomainsPlaceholder")}
                 disabled={saving}
               />
               <p className="text-xs text-muted-foreground">
-                Comma-separated list of email domains
+                {t("admin.emailDomainsHelp")}
               </p>
             </div>
           </CardContent>
@@ -298,48 +300,46 @@ export default function CompanyDetailPage({
               <div className="flex items-center gap-2">
                 <Key className="h-4 w-4" />
                 <CardTitle className="text-sm font-medium">
-                  OIDC Configuration
+                  {t("admin.oidcConfig")}
                 </CardTitle>
               </div>
               {company.oidcEnabled ? (
-                <Badge variant="success">Enabled</Badge>
+                <Badge variant="success">{t("admin.oidcEnabled")}</Badge>
               ) : (
-                <Badge variant="warning">Not configured</Badge>
+                <Badge variant="warning">{t("admin.oidcNotConfigured")}</Badge>
               )}
             </div>
             <CardDescription>
-              Configure OpenID Connect (PKCE) for single sign-on authentication.
-              OIDC will be enabled when both Issuer URL and Client ID are
-              provided.
+              {t("admin.oidcConfigDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="oidcIssuer">OIDC Issuer URL</Label>
+              <Label htmlFor="oidcIssuer">{t("admin.oidcIssuerUrl")}</Label>
               <Input
                 id="oidcIssuer"
                 type="url"
                 value={oidcIssuer}
                 onChange={(e) => setOidcIssuer(e.target.value)}
-                placeholder="https://login.microsoftonline.com/tenant-id/v2.0"
+                placeholder={t("admin.oidcIssuerUrlPlaceholder")}
                 disabled={saving}
               />
               <p className="text-xs text-muted-foreground">
-                The OpenID Connect discovery endpoint URL
+                {t("admin.oidcIssuerUrlHelp")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="oidcClientId">Client ID</Label>
+              <Label htmlFor="oidcClientId">{t("admin.clientId")}</Label>
               <Input
                 id="oidcClientId"
                 value={oidcClientId}
                 onChange={(e) => setOidcClientId(e.target.value)}
-                placeholder="e.g., 12345678-abcd-efgh-ijkl-123456789012"
+                placeholder={t("admin.clientIdPlaceholder")}
                 disabled={saving}
               />
               <p className="text-xs text-muted-foreground">
-                The OAuth 2.0 Client ID (PKCE mode, no secret needed)
+                {t("admin.clientIdHelp")}
               </p>
             </div>
           </CardContent>
@@ -360,11 +360,11 @@ export default function CompanyDetailPage({
         {/* Action Bar */}
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t("common.saving") : t("admin.saveChanges")}
           </Button>
           <Link href="/admin/companies">
             <Button type="button" variant="outline" disabled={saving}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           </Link>
         </div>

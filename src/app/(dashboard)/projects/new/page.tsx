@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ interface UploadedFile {
 }
 
 export default function NewProjectPage() {
+  const t = useTranslations();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -157,10 +159,10 @@ export default function NewProjectPage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground">
             <Link href="/projects" className="hover:text-foreground">
-              Projects
+              {t("nav.projects")}
             </Link>
             <span className="mx-1">/</span>
-            <span>New Project</span>
+            <span>{t("projects.newProject")}</span>
           </div>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -173,10 +175,10 @@ export default function NewProjectPage() {
         {/* Title Section */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-foreground">
-            Create New Project
+            {t("projects.createNew.title")}
           </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            Set up your project and let PM Agent start analyzing
+            {t("projects.createNew.subtitle")}
           </p>
         </div>
 
@@ -193,12 +195,12 @@ export default function NewProjectPage() {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
                 <FileText className="h-4 w-4 text-primary" />
-                Basic Information
+                {t("projects.createNew.basicInfo")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="name">Project Name</Label>
+                <Label htmlFor="name">{t("projects.createNew.projectName")}</Label>
                 <Input
                   id="name"
                   type="text"
@@ -206,20 +208,20 @@ export default function NewProjectPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="e.g., Project Alpha"
+                  placeholder={t("projects.createNew.projectNamePlaceholder")}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t("projects.createNew.descriptionLabel")}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Briefly describe what this project is about..."
+                  placeholder={t("projects.createNew.descriptionPlaceholder")}
                   rows={3}
                 />
               </div>
@@ -232,15 +234,14 @@ export default function NewProjectPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <Lightbulb className="h-4 w-4 text-primary" />
-                  Initial Ideas
+                  {t("projects.createNew.initialIdeas")}
                 </CardTitle>
-                <span className="text-[11px] text-muted-foreground">Optional</span>
+                <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
               </div>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-xs text-muted-foreground">
-                Share any initial thoughts or requirements for PM Agent to
-                consider when generating proposals
+                {t("projects.createNew.initialIdeasDesc")}
               </p>
 
               <div className="space-y-3">
@@ -249,7 +250,7 @@ export default function NewProjectPage() {
                     <Textarea
                       value={idea}
                       onChange={(e) => handleIdeaChange(index, e.target.value)}
-                      placeholder="e.g., We need user authentication with OAuth support..."
+                      placeholder={t("projects.createNew.ideaPlaceholder")}
                       rows={3}
                       className="pr-10"
                     />
@@ -276,7 +277,7 @@ export default function NewProjectPage() {
                 className="mt-3"
               >
                 <Plus className="mr-1.5 h-3 w-3" />
-                Add another idea
+                {t("projects.createNew.addAnother")}
               </Button>
             </CardContent>
           </Card>
@@ -287,15 +288,14 @@ export default function NewProjectPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <FolderOpen className="h-4 w-4 text-primary" />
-                  Documents
+                  {t("projects.createNew.documents")}
                 </CardTitle>
-                <span className="text-[11px] text-muted-foreground">Optional</span>
+                <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
               </div>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-xs text-muted-foreground">
-                Upload PRD, technical design, or any reference documents for PM
-                Agent to analyze
+                {t("projects.createNew.documentsDesc")}
               </p>
 
               {/* Upload Area */}
@@ -321,10 +321,10 @@ export default function NewProjectPage() {
                 />
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  Drag & drop files here, or click to browse
+                  {t("projects.createNew.dragDrop")}
                 </span>
                 <span className="text-[11px] text-muted-foreground/70">
-                  PDF, Markdown, Word documents up to 10MB
+                  {t("projects.createNew.fileTypes")}
                 </span>
               </div>
 
@@ -367,12 +367,12 @@ export default function NewProjectPage() {
           <div className="flex items-center gap-3 py-2">
             <Link href="/projects">
               <Button type="button" variant="outline">
-                Cancel
+                {t("common.cancel")}
               </Button>
             </Link>
             <Button type="submit" disabled={loading || !formData.name.trim()}>
               <Sparkles className="mr-2 h-3.5 w-3.5" />
-              {loading ? "Creating..." : "Create & Start PM Agent"}
+              {loading ? t("common.creating") : t("projects.createNew.createAndStart")}
             </Button>
           </div>
         </form>

@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function Home() {
+  const t = useTranslations();
   const router = useRouter();
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#FAF8F4]">
-      <div className="text-[#737373]">Loading...</div>
+      <div className="text-[#737373]">{t("common.loading")}</div>
     </div>
   );
 }

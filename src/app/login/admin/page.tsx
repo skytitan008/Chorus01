@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Shield, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 function AdminLoginForm() {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -60,7 +62,7 @@ function AdminLoginForm() {
           <div className="mb-8 flex flex-col items-center gap-2">
             <Shield className="h-12 w-12 text-destructive" />
             <h1 className="text-[28px] font-semibold text-foreground">
-              Super Admin
+              {t("admin.title")}
             </h1>
             <p className="text-sm text-muted-foreground">{email}</p>
           </div>
@@ -68,12 +70,12 @@ function AdminLoginForm() {
           {/* Form Section */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("admin.password")}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
+                  placeholder={t("admin.passwordPlaceholder")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -109,7 +111,7 @@ function AdminLoginForm() {
               variant="destructive"
               className="w-full"
             >
-              {loading ? "Signing in..." : "Sign In as Super Admin"}
+              {loading ? t("admin.signingIn") : t("admin.signInAsAdmin")}
             </Button>
           </form>
 
@@ -118,7 +120,7 @@ function AdminLoginForm() {
             <Link href="/login">
               <Button variant="ghost" size="sm" className="gap-1">
                 <ArrowLeft className="h-4 w-4" />
-                Back to email
+                {t("admin.backToEmail")}
               </Button>
             </Link>
           </div>
@@ -129,11 +131,12 @@ function AdminLoginForm() {
 }
 
 export default function AdminLoginPage() {
+  const t = useTranslations();
   return (
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background">
-          <div className="text-muted-foreground">Loading...</div>
+          <div className="text-muted-foreground">{t("common.loading")}</div>
         </div>
       }
     >

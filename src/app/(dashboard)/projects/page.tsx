@@ -59,7 +59,7 @@ export default function ProjectsPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">{t("common.loading")}</div>
+        <div className="text-[#6B6B6B]">{t("projects.loadingProjects")}</div>
       </div>
     );
   }

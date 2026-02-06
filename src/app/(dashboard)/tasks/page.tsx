@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ const columns = [
 ];
 
 export default function TasksPage() {
+  const t = useTranslations();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,7 +90,7 @@ export default function TasksPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading tasks...</div>
+        <div className="text-[#6B6B6B]">{t("tasks.loadingTasks")}</div>
       </div>
     );
   }
@@ -98,10 +100,10 @@ export default function TasksPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#2C2C2C]">Tasks</h1>
+          <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("tasks.title")}</h1>
           <div className="mt-1 flex items-center gap-4">
             <p className="text-sm text-[#6B6B6B]">
-              Kanban board for task management
+              {t("tasks.subtitle")}
             </p>
             {totalHours > 0 && (
               <div className="flex items-center gap-1.5 rounded-full bg-[#F5F2EC] px-3 py-1">
@@ -119,7 +121,7 @@ export default function TasksPage() {
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
                 <span className="text-xs font-medium text-[#6B6B6B]">
-                  <span className="text-[#2C2C2C]">{totalHours.toFixed(1)}</span> Agent Hours total
+                  <span className="text-[#2C2C2C]">{totalHours.toFixed(1)}</span> {t("tasks.agentHours")}
                 </span>
               </div>
             )}
@@ -139,7 +141,7 @@ export default function TasksPage() {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          New Task
+          {t("tasks.newTask")}
         </Button>
       </div>
 
@@ -184,7 +186,7 @@ export default function TasksPage() {
               <div className="flex-1 space-y-3 overflow-y-auto">
                 {columnTasks.length === 0 ? (
                   <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed border-[#E5E0D8] text-sm text-[#9A9A9A]">
-                    No tasks
+                    {t("tasks.noTasks")}
                   </div>
                 ) : (
                   columnTasks.map((task) => (
@@ -249,10 +251,10 @@ export default function TasksPage() {
                               // TODO: Claim task
                             }}
                           >
-                            Claim
+                            {t("common.claim")}
                           </Button>
                         ) : (
-                          <span>Unassigned</span>
+                          <span>{t("common.unassigned")}</span>
                         )}
                       </div>
                       </Card>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { CompanyListItem } from "@/types/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
 import { Plus, Pencil, Trash2, Info, Copy, Check } from "lucide-react";
 
 export default function CompaniesPage() {
+  const t = useTranslations();
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -51,7 +53,7 @@ export default function CompaniesPage() {
   const handleDelete = async (uuid: string, name: string) => {
     if (
       !confirm(
-        `Are you sure you want to delete "${name}"? This action cannot be undone.`
+        t("admin.deleteCompanyConfirm", { name })
       )
     ) {
       return;
@@ -66,10 +68,10 @@ export default function CompaniesPage() {
         fetchCompanies();
       } else {
         const data = await response.json();
-        alert(data.error?.message || "Failed to delete company");
+        alert(data.error?.message || t("admin.failedToDelete"));
       }
     } catch {
-      alert("Network error. Please try again.");
+      alert(t("admin.networkError"));
     }
   };
 
@@ -97,15 +99,15 @@ export default function CompaniesPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Companies</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t("admin.companies")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {total} registered organization{total !== 1 ? "s" : ""}
+            {t("admin.registeredOrgsCount", { count: total })}
           </p>
         </div>
         <Link href="/admin/companies/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Add Company
+            {t("admin.addCompany")}
           </Button>
         </Link>
       </div>
@@ -119,11 +121,10 @@ export default function CompaniesPage() {
             </div>
             <div className="flex-1">
               <CardTitle className="text-sm font-medium">
-                OIDC Redirect URI (Callback URL)
+                {t("admin.oidcRedirectUri")}
               </CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">
-                Configure this URL in your OIDC provider as the allowed redirect
-                URI
+                {t("admin.oidcRedirectUriDesc")}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <code className="flex-1 rounded-lg border bg-secondary px-3 py-2 text-xs">
@@ -139,12 +140,12 @@ export default function CompaniesPage() {
                   {copied ? (
                     <>
                       <Check className="mr-1.5 h-3.5 w-3.5 text-green-600" />
-                      Copied!
+                      {t("common.copied")}
                     </>
                   ) : (
                     <>
                       <Copy className="mr-1.5 h-3.5 w-3.5" />
-                      Copy
+                      {t("common.copy")}
                     </>
                   )}
                 </Button>
@@ -159,31 +160,31 @@ export default function CompaniesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email Domains</TableHead>
-              <TableHead>OIDC Status</TableHead>
-              <TableHead className="text-right">Users</TableHead>
-              <TableHead className="text-right">Agents</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("admin.tableName")}</TableHead>
+              <TableHead>{t("admin.tableEmailDomains")}</TableHead>
+              <TableHead>{t("admin.tableOidcStatus")}</TableHead>
+              <TableHead className="text-right">{t("admin.tableUsers")}</TableHead>
+              <TableHead className="text-right">{t("admin.tableAgents")}</TableHead>
+              <TableHead className="text-right">{t("admin.tableActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center">
-                  <span className="text-muted-foreground">Loading...</span>
+                  <span className="text-muted-foreground">{t("common.loading")}</span>
                 </TableCell>
               </TableRow>
             ) : companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center">
                   <span className="text-muted-foreground">
-                    No companies found.{" "}
+                    {t("admin.noCompanies")}{" "}
                     <Link
                       href="/admin/companies/new"
                       className="text-foreground underline hover:no-underline"
                     >
-                      Add your first company
+                      {t("admin.addFirstCompany")}
                     </Link>
                   </span>
                 </TableCell>
@@ -207,9 +208,9 @@ export default function CompaniesPage() {
                   </TableCell>
                   <TableCell>
                     {company.oidcEnabled ? (
-                      <Badge variant="success">Configured</Badge>
+                      <Badge variant="success">{t("admin.oidcConfigured")}</Badge>
                     ) : (
-                      <Badge variant="warning">Not configured</Badge>
+                      <Badge variant="warning">{t("admin.oidcNotConfigured")}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">

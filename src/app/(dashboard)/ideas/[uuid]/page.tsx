@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ const priorityConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function IdeaDetailPage() {
+  const t = useTranslations();
   const router = useRouter();
   const params = useParams();
   const uuid = params.uuid as string;
@@ -98,7 +100,7 @@ export default function IdeaDetailPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading idea...</div>
+        <div className="text-[#6B6B6B]">{t("ideas.loadingIdeas")}</div>
       </div>
     );
   }
@@ -106,9 +108,9 @@ export default function IdeaDetailPage() {
   if (!idea) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="text-[#6B6B6B]">Idea not found</div>
+        <div className="text-[#6B6B6B]">{t("ideas.ideaNotFound")}</div>
         <Link href="/ideas" className="mt-4 text-[#C67A52] hover:underline">
-          Back to Ideas
+          {t("ideas.backToIdeas")}
         </Link>
       </div>
     );
@@ -119,7 +121,7 @@ export default function IdeaDetailPage() {
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <Link href="/ideas" className="text-[#6B6B6B] hover:text-[#2C2C2C]">
-          Ideas
+          {t("nav.ideas")}
         </Link>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -144,7 +146,7 @@ export default function IdeaDetailPage() {
               {statusConfig[idea.status]?.label || idea.status}
             </Badge>
             <span className={`text-sm font-medium ${priorityConfig[idea.priority]?.color || ""}`}>
-              {priorityConfig[idea.priority]?.label || idea.priority} Priority
+              {t(`priority.${idea.priority}Priority`)}
             </span>
           </div>
           <h1 className="text-2xl font-semibold text-[#2C2C2C]">{idea.title}</h1>
@@ -153,7 +155,7 @@ export default function IdeaDetailPage() {
             {idea.source && (
               <>
                 <span>·</span>
-                <span>Source: {idea.source}</span>
+                <span>{t("ideas.source")} {idea.source}</span>
               </>
             )}
           </div>
@@ -177,7 +179,7 @@ export default function IdeaDetailPage() {
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              Claim Idea
+              {t("ideas.claimIdea")}
             </Button>
           )}
           <Button
@@ -185,7 +187,7 @@ export default function IdeaDetailPage() {
             className="border-[#E5E0D8] text-[#6B6B6B]"
             onClick={() => router.back()}
           >
-            Back
+            {t("common.back")}
           </Button>
         </div>
       </div>
@@ -195,13 +197,13 @@ export default function IdeaDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Card className="border-[#E5E0D8] p-6">
-            <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">Description</h2>
+            <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">{t("common.description")}</h2>
             {idea.description ? (
               <div className="prose prose-sm max-w-none text-[#6B6B6B]">
                 <p className="whitespace-pre-wrap">{idea.description}</p>
               </div>
             ) : (
-              <p className="text-sm text-[#9A9A9A] italic">No description provided</p>
+              <p className="text-sm text-[#9A9A9A] italic">{t("common.noDescription")}</p>
             )}
           </Card>
         </div>
@@ -210,7 +212,7 @@ export default function IdeaDetailPage() {
         <div className="space-y-4">
           {/* Assignment */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Assignment</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.assignment")}</h3>
             {idea.claimedBy ? (
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E3F2FD]">
@@ -232,38 +234,38 @@ export default function IdeaDetailPage() {
                   <div className="text-sm font-medium text-[#2C2C2C]">
                     {idea.claimedBy.name}
                   </div>
-                  <div className="text-xs text-[#9A9A9A]">Agent</div>
+                  <div className="text-xs text-[#9A9A9A]">{t("common.agent")}</div>
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-[#9A9A9A]">Unassigned</div>
+              <div className="text-sm text-[#9A9A9A]">{t("common.unassigned")}</div>
             )}
           </Card>
 
           {/* Details */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Details</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.details")}</h3>
             <dl className="space-y-2">
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Status</dt>
+                <dt className="text-[#9A9A9A]">{t("common.status")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {statusConfig[idea.status]?.label || idea.status}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Priority</dt>
+                <dt className="text-[#9A9A9A]">{t("common.priority")}</dt>
                 <dd className={`font-medium ${priorityConfig[idea.priority]?.color || ""}`}>
                   {priorityConfig[idea.priority]?.label || idea.priority}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Created</dt>
+                <dt className="text-[#9A9A9A]">{t("common.created")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(idea.createdAt).toLocaleDateString()}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Updated</dt>
+                <dt className="text-[#9A9A9A]">{t("common.updated")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(idea.updatedAt).toLocaleDateString()}
                 </dd>

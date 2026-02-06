@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/lib/auth-client";
@@ -14,6 +15,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasProject, setHasProject] = useState(false);
@@ -54,7 +56,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading...</div>
+        <div className="text-[#6B6B6B]">{t("common.loading")}</div>
       </div>
     );
   }
@@ -77,19 +79,19 @@ export default function DashboardPage() {
               <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
             </svg>
           </div>
-          <h2 className="mb-2 text-xl font-semibold text-[#2C2C2C]">Welcome to Chorus</h2>
+          <h2 className="mb-2 text-xl font-semibold text-[#2C2C2C]">{t("dashboard.welcome")}</h2>
           <p className="mb-6 text-sm text-[#6B6B6B]">
-            Get started by creating your first project or selecting an existing one.
+            {t("dashboard.welcomeDesc")}
           </p>
           <div className="flex gap-3">
             <Link href="/projects">
               <Button variant="outline" className="border-[#E5E0D8]">
-                View Projects
+                {t("dashboard.viewProjects")}
               </Button>
             </Link>
             <Link href="/projects/new">
               <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
-                Create Project
+                {t("dashboard.createProject")}
               </Button>
             </Link>
           </div>
@@ -102,9 +104,9 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-[#2C2C2C]">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("dashboard.title")}</h1>
         <p className="mt-1 text-sm text-[#6B6B6B]">
-          Overview of your project activity
+          {t("dashboard.subtitle")}
         </p>
       </div>
 
@@ -132,10 +134,10 @@ export default function DashboardPage() {
               {stats?.ideas.total || 0}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#6B6B6B]">Ideas</span>
+              <span className="text-sm text-[#6B6B6B]">{t("nav.ideas")}</span>
               {(stats?.ideas.open || 0) > 0 && (
                 <span className="rounded bg-[#FFF3E0] px-2 py-0.5 text-xs font-medium text-[#E65100]">
-                  {stats?.ideas.open} open
+                  {stats?.ideas.open} {t("status.open")}
                 </span>
               )}
             </div>
@@ -164,10 +166,10 @@ export default function DashboardPage() {
               {stats?.tasks.total || 0}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#6B6B6B]">Tasks</span>
+              <span className="text-sm text-[#6B6B6B]">{t("nav.tasks")}</span>
               {(stats?.tasks.inProgress || 0) > 0 && (
                 <span className="rounded bg-[#E8F5E9] px-2 py-0.5 text-xs font-medium text-[#5A9E6F]">
-                  {stats?.tasks.inProgress} active
+                  {stats?.tasks.inProgress} {t("status.active")}
                 </span>
               )}
             </div>
@@ -197,10 +199,10 @@ export default function DashboardPage() {
               {stats?.proposals.total || 0}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#6B6B6B]">Proposals</span>
+              <span className="text-sm text-[#6B6B6B]">{t("nav.proposals")}</span>
               {(stats?.proposals.pending || 0) > 0 && (
                 <span className="rounded bg-[#FFF3E0] px-2 py-0.5 text-xs font-medium text-[#E65100]">
-                  {stats?.proposals.pending} pending
+                  {stats?.proposals.pending} {t("status.pending")}
                 </span>
               )}
             </div>
@@ -227,7 +229,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-semibold text-[#2C2C2C]">
               {stats?.documents.total || 0}
             </div>
-            <div className="text-sm text-[#6B6B6B]">Documents</div>
+            <div className="text-sm text-[#6B6B6B]">{t("nav.documents")}</div>
           </Card>
         </Link>
       </div>
@@ -235,7 +237,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-[#E5E0D8] p-6">
-          <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">Quick Actions</h2>
+          <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">{t("dashboard.quickActions")}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <Link href="/ideas">
               <Button
@@ -255,7 +257,7 @@ export default function DashboardPage() {
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Add New Idea
+                {t("dashboard.addNewIdea")}
               </Button>
             </Link>
             <Link href="/proposals">
@@ -276,7 +278,7 @@ export default function DashboardPage() {
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                   <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
-                Review Proposals
+                {t("dashboard.reviewProposals")}
               </Button>
             </Link>
             <Link href="/tasks">
@@ -298,7 +300,7 @@ export default function DashboardPage() {
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="9" y1="21" x2="9" y2="9" />
                 </svg>
-                View Task Board
+                {t("dashboard.viewTaskBoard")}
               </Button>
             </Link>
             <Link href="/agents">
@@ -319,7 +321,7 @@ export default function DashboardPage() {
                   <path d="M12 8V4H8" />
                   <rect width="16" height="12" x="4" y="8" rx="2" />
                 </svg>
-                Manage Agents
+                {t("dashboard.manageAgents")}
               </Button>
             </Link>
           </div>
@@ -327,13 +329,13 @@ export default function DashboardPage() {
 
         <Card className="border-[#E5E0D8] p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-[#2C2C2C]">Recent Activity</h2>
+            <h2 className="text-lg font-medium text-[#2C2C2C]">{t("dashboard.recentActivity")}</h2>
             <Link href="/activity" className="text-sm text-[#C67A52] hover:underline">
-              View all
+              {t("common.viewAll")}
             </Link>
           </div>
           <div className="flex h-32 items-center justify-center text-sm text-[#9A9A9A]">
-            Activity feed will appear here
+            {t("dashboard.activityPlaceholder")}
           </div>
         </Card>
       </div>

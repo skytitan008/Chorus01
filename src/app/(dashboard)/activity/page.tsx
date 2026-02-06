@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { authFetch } from "@/lib/auth-client";
 
@@ -90,6 +91,7 @@ const entityTypeConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function ActivityPage() {
+  const t = useTranslations();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -132,10 +134,10 @@ export default function ActivityPage() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
+    if (minutes < 1) return t("time.justNow");
+    if (minutes < 60) return t("time.minutesAgo", { minutes });
+    if (hours < 24) return t("time.hoursAgo", { hours });
+    if (days < 7) return t("time.daysAgo", { days });
     return date.toLocaleDateString();
   };
 
@@ -150,9 +152,9 @@ export default function ActivityPage() {
 
       let key: string;
       if (date.toDateString() === today.toDateString()) {
-        key = "Today";
+        key = t("time.today");
       } else if (date.toDateString() === yesterday.toDateString()) {
-        key = "Yesterday";
+        key = t("time.yesterday");
       } else {
         key = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
       }
@@ -169,7 +171,7 @@ export default function ActivityPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading activity...</div>
+        <div className="text-[#6B6B6B]">{t("activity.loadingActivity")}</div>
       </div>
     );
   }
@@ -180,9 +182,9 @@ export default function ActivityPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#2C2C2C]">Activity</h1>
+        <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("activity.title")}</h1>
         <p className="mt-1 text-sm text-[#6B6B6B]">
-          Recent activity across your project
+          {t("activity.subtitle")}
         </p>
       </div>
 
@@ -209,10 +211,10 @@ export default function ActivityPage() {
             </svg>
           </div>
           <h3 className="mb-2 text-lg font-medium text-[#2C2C2C]">
-            No activity yet
+            {t("activity.noActivity")}
           </h3>
           <p className="max-w-sm text-sm text-[#6B6B6B]">
-            Activity will appear here as you and your agents work on this project.
+            {t("activity.noActivityDesc")}
           </p>
         </Card>
       ) : (

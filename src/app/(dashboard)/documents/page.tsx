@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ const docTypeConfig: Record<string, { label: string; color: string; icon: string
 };
 
 export default function DocumentsPage() {
+  const t = useTranslations();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -73,7 +75,7 @@ export default function DocumentsPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading documents...</div>
+        <div className="text-[#6B6B6B]">{t("documents.loadingDocuments")}</div>
       </div>
     );
   }
@@ -83,9 +85,9 @@ export default function DocumentsPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#2C2C2C]">Documents</h1>
+          <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("documents.title")}</h1>
           <p className="mt-1 text-sm text-[#6B6B6B]">
-            PRDs, specs, and project documentation
+            {t("documents.subtitle")}
           </p>
         </div>
         <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
@@ -102,7 +104,7 @@ export default function DocumentsPage() {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          New Document
+          {t("documents.newDocument")}
         </Button>
       </div>
 
@@ -113,7 +115,7 @@ export default function DocumentsPage() {
           size="sm"
           onClick={() => setFilter("all")}
         >
-          All ({documents.length})
+          {t("documents.all")} ({documents.length})
         </Button>
         {Object.entries(docTypeConfig).map(([type, config]) => {
           const count = typeCounts[type] || 0;
@@ -152,13 +154,13 @@ export default function DocumentsPage() {
             </svg>
           </div>
           <h3 className="mb-2 text-lg font-medium text-[#2C2C2C]">
-            No documents yet
+            {t("documents.noDocuments")}
           </h3>
           <p className="mb-6 max-w-sm text-sm text-[#6B6B6B]">
-            Documents are created when proposals are approved. You can also create documents manually.
+            {t("documents.noDocumentsDesc")}
           </p>
           <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
-            Create Document
+            {t("documents.createDocument")}
           </Button>
         </Card>
       ) : (
@@ -181,7 +183,7 @@ export default function DocumentsPage() {
                   <span>v{doc.version}</span>
                   <span>·</span>
                   <span>
-                    Updated {new Date(doc.updatedAt).toLocaleDateString()}
+                    {t("documents.updated", { date: new Date(doc.updatedAt).toLocaleDateString() })}
                   </span>
                 </div>
               </Card>

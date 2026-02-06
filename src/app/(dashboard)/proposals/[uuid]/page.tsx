@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ const typeConfig: Record<string, { label: string; icon: string }> = {
 };
 
 export default function ProposalDetailPage() {
+  const t = useTranslations();
   const router = useRouter();
   const params = useParams();
   const uuid = params.uuid as string;
@@ -124,7 +126,7 @@ export default function ProposalDetailPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading proposal...</div>
+        <div className="text-[#6B6B6B]">{t("proposals.loadingProposals")}</div>
       </div>
     );
   }
@@ -132,9 +134,9 @@ export default function ProposalDetailPage() {
   if (!proposal) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="text-[#6B6B6B]">Proposal not found</div>
+        <div className="text-[#6B6B6B]">{t("proposals.proposalNotFound")}</div>
         <Link href="/proposals" className="mt-4 text-[#C67A52] hover:underline">
-          Back to Proposals
+          {t("proposals.backToProposals")}
         </Link>
       </div>
     );
@@ -145,7 +147,7 @@ export default function ProposalDetailPage() {
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <Link href="/proposals" className="text-[#6B6B6B] hover:text-[#2C2C2C]">
-          Proposals
+          {t("nav.proposals")}
         </Link>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -213,14 +215,14 @@ export default function ProposalDetailPage() {
                 disabled={submitting}
                 className="border-[#D32F2F] text-[#D32F2F] hover:bg-[#FFEBEE]"
               >
-                Reject
+                {t("common.reject")}
               </Button>
               <Button
                 onClick={handleApprove}
                 disabled={submitting}
                 className="bg-[#5A9E6F] hover:bg-[#4A8E5F] text-white"
               >
-                {submitting ? "Processing..." : "Approve"}
+                {submitting ? t("common.processing") : t("common.approve")}
               </Button>
             </>
           )}
@@ -229,7 +231,7 @@ export default function ProposalDetailPage() {
             className="border-[#E5E0D8] text-[#6B6B6B]"
             onClick={() => router.back()}
           >
-            Back
+            {t("common.back")}
           </Button>
         </div>
       </div>
@@ -239,7 +241,7 @@ export default function ProposalDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Card className="border-[#E5E0D8] p-6">
-            <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">Content</h2>
+            <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">{t("common.content")}</h2>
             <div className="prose prose-sm max-w-none text-[#6B6B6B]">
               <div className="whitespace-pre-wrap rounded-lg bg-[#F5F2EC] p-4 font-mono text-sm">
                 {proposal.content}
@@ -253,7 +255,7 @@ export default function ProposalDetailPage() {
           {/* Source Idea */}
           {proposal.idea && (
             <Card className="border-[#E5E0D8] p-4">
-              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Source Idea</h3>
+              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("proposals.sourceIdea")}</h3>
               <Link
                 href={`/ideas/${proposal.idea.uuid}`}
                 className="flex items-center gap-2 text-sm text-[#C67A52] hover:underline"
@@ -279,28 +281,28 @@ export default function ProposalDetailPage() {
 
           {/* Details */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Details</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.details")}</h3>
             <dl className="space-y-2">
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Status</dt>
+                <dt className="text-[#9A9A9A]">{t("common.status")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {statusConfig[proposal.status]?.label || proposal.status}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Type</dt>
+                <dt className="text-[#9A9A9A]">{t("common.type")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {typeConfig[proposal.proposalType]?.label || proposal.proposalType}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Created</dt>
+                <dt className="text-[#9A9A9A]">{t("common.created")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(proposal.createdAt).toLocaleDateString()}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Updated</dt>
+                <dt className="text-[#9A9A9A]">{t("common.updated")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(proposal.updatedAt).toLocaleDateString()}
                 </dd>
@@ -326,10 +328,10 @@ export default function ProposalDetailPage() {
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                Awaiting your review
+                {t("proposals.awaitingReview")}
               </div>
               <p className="mt-2 text-xs text-[#6B6B6B]">
-                Review the content and approve or reject this proposal.
+                {t("proposals.reviewInstructions")}
               </p>
             </Card>
           )}

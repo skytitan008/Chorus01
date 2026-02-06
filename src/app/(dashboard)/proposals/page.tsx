@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ const typeConfig: Record<string, { label: string; icon: string }> = {
 };
 
 export default function ProposalsPage() {
+  const t = useTranslations();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -78,7 +80,7 @@ export default function ProposalsPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading proposals...</div>
+        <div className="text-[#6B6B6B]">{t("proposals.loadingProposals")}</div>
       </div>
     );
   }
@@ -88,9 +90,9 @@ export default function ProposalsPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#2C2C2C]">Proposals</h1>
+          <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("proposals.title")}</h1>
           <p className="mt-1 text-sm text-[#6B6B6B]">
-            Review and approve AI-generated proposals
+            {t("proposals.subtitle")}
           </p>
         </div>
         {statusCounts.pending > 0 && (
@@ -109,7 +111,7 @@ export default function ProposalsPage() {
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            {statusCounts.pending} pending review
+            {statusCounts.pending} {t("proposals.pendingReview")}
           </div>
         )}
       </div>
@@ -121,7 +123,7 @@ export default function ProposalsPage() {
           size="sm"
           onClick={() => setFilter("all")}
         >
-          All ({proposals.length})
+          {t("proposals.all")} ({proposals.length})
         </Button>
         {Object.entries(statusConfig).map(([status, config]) => {
           const count = statusCounts[status] || 0;
@@ -160,10 +162,10 @@ export default function ProposalsPage() {
             </svg>
           </div>
           <h3 className="mb-2 text-lg font-medium text-[#2C2C2C]">
-            No proposals yet
+            {t("proposals.noProposals")}
           </h3>
           <p className="mb-6 max-w-sm text-sm text-[#6B6B6B]">
-            Proposals are created by PM Agents when they analyze ideas. They will appear here for your review.
+            {t("proposals.noProposalsDesc")}
           </p>
         </Card>
       ) : (
@@ -226,7 +228,7 @@ export default function ProposalsPage() {
                           // TODO: Reject
                         }}
                       >
-                        Reject
+                        {t("common.reject")}
                       </Button>
                       <Button
                         size="sm"
@@ -236,7 +238,7 @@ export default function ProposalsPage() {
                           // TODO: Approve
                         }}
                       >
-                        Approve
+                        {t("common.approve")}
                       </Button>
                     </div>
                   )}

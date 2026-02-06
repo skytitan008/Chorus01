@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ const priorityConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function IdeasPage() {
+  const t = useTranslations();
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -112,7 +114,7 @@ export default function IdeasPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading ideas...</div>
+        <div className="text-[#6B6B6B]">{t("ideas.loadingIdeas")}</div>
       </div>
     );
   }
@@ -122,14 +124,14 @@ export default function IdeasPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Ideas</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t("ideas.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Capture and track ideas for your project
+            {t("ideas.subtitle")}
           </p>
         </div>
         <Button onClick={() => setShowNewForm(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New Idea
+          {t("ideas.newIdea")}
         </Button>
       </div>
 
@@ -140,7 +142,7 @@ export default function IdeasPage() {
           size="sm"
           onClick={() => setFilter("all")}
         >
-          All ({ideas.length})
+          {t("ideas.all")} ({ideas.length})
         </Button>
         {Object.entries(statusConfig).map(([status, config]) => {
           const count = statusCounts[status] || 0;
@@ -167,7 +169,7 @@ export default function IdeasPage() {
                 type="text"
                 value={newIdea.title}
                 onChange={(e) => setNewIdea({ ...newIdea, title: e.target.value })}
-                placeholder="What's your idea?"
+                placeholder={t("ideas.whatIsYourIdea")}
                 className="border-0 bg-transparent text-lg font-medium focus-visible:ring-0"
                 autoFocus
               />
@@ -176,7 +178,7 @@ export default function IdeasPage() {
               <Textarea
                 value={newIdea.description}
                 onChange={(e) => setNewIdea({ ...newIdea, description: e.target.value })}
-                placeholder="Add more details..."
+                placeholder={t("ideas.addMoreDetails")}
                 rows={3}
                 className="resize-none border-0 bg-transparent focus-visible:ring-0"
               />
@@ -192,7 +194,7 @@ export default function IdeasPage() {
                     onClick={() => setNewIdea({ ...newIdea, priority: p })}
                     className="rounded-full"
                   >
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                    {t(`priority.${p}`)}
                   </Button>
                 ))}
               </div>
@@ -203,14 +205,14 @@ export default function IdeasPage() {
                   size="sm"
                   onClick={() => setShowNewForm(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="submit"
                   size="sm"
                   disabled={!newIdea.title.trim() || submitting}
                 >
-                  {submitting ? "Creating..." : "Create"}
+                  {submitting ? t("common.creating") : t("common.create")}
                 </Button>
               </div>
             </div>
@@ -225,16 +227,16 @@ export default function IdeasPage() {
             <Lightbulb className="h-8 w-8 text-primary" />
           </div>
           <h3 className="mb-2 text-lg font-medium text-foreground">
-            {filter === "all" ? "No ideas yet" : `No ${statusConfig[filter]?.label.toLowerCase()} ideas`}
+            {filter === "all" ? t("ideas.noIdeas") : `No ${statusConfig[filter]?.label.toLowerCase()} ideas`}
           </h3>
           <p className="mb-6 max-w-sm text-sm text-muted-foreground">
             {filter === "all"
-              ? "Start by adding your first idea. Ideas can be picked up by AI agents for analysis."
-              : "Ideas with this status will appear here."}
+              ? t("ideas.startByAdding")
+              : t("ideas.ideasWithStatus")}
           </p>
           {filter === "all" && (
             <Button onClick={() => setShowNewForm(true)}>
-              Add First Idea
+              {t("ideas.addFirstIdea")}
             </Button>
           )}
         </Card>
@@ -288,7 +290,7 @@ export default function IdeasPage() {
                         // TODO: Open claim modal
                       }}
                     >
-                      Claim
+                      {t("common.claim")}
                     </Button>
                   )}
                 </div>

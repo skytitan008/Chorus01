@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Building2, Shield, LogOut } from "lucide-react";
 
@@ -15,6 +16,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -53,7 +55,7 @@ export default function AdminLayout({
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t("common.loading")}</div>
       </div>
     );
   }
@@ -65,12 +67,12 @@ export default function AdminLayout({
   const navItems = [
     {
       href: "/admin",
-      label: "Dashboard",
+      label: t("admin.dashboard"),
       icon: LayoutDashboard,
     },
     {
       href: "/admin/companies",
-      label: "Companies",
+      label: t("admin.companies"),
       icon: Building2,
     },
   ];
@@ -84,7 +86,7 @@ export default function AdminLayout({
           <div className="flex h-8 w-8 items-center justify-center rounded bg-destructive">
             <Shield className="h-4 w-4 text-destructive-foreground" />
           </div>
-          <span className="font-semibold">Super Admin</span>
+          <span className="font-semibold">{t("admin.title")}</span>
         </div>
 
         {/* Navigation */}
@@ -119,7 +121,7 @@ export default function AdminLayout({
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
+            {t("common.signOut")}
           </Button>
         </div>
       </aside>

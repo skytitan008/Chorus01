@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, Users, Bot, Plus } from "lucide-react";
@@ -13,6 +14,7 @@ interface Stats {
 }
 
 export default function AdminDashboardPage() {
+  const t = useTranslations();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,9 +45,9 @@ export default function AdminDashboardPage() {
     <div className="min-h-full bg-background px-8 py-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{t("admin.dashboard")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Welcome to Chorus Super Admin
+          {t("admin.welcome")}
         </p>
       </div>
 
@@ -55,7 +57,7 @@ export default function AdminDashboardPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Companies
+                {t("admin.totalCompanies")}
               </CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -65,7 +67,7 @@ export default function AdminDashboardPage() {
               {loading ? "..." : stats?.totalCompanies || 0}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Registered organizations
+              {t("admin.registeredOrgs")}
             </p>
           </CardContent>
         </Card>
@@ -74,7 +76,7 @@ export default function AdminDashboardPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Users
+                {t("admin.totalUsers")}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -84,7 +86,7 @@ export default function AdminDashboardPage() {
               {loading ? "..." : stats?.totalUsers || 0}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Human users across all companies
+              {t("admin.humanUsers")}
             </p>
           </CardContent>
         </Card>
@@ -93,7 +95,7 @@ export default function AdminDashboardPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Agents
+                {t("admin.totalAgents")}
               </CardTitle>
               <Bot className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -103,7 +105,7 @@ export default function AdminDashboardPage() {
               {loading ? "..." : stats?.totalAgents || 0}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              AI agents across all companies
+              {t("admin.aiAgents")}
             </p>
           </CardContent>
         </Card>
@@ -112,9 +114,9 @@ export default function AdminDashboardPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>{t("admin.quickActions")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Common administrative tasks
+            {t("admin.commonTasks")}
           </p>
         </CardHeader>
         <CardContent>
@@ -128,9 +130,9 @@ export default function AdminDashboardPage() {
                   <Plus className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <div className="font-medium">Add Company</div>
+                  <div className="font-medium">{t("admin.addCompany")}</div>
                   <div className="text-sm text-muted-foreground">
-                    Register a new organization
+                    {t("admin.addCompanyDesc")}
                   </div>
                 </div>
               </Button>
@@ -145,9 +147,9 @@ export default function AdminDashboardPage() {
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <div className="font-medium">Manage Companies</div>
+                  <div className="font-medium">{t("admin.manageCompanies")}</div>
                   <div className="text-sm text-muted-foreground">
-                    View and configure organizations
+                    {t("admin.manageCompaniesDesc")}
                   </div>
                 </div>
               </Button>

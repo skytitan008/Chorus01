@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function DocumentDetailPage() {
+  const t = useTranslations();
   const router = useRouter();
   const params = useParams();
   const uuid = params.uuid as string;
@@ -104,7 +106,7 @@ export default function DocumentDetailPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading document...</div>
+        <div className="text-[#6B6B6B]">{t("documents.loadingDocuments")}</div>
       </div>
     );
   }
@@ -112,9 +114,9 @@ export default function DocumentDetailPage() {
   if (!document) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="text-[#6B6B6B]">Document not found</div>
+        <div className="text-[#6B6B6B]">{t("documents.documentNotFound")}</div>
         <Link href="/documents" className="mt-4 text-[#C67A52] hover:underline">
-          Back to Documents
+          {t("documents.backToDocuments")}
         </Link>
       </div>
     );
@@ -125,7 +127,7 @@ export default function DocumentDetailPage() {
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <Link href="/documents" className="text-[#6B6B6B] hover:text-[#2C2C2C]">
-          Documents
+          {t("nav.documents")}
         </Link>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -177,13 +179,13 @@ export default function DocumentDetailPage() {
                 }}
                 className="border-[#E5E0D8] text-[#6B6B6B]"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 onClick={handleSave}
                 className="bg-[#5A9E6F] hover:bg-[#4A8E5F] text-white"
               >
-                Save Changes
+                {t("documents.saveChanges")}
               </Button>
             </>
           ) : (
@@ -204,14 +206,14 @@ export default function DocumentDetailPage() {
                 >
                   <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                 </svg>
-                Edit
+                {t("common.edit")}
               </Button>
               <Button
                 variant="outline"
                 className="border-[#E5E0D8] text-[#6B6B6B]"
                 onClick={() => router.back()}
               >
-                Back
+                {t("common.back")}
               </Button>
             </>
           )}
@@ -227,7 +229,7 @@ export default function DocumentDetailPage() {
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className="h-full w-full resize-none rounded-lg border border-[#E5E0D8] p-4 font-mono text-sm focus:border-[#C67A52] focus:outline-none focus:ring-1 focus:ring-[#C67A52]"
-              placeholder="Document content..."
+              placeholder={t("documents.documentContent")}
             />
           ) : (
             <div className="prose prose-sm max-w-none">
@@ -243,7 +245,7 @@ export default function DocumentDetailPage() {
           {/* Source Proposal */}
           {document.proposal && (
             <Card className="border-[#E5E0D8] p-4">
-              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Source Proposal</h3>
+              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("documents.sourceProposal")}</h3>
               <Link
                 href={`/proposals/${document.proposal.uuid}`}
                 className="flex items-center gap-2 text-sm text-[#C67A52] hover:underline"
@@ -268,32 +270,32 @@ export default function DocumentDetailPage() {
 
           {/* Details */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Details</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.details")}</h3>
             <dl className="space-y-2">
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Type</dt>
+                <dt className="text-[#9A9A9A]">{t("common.type")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {docTypeConfig[document.docType]?.label || document.docType}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Status</dt>
+                <dt className="text-[#9A9A9A]">{t("common.status")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {statusConfig[document.status]?.label || document.status}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Version</dt>
+                <dt className="text-[#9A9A9A]">{t("common.version")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">v{document.version}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Created</dt>
+                <dt className="text-[#9A9A9A]">{t("common.created")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(document.createdAt).toLocaleDateString()}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Updated</dt>
+                <dt className="text-[#9A9A9A]">{t("common.updated")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(document.updatedAt).toLocaleDateString()}
                 </dd>
@@ -303,15 +305,15 @@ export default function DocumentDetailPage() {
 
           {/* Version History */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Version History</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("documents.versionHistory")}</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium text-[#2C2C2C]">v{document.version}</span>
-                <span className="text-xs text-[#9A9A9A]">Current</span>
+                <span className="text-xs text-[#9A9A9A]">{t("status.current")}</span>
               </div>
               {document.version > 1 && (
                 <p className="text-xs text-[#9A9A9A]">
-                  {document.version - 1} previous version{document.version > 2 ? "s" : ""}
+                  {document.version - 1} {t("documents.previousVersions")}
                 </p>
               )}
             </div>

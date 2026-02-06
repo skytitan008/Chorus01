@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ const priorityConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function TaskDetailPage() {
+  const t = useTranslations();
   const router = useRouter();
   const params = useParams();
   const uuid = params.uuid as string;
@@ -130,7 +132,7 @@ export default function TaskDetailPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-[#6B6B6B]">Loading task...</div>
+        <div className="text-[#6B6B6B]">{t("tasks.loadingTasks")}</div>
       </div>
     );
   }
@@ -138,9 +140,9 @@ export default function TaskDetailPage() {
   if (!task) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="text-[#6B6B6B]">Task not found</div>
+        <div className="text-[#6B6B6B]">{t("tasks.taskNotFound")}</div>
         <Link href="/tasks" className="mt-4 text-[#C67A52] hover:underline">
-          Back to Tasks
+          {t("tasks.backToTasks")}
         </Link>
       </div>
     );
@@ -154,7 +156,7 @@ export default function TaskDetailPage() {
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <Link href="/tasks" className="text-[#6B6B6B] hover:text-[#2C2C2C]">
-          Tasks
+          {t("nav.tasks")}
         </Link>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -179,7 +181,7 @@ export default function TaskDetailPage() {
               {statusConfig[task.status]?.label || task.status}
             </Badge>
             <span className={`text-sm font-medium ${priorityConfig[task.priority]?.color || ""}`}>
-              {priorityConfig[task.priority]?.label || task.priority} Priority
+              {t(`priority.${task.priority}Priority`)}
             </span>
             {task.storyPoints && (
               <span className="rounded bg-[#F5F2EC] px-2 py-0.5 text-sm font-medium text-[#6B6B6B]">
@@ -212,7 +214,7 @@ export default function TaskDetailPage() {
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              Claim Task
+              {t("tasks.claimTask")}
             </Button>
           )}
           <Button
@@ -220,7 +222,7 @@ export default function TaskDetailPage() {
             className="border-[#E5E0D8] text-[#6B6B6B]"
             onClick={() => router.back()}
           >
-            Back
+            {t("common.back")}
           </Button>
         </div>
       </div>
@@ -231,20 +233,20 @@ export default function TaskDetailPage() {
         <div className="space-y-6 lg:col-span-2">
           {/* Description */}
           <Card className="border-[#E5E0D8] p-6">
-            <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">Description</h2>
+            <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">{t("common.description")}</h2>
             {task.description ? (
               <div className="prose prose-sm max-w-none text-[#6B6B6B]">
                 <p className="whitespace-pre-wrap">{task.description}</p>
               </div>
             ) : (
-              <p className="text-sm text-[#9A9A9A] italic">No description provided</p>
+              <p className="text-sm text-[#9A9A9A] italic">{t("common.noDescription")}</p>
             )}
           </Card>
 
           {/* Status Progress */}
           {task.status !== "closed" && (
             <Card className="border-[#E5E0D8] p-6">
-              <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">Status Progress</h2>
+              <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">{t("tasks.statusProgress")}</h2>
               <div className="flex items-center justify-between">
                 {statusOrder.map((status, index) => {
                   const isActive = index === currentIndex;
@@ -307,7 +309,7 @@ export default function TaskDetailPage() {
           {/* Subtasks */}
           {task.subtasks && task.subtasks.length > 0 && (
             <Card className="border-[#E5E0D8] p-6">
-              <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">Subtasks</h2>
+              <h2 className="mb-4 text-lg font-medium text-[#2C2C2C]">{t("tasks.subtasks")}</h2>
               <div className="space-y-2">
                 {task.subtasks.map((subtask) => (
                   <Link
@@ -341,7 +343,7 @@ export default function TaskDetailPage() {
         <div className="space-y-4">
           {/* Assignment */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Assignment</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.assignment")}</h3>
             {task.assigneeName ? (
               <div className="flex items-center gap-3">
                 <div
@@ -384,19 +386,19 @@ export default function TaskDetailPage() {
                     {task.assigneeName}
                   </div>
                   <div className="text-xs text-[#9A9A9A]">
-                    {task.assigneeType === "agent" ? "Agent" : "User"}
+                    {task.assigneeType === "agent" ? t("common.agent") : t("common.user")}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-[#9A9A9A]">Unassigned</div>
+              <div className="text-sm text-[#9A9A9A]">{t("common.unassigned")}</div>
             )}
           </Card>
 
           {/* Parent Task */}
           {task.parent && (
             <Card className="border-[#E5E0D8] p-4">
-              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Parent Task</h3>
+              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("tasks.parentTask")}</h3>
               <Link
                 href={`/tasks/${task.parent.uuid}`}
                 className="flex items-center gap-2 text-sm text-[#C67A52] hover:underline"
@@ -422,34 +424,34 @@ export default function TaskDetailPage() {
 
           {/* Details */}
           <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">Details</h3>
+            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.details")}</h3>
             <dl className="space-y-2">
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Status</dt>
+                <dt className="text-[#9A9A9A]">{t("common.status")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {statusConfig[task.status]?.label || task.status}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Priority</dt>
+                <dt className="text-[#9A9A9A]">{t("common.priority")}</dt>
                 <dd className={`font-medium ${priorityConfig[task.priority]?.color || ""}`}>
                   {priorityConfig[task.priority]?.label || task.priority}
                 </dd>
               </div>
               {task.storyPoints && (
                 <div className="flex justify-between text-sm">
-                  <dt className="text-[#9A9A9A]">Story Points</dt>
+                  <dt className="text-[#9A9A9A]">{t("tasks.storyPoints")}</dt>
                   <dd className="font-medium text-[#2C2C2C]">{task.storyPoints}h</dd>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Created</dt>
+                <dt className="text-[#9A9A9A]">{t("common.created")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(task.createdAt).toLocaleDateString()}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">Updated</dt>
+                <dt className="text-[#9A9A9A]">{t("common.updated")}</dt>
                 <dd className="font-medium text-[#2C2C2C]">
                   {new Date(task.updatedAt).toLocaleDateString()}
                 </dd>
