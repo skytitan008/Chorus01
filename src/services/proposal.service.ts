@@ -449,7 +449,8 @@ export async function approveProposal(
   return formatProposalResponse(updatedProposal);
 }
 
-// 拒绝 Proposal
+// 打回 Proposal（reject → draft，可重新编辑）
+// 保留 reviewedByUuid/reviewedAt/reviewNote 作为修改参考
 export async function rejectProposal(
   proposalUuid: string,
   reviewedByUuid: string,
@@ -458,8 +459,30 @@ export async function rejectProposal(
   const proposal = await prisma.proposal.update({
     where: { uuid: proposalUuid },
     data: {
-      status: "rejected",
+      status: "draft",
       reviewedByUuid,
+      reviewNote,
+      reviewedAt: new Date(),
+    },
+    include: {
+      project: { select: { uuid: true, name: true } },
+    },
+  });
+
+  return formatProposalResponse(proposal);
+}
+
+// 关闭 Proposal（终态）
+export async function closeProposal(
+  proposalUuid: string,
+  closedByUuid: string,
+  reviewNote: string
+): Promise<ProposalResponse> {
+  const proposal = await prisma.proposal.update({
+    where: { uuid: proposalUuid },
+    data: {
+      status: "closed",
+      reviewedByUuid: closedByUuid,
       reviewNote,
       reviewedAt: new Date(),
     },

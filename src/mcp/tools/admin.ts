@@ -113,14 +113,14 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_admin_reject_proposal - 拒绝 Proposal
+  // chorus_admin_reject_proposal - 打回 Proposal（回到 draft 可重新编辑）
   server.registerTool(
     "chorus_admin_reject_proposal",
     {
-      description: "拒绝 Proposal（Admin 专属，代理人类审批）",
+      description: "打回 Proposal（Admin 专属，代理人类审批）。打回后 Proposal 回到 draft 状态，可重新编辑和提交。reviewNote 会保留作为修改参考。",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        reviewNote: z.string().describe("拒绝原因（必填）"),
+        reviewNote: z.string().describe("打回原因（必填，作为修改参考）"),
       }),
     },
     async ({ proposalUuid, reviewNote }) => {
@@ -130,7 +130,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       }
 
       if (proposal.status !== "pending") {
-        return { content: [{ type: "text", text: `只能拒绝 pending 状态的 Proposal，当前状态: ${proposal.status}` }], isError: true };
+        return { content: [{ type: "text", text: `只能打回 pending 状态的 Proposal，当前状态: ${proposal.status}` }], isError: true };
       }
 
       const updated = await proposalService.rejectProposal(
@@ -146,7 +146,50 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
         targetUuid: proposalUuid,
         actorType: "agent",
         actorUuid: auth.actorUuid,
-        action: "rejected",
+        action: "rejected_to_draft",
+        value: { reviewNote },
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+      };
+    }
+  );
+
+  // chorus_admin_close_proposal - 关闭 Proposal（终态）
+  server.registerTool(
+    "chorus_admin_close_proposal",
+    {
+      description: "关闭 Proposal（Admin 专属，永久关闭提案）。关闭后 Proposal 进入 closed 终态，不可再编辑。",
+      inputSchema: z.object({
+        proposalUuid: z.string().describe("Proposal UUID"),
+        reviewNote: z.string().describe("关闭原因（必填）"),
+      }),
+    },
+    async ({ proposalUuid, reviewNote }) => {
+      const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
+      if (!proposal) {
+        return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+      }
+
+      if (proposal.status !== "pending") {
+        return { content: [{ type: "text", text: `只能关闭 pending 状态的 Proposal，当前状态: ${proposal.status}` }], isError: true };
+      }
+
+      const updated = await proposalService.closeProposal(
+        proposalUuid,
+        auth.actorUuid,
+        reviewNote
+      );
+
+      await activityService.createActivity({
+        companyUuid: auth.companyUuid,
+        projectUuid: proposal.projectUuid,
+        targetType: "proposal",
+        targetUuid: proposalUuid,
+        actorType: "agent",
+        actorUuid: auth.actorUuid,
+        action: "closed",
         value: { reviewNote },
       });
 

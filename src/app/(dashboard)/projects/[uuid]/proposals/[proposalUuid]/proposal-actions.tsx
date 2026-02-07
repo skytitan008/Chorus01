@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { approveProposalAction, rejectProposalAction, submitProposalAction } from "./actions";
+import { approveProposalAction, rejectProposalAction, closeProposalAction, submitProposalAction } from "./actions";
 
 interface ProposalActionsProps {
   proposalUuid: string;
@@ -27,6 +27,8 @@ export function ProposalActions({ proposalUuid, status }: ProposalActionsProps) 
   const [isPending, startTransition] = useTransition();
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [closeReason, setCloseReason] = useState("");
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
 
   const handleSubmit = () => {
@@ -59,6 +61,17 @@ export function ProposalActions({ proposalUuid, status }: ProposalActionsProps) 
     });
   };
 
+  const handleClose = () => {
+    startTransition(async () => {
+      const result = await closeProposalAction(proposalUuid, closeReason);
+      if (result.success) {
+        setCloseDialogOpen(false);
+        setCloseReason("");
+        router.refresh();
+      }
+    });
+  };
+
   return (
     <>
       <div className="flex gap-2">
@@ -73,6 +86,14 @@ export function ProposalActions({ proposalUuid, status }: ProposalActionsProps) 
         )}
         {status === "pending" && (
           <>
+            <Button
+              variant="outline"
+              onClick={() => setCloseDialogOpen(true)}
+              disabled={isPending}
+              className="border-[#6B6B6B] text-[#6B6B6B] hover:bg-[#F5F5F5]"
+            >
+              {t("proposals.closeProposal")}
+            </Button>
             <Button
               variant="outline"
               onClick={() => setRejectDialogOpen(true)}
@@ -150,6 +171,37 @@ export function ProposalActions({ proposalUuid, status }: ProposalActionsProps) 
               className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white"
             >
               {isPending ? t("common.processing") : t("common.reject")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("proposals.closeProposal")}</DialogTitle>
+            <DialogDescription>{t("proposals.closeProposalDesc")}</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={closeReason}
+            onChange={(e) => setCloseReason(e.target.value)}
+            placeholder={t("proposals.closeReasonPlaceholder")}
+            className="min-h-[100px] border-[#E5E0D8]"
+          />
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCloseDialogOpen(false)}
+              className="border-[#E5E0D8] text-[#6B6B6B]"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleClose}
+              disabled={isPending || !closeReason.trim()}
+              className="bg-[#6B6B6B] hover:bg-[#555555] text-white"
+            >
+              {isPending ? t("common.processing") : t("proposals.closeProposal")}
             </Button>
           </DialogFooter>
         </DialogContent>

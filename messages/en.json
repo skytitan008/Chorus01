@@ -383,7 +383,11 @@
     "typeDocumentUpdate": "Document Update",
     "typeTaskBreakdown": "Task Breakdown",
     "typeDocumentAndTasks": "Document + Tasks",
-    "tasksCount": "{count} Tasks"
+    "tasksCount": "{count} Tasks",
+    "closeProposal": "Close Proposal",
+    "closeProposalDesc": "Closing this proposal is permanent. Please provide a reason.",
+    "closeReasonPlaceholder": "Enter the reason for closing...",
+    "closedNotice": "This proposal has been permanently closed."
   },
   "documents": {
     "title": "Documents",

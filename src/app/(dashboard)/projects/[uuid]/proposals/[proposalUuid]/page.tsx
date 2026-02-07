@@ -33,6 +33,7 @@ const statusColors: Record<string, string> = {
   approved: "bg-[#E8F5E9] text-[#5A9E6F]",
   rejected: "bg-[#FFEBEE] text-[#D32F2F]",
   revised: "bg-[#E3F2FD] text-[#1976D2]",
+  closed: "bg-[#F5F5F5] text-[#9A9A9A]",
 };
 
 // 状态到翻译 key 的映射
@@ -42,6 +43,7 @@ const statusI18nKeys: Record<string, string> = {
   approved: "approved",
   rejected: "rejected",
   revised: "revised",
+  closed: "closed",
 };
 
 // 输入类型到翻译 key 的映射
@@ -252,13 +254,32 @@ export default async function ProposalDetailPage({ params }: PageProps) {
             </Card>
           )}
 
-          {/* Rejection Reason */}
-          {proposal.status === "rejected" && proposal.review?.reviewNote && (
+          {/* Rejection / Review Note (shown on draft after reject, or on closed) */}
+          {proposal.status === "draft" && proposal.review?.reviewNote && (
             <Card className="border-[#D32F2F] bg-[#FFEBEE] p-4">
               <div className="flex items-start gap-2">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#D32F2F]" />
                 <div>
                   <h3 className="text-sm font-medium text-[#D32F2F]">{t("proposals.rejectionReason")}</h3>
+                  <p className="mt-1 text-sm text-[#6B6B6B]">{proposal.review.reviewNote}</p>
+                  {proposal.review.reviewedBy && (
+                    <p className="mt-2 text-xs text-[#9A9A9A]">
+                      — {proposal.review.reviewedBy.name}
+                      {proposal.review.reviewedAt && `, ${new Date(proposal.review.reviewedAt).toLocaleDateString()}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Closed Reason */}
+          {proposal.status === "closed" && proposal.review?.reviewNote && (
+            <Card className="border-[#9A9A9A] bg-[#F5F5F5] p-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#9A9A9A]" />
+                <div>
+                  <h3 className="text-sm font-medium text-[#6B6B6B]">{t("proposals.rejectionReason")}</h3>
                   <p className="mt-1 text-sm text-[#6B6B6B]">{proposal.review.reviewNote}</p>
                   {proposal.review.reviewedBy && (
                     <p className="mt-2 text-xs text-[#9A9A9A]">
@@ -297,6 +318,16 @@ export default async function ProposalDetailPage({ params }: PageProps) {
               <p className="mt-2 text-xs text-[#6B6B6B]">
                 {t("proposals.reviewInstructions")}
               </p>
+            </Card>
+          )}
+
+          {/* Closed Notice */}
+          {proposal.status === "closed" && (
+            <Card className="border-[#9A9A9A] bg-[#F5F5F5] p-4">
+              <div className="flex items-center gap-2 text-sm text-[#9A9A9A]">
+                <AlertCircle className="h-4 w-4" />
+                {t("proposals.closedNotice")}
+              </div>
             </Card>
           )}
         </div>

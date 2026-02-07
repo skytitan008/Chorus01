@@ -5,6 +5,7 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import {
   approveProposal,
   rejectProposal,
+  closeProposal,
   submitProposal,
   getProposalByUuid,
   addDocumentDraft,
@@ -102,6 +103,34 @@ export async function rejectProposalAction(proposalUuid: string, reviewNote?: st
   } catch (error) {
     console.error("Failed to reject proposal:", error);
     return { success: false, error: "Failed to reject proposal" };
+  }
+}
+
+export async function closeProposalAction(proposalUuid: string, reviewNote: string) {
+  const auth = await getServerAuthContext();
+  if (!auth) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const proposal = await getProposalByUuid(auth.companyUuid, proposalUuid);
+    if (!proposal) {
+      return { success: false, error: "Proposal not found" };
+    }
+
+    if (proposal.status !== "pending") {
+      return { success: false, error: "Proposal is not pending review" };
+    }
+
+    await closeProposal(proposalUuid, auth.actorUuid, reviewNote);
+
+    revalidatePath(`/projects/${proposal.projectUuid}/proposals/${proposalUuid}`);
+    revalidatePath(`/projects/${proposal.projectUuid}/proposals`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to close proposal:", error);
+    return { success: false, error: "Failed to close proposal" };
   }
 }
 

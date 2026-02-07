@@ -37,7 +37,7 @@ const columnConfigs = [
   {
     id: "completed",
     labelKey: "proposals.completed",
-    statuses: ["approved", "rejected"],
+    statuses: ["approved", "closed"],
   },
 ];
 
@@ -46,14 +46,14 @@ const statusColors: Record<string, string> = {
   draft: "bg-[#F5F5F5] text-[#6B6B6B]",
   pending: "bg-[#FFF3E0] text-[#E65100]",
   approved: "bg-[#E8F5E9] text-[#2E7D32]",
-  rejected: "bg-[#FFEBEE] text-[#D32F2F]",
+  closed: "bg-[#F5F5F5] text-[#9A9A9A]",
 };
 
 const statusI18nKeys: Record<string, string> = {
   draft: "draft",
   pending: "pendingReview",
   approved: "approved",
-  rejected: "rejected",
+  closed: "closed",
 };
 
 function getTypeTagKey(proposal: Proposal): string | null {

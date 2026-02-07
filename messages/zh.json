@@ -384,7 +384,11 @@
     "typeDocumentUpdate": "文档更新",
     "typeTaskBreakdown": "任务拆分",
     "typeDocumentAndTasks": "文档 + 任务",
-    "tasksCount": "{count} 个任务"
+    "tasksCount": "{count} 个任务",
+    "closeProposal": "关闭提案",
+    "closeProposalDesc": "关闭提案后将无法再编辑。请填写关闭原因。",
+    "closeReasonPlaceholder": "请输入关闭原因...",
+    "closedNotice": "此提案已被永久关闭。"
   },
   "documents": {
     "title": "文档",
