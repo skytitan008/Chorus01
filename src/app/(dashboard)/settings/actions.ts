@@ -31,7 +31,7 @@ export async function getApiKeysAction(): Promise<{
   }
 
   try {
-    const { apiKeys } = await listApiKeys(auth.companyUuid, 0, 100);
+    const { apiKeys } = await listApiKeys(auth.companyUuid, 0, 100, auth.actorUuid);
 
     const data = apiKeys.map((key) => ({
       uuid: key.uuid,
@@ -100,8 +100,8 @@ export async function deleteApiKeyAction(uuid: string): Promise<{
   }
 
   try {
-    // Verify the API key belongs to the company
-    const apiKey = await getApiKey(auth.companyUuid, uuid);
+    // Verify the API key belongs to the current user
+    const apiKey = await getApiKey(auth.companyUuid, uuid, auth.actorUuid);
     if (!apiKey) {
       return { success: false, error: "API key not found" };
     }

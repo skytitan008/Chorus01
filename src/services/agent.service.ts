@@ -134,8 +134,12 @@ export async function deleteAgent(uuid: string) {
 }
 
 // 列出 API Keys
-export async function listApiKeys(companyUuid: string, skip: number, take: number) {
-  const where = { companyUuid, revokedAt: null };
+export async function listApiKeys(companyUuid: string, skip: number, take: number, ownerUuid?: string) {
+  const where = {
+    companyUuid,
+    revokedAt: null,
+    ...(ownerUuid && { agent: { ownerUuid } }),
+  };
 
   const [apiKeys, total] = await Promise.all([
     prisma.apiKey.findMany({
@@ -185,9 +189,13 @@ export async function createApiKey({
 }
 
 // 获取 API Key 详情
-export async function getApiKey(companyUuid: string, uuid: string) {
+export async function getApiKey(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.apiKey.findFirst({
-    where: { uuid, companyUuid },
+    where: {
+      uuid,
+      companyUuid,
+      ...(ownerUuid && { agent: { ownerUuid } }),
+    },
     select: { uuid: true, revokedAt: true },
   });
 }
