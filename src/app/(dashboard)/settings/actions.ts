@@ -6,7 +6,7 @@ import {
   listApiKeys,
   createAgent,
   createApiKey,
-  revokeApiKey,
+  deleteAgent,
   getApiKey,
 } from "@/services/agent.service";
 
@@ -106,7 +106,7 @@ export async function deleteApiKeyAction(uuid: string): Promise<{
       return { success: false, error: "API key not found" };
     }
 
-    await revokeApiKey(uuid);
+    await deleteAgent(apiKey.agentUuid);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete API key:", error);

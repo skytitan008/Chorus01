@@ -196,7 +196,7 @@ export async function getApiKey(companyUuid: string, uuid: string, ownerUuid?: s
       companyUuid,
       ...(ownerUuid && { agent: { ownerUuid } }),
     },
-    select: { uuid: true, revokedAt: true },
+    select: { uuid: true, agentUuid: true, revokedAt: true },
   });
 }
 
@@ -221,12 +221,14 @@ export async function getAgentsByOwner(companyUuid: string, ownerUuid: string) {
   });
 }
 
-// 获取公司内所有指定角色的 Agents (for assignment)
+// 获取指定角色的 Agents (for assignment)
 // 支持两种角色格式: "developer" 和 "developer_agent"
-export async function getAgentsByRole(companyUuid: string, role: string) {
+// ownerUuid: 传入时只返回该用户创建的 Agents
+export async function getAgentsByRole(companyUuid: string, role: string, ownerUuid?: string) {
   return prisma.agent.findMany({
     where: {
       companyUuid,
+      ...(ownerUuid && { ownerUuid }),
       OR: [
         { roles: { has: role } },
         { roles: { has: `${role}_agent` } },

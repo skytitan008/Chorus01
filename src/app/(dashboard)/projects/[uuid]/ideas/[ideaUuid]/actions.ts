@@ -149,7 +149,7 @@ export async function getPmAgentsAction() {
 
   try {
     const [agents, users] = await Promise.all([
-      getAgentsByRole(auth.companyUuid, "pm"),
+      getAgentsByRole(auth.companyUuid, "pm", auth.actorUuid),
       getCompanyUsers(auth.companyUuid),
     ]);
     return { agents, users };

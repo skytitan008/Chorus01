@@ -372,7 +372,7 @@ export async function getDeveloperAgentsAction() {
   }
 
   try {
-    const agents = await getAgentsByRole(auth.companyUuid, "developer");
+    const agents = await getAgentsByRole(auth.companyUuid, "developer", auth.actorUuid);
     const users = await getCompanyUsers(auth.companyUuid);
     return {
       agents,
