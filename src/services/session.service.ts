@@ -3,6 +3,7 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
+import { eventBus } from "@/lib/event-bus";
 
 // ===== 类型定义 =====
 
@@ -151,6 +152,12 @@ export async function closeSession(
 
   if (!session) throw new Error("Session not found");
 
+  // Query active checkins before batch checkout for event emission
+  const activeCheckins = await prisma.sessionTaskCheckin.findMany({
+    where: { sessionUuid, checkoutAt: null },
+    select: { task: { select: { uuid: true, projectUuid: true } } },
+  });
+
   // 批量 checkout 所有活跃 checkins
   await prisma.sessionTaskCheckin.updateMany({
     where: { sessionUuid, checkoutAt: null },
@@ -166,6 +173,10 @@ export async function closeSession(
       },
     },
   });
+
+  for (const checkin of activeCheckins) {
+    eventBus.emitChange({ companyUuid: session.companyUuid, projectUuid: checkin.task.projectUuid, entityType: "task", entityUuid: checkin.task.uuid, action: "updated" });
+  }
 
   return formatSessionResponse(updated);
 }
@@ -203,6 +214,8 @@ export async function sessionCheckinToTask(
     data: { lastActiveAt: new Date() },
   });
 
+  eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+
   return {
     taskUuid: checkin.taskUuid,
     checkinAt: checkin.checkinAt.toISOString(),
@@ -222,10 +235,19 @@ export async function sessionCheckoutFromTask(
   });
   if (!session) throw new Error("Session not found");
 
+  const task = await prisma.task.findFirst({
+    where: { uuid: taskUuid, companyUuid },
+    select: { projectUuid: true },
+  });
+
   await prisma.sessionTaskCheckin.updateMany({
     where: { sessionUuid, taskUuid, checkoutAt: null },
     data: { checkoutAt: new Date() },
   });
+
+  if (task) {
+    eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+  }
 }
 
 // 获取 Task 上所有活跃 Sessions

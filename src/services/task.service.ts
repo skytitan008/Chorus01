@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
+import { eventBus } from "@/lib/event-bus";
 
 // ===== 类型定义 =====
 
@@ -277,6 +278,8 @@ export async function createTask(params: TaskCreateParams): Promise<TaskResponse
     },
   });
 
+  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.projectUuid, entityType: "task", entityUuid: task.uuid, action: "created" });
+
   return formatTaskResponse(task);
 }
 
@@ -292,6 +295,8 @@ export async function updateTask(
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
 
   return formatTaskResponse(task);
 }
@@ -318,6 +323,8 @@ export async function claimTask({
     },
   });
 
+  eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
+
   return formatTaskResponse(task);
 }
 
@@ -337,12 +344,16 @@ export async function releaseTask(uuid: string): Promise<TaskResponse> {
     },
   });
 
+  eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
+
   return formatTaskResponse(task);
 }
 
 // 删除 Task
 export async function deleteTask(uuid: string) {
-  return prisma.task.delete({ where: { uuid } });
+  const task = await prisma.task.delete({ where: { uuid } });
+  eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: task.uuid, action: "deleted" });
+  return task;
 }
 
 // 批量创建 Tasks（用于 Proposal 审批）

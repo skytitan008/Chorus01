@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { IdeaDetailPanel } from "./idea-detail-panel";
+import { useRealtime } from "@/hooks/use-realtime";
 
 interface IdeaItem {
   uuid: string;
@@ -83,6 +84,7 @@ export function IdeasList({
   ideaProposalMap,
 }: IdeasListProps) {
   const t = useTranslations();
+  useRealtime(projectUuid);
   const [selectedIdeaUuid, setSelectedIdeaUuid] = useState<string | null>(null);
   const usedSet = new Set(usedIdeaUuids);
 

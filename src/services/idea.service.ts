@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
+import { eventBus } from "@/lib/event-bus";
 
 // ===== 类型定义 =====
 
@@ -220,6 +221,8 @@ export async function createIdea(params: IdeaCreateParams): Promise<IdeaResponse
     },
   });
 
+  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.projectUuid, entityType: "idea", entityUuid: idea.uuid, action: "created" });
+
   return formatIdeaResponse(idea);
 }
 
@@ -236,6 +239,8 @@ export async function updateIdea(
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
 
   return formatIdeaResponse(idea);
 }
@@ -262,6 +267,8 @@ export async function claimIdea({
     },
   });
 
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+
   return formatIdeaResponse(idea);
 }
 
@@ -281,10 +288,14 @@ export async function releaseIdea(uuid: string): Promise<IdeaResponse> {
     },
   });
 
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+
   return formatIdeaResponse(idea);
 }
 
 // 删除 Idea
 export async function deleteIdea(uuid: string) {
-  return prisma.idea.delete({ where: { uuid } });
+  const idea = await prisma.idea.delete({ where: { uuid } });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: idea.uuid, action: "deleted" });
+  return idea;
 }

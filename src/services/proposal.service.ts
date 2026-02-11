@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { formatCreatedBy, formatReview } from "@/lib/uuid-resolver";
+import { eventBus } from "@/lib/event-bus";
 import { createDocumentFromProposal } from "./document.service";
 import { createTasksFromProposal } from "./task.service";
 
@@ -340,6 +341,8 @@ export async function createProposal(
     },
   });
 
+  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "created" });
+
   return formatProposalResponse(proposal);
 }
 
@@ -464,6 +467,8 @@ export async function approveProposal(
     return updated;
   });
 
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposalUuid, action: "updated" });
+
   return formatProposalResponse(updatedProposal);
 }
 
@@ -487,6 +492,8 @@ export async function rejectProposal(
     },
   });
 
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "updated" });
+
   return formatProposalResponse(proposal);
 }
 
@@ -508,6 +515,8 @@ export async function closeProposal(
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "updated" });
 
   return formatProposalResponse(proposal);
 }
@@ -540,6 +549,8 @@ export async function submitProposal(
       project: { select: { uuid: true, name: true } },
     },
   });
+
+  eventBus.emitChange({ companyUuid: updated.companyUuid, projectUuid: updated.projectUuid, entityType: "proposal", entityUuid: updated.uuid, action: "updated" });
 
   return formatProposalResponse(updated);
 }

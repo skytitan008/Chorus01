@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { moveTaskToColumnAction } from "./actions";
 import { TaskDetailPanel } from "./task-detail-panel";
 import { getTaskSessionsAction } from "./session-actions";
+import { useRealtime } from "@/hooks/use-realtime";
 
 interface Task {
   uuid: string;
@@ -72,6 +73,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid }: Kanb
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [selectedTaskUuid, setSelectedTaskUuid] = useState<string | null>(null);
   const [workerCounts, setWorkerCounts] = useState<Record<string, number>>({});
+  useRealtime(projectUuid);
 
   // Sync local state when server data changes (after router.refresh())
   useEffect(() => {
