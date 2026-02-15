@@ -27,152 +27,32 @@ export interface PixelCanvasProps {
   onEffectsConsumed?: () => void;
 }
 
-// ────────────────────────── Sprite Types ──────────────────────────
-
-interface SpriteRegion {
-  srcX: number;
-  srcY: number;
-  srcW: number;
-  srcH: number;
-  destW: number;
-  destH: number;
-}
-
-interface OffsetSprite extends SpriteRegion {
-  dx: number;
-  dy: number;
-}
-
 // ────────────────────────── Constants ──────────────────────────
 
+const NUM_SLOTS = 7;
 const SCALE = 3;
-const CANVAS_W = 240;
-const CANVAS_H = 240;
-const FLOOR_H = 177; // Floor background visible height
+const CANVAS_W = 256;
+const CANVAS_H = 256;
 const TICK_MS = 10;
 const CELEBRATE_MS = 3000;
 const LOOKING_MS = 1500;
 
-// ────────────────────────── Station Layout (from game.html) ──────────────────────────
-
-const STATION_DEFS = [
-  { index: 0, baseX: 141, baseY: 117, variant: 1 as const },
-  { index: 1, baseX: 101, baseY: 77, variant: 1 as const },
-  { index: 2, baseX: 63, baseY: 96, variant: 1 as const },
-  { index: 3, baseX: 114, baseY: 80, variant: 0 as const },
-  { index: 4, baseX: 77, baseY: 99, variant: 0 as const },
+// Character center positions (derived from bounding-box analysis of each sprite).
+// Used for session-name labels and effect anchoring.
+const CHAR_POSITIONS: { cx: number; cy: number; topY: number }[] = [
+  { cx: 54, cy: 135, topY: 117 },  // slot 0: north-west-staffs-left
+  { cx: 96, cy: 114, topY: 96 },   // slot 1: north-west-staffs-right
+  { cx: 120, cy: 118, topY: 108 }, // slot 2: middle-staffs-left
+  { cx: 155, cy: 115, topY: 105 }, // slot 3: middle-staffs-right
+  { cx: 146, cy: 148, topY: 130 }, // slot 4: middle-staffs-bottom
+  { cx: 95, cy: 149, topY: 138 },  // slot 5: south-west-staffs-left
+  { cx: 133, cy: 168, topY: 158 }, // slot 6: south-west-staffs-right
 ];
 
-const EMP_POSITIONS = [
-  { x: 146, y: 107 },
-  { x: 106, y: 67 },
-  { x: 68, y: 86 },
-  { x: 135, y: 78 },
-  { x: 98, y: 97 },
-];
-
-// Desk/chair offsets — source regions from AI-generated sprites
-function getOffsets(v: number): {
-  desk: OffsetSprite;
-  chair: OffsetSprite;
-  chairBack: OffsetSprite | null;
-} {
-  if (v === 1) {
-    return {
-      desk: {
-        dx: 0,
-        dy: -7,
-        srcX: 99,
-        srcY: 268,
-        srcW: 430,
-        srcH: 620,
-        destW: 37,
-        destH: 54,
-      },
-      chair: {
-        dx: 4,
-        dy: -10,
-        srcX: 512,
-        srcY: 457,
-        srcW: 222,
-        srcH: 334,
-        destW: 18,
-        destH: 27,
-      },
-      chairBack: null,
-    };
-  }
-  return {
-    desk: {
-      dx: 0,
-      dy: -7,
-      srcX: 676,
-      srcY: 232,
-      srcW: 524,
-      srcH: 664,
-      destW: 50,
-      destH: 63,
-    },
-    chair: {
-      dx: 29,
-      dy: 11,
-      srcX: 112,
-      srcY: 473,
-      srcW: 241,
-      srcH: 298,
-      destW: 20,
-      destH: 25,
-    },
-    chairBack: null,
-  };
-}
-
-const STATIONS = STATION_DEFS.map((def) => ({
-  ...def,
-  offsets: getOffsets(def.variant),
-}));
-
-// ────────────────────────── Combined FaceBody Sprites ──────────────────────────
-
-const FACEBODY_SPRITES: Record<string, SpriteRegion> = {
-  fb12: {
-    srcX: 135,
-    srcY: 125,
-    srcW: 558,
-    srcH: 991,
-    destW: 15,
-    destH: 27,
-  },
-  fb34: {
-    srcX: 67,
-    srcY: 59,
-    srcW: 634,
-    srcH: 1113,
-    destW: 19,
-    destH: 32,
-  },
-};
-
-// Each employee uses combined sit/type facebody images
-const EMP_APPEARANCES = [
-  { sit: "facebody1", type: "facebody2", sprite: "fb12" }, // #0 variant 1
-  { sit: "facebody1", type: "facebody2", sprite: "fb12" }, // #1 variant 1
-  { sit: "facebody1", type: "facebody2", sprite: "fb12" }, // #2 variant 1
-  { sit: "facebody3", type: "facebody4", sprite: "fb34" }, // #3 variant 0
-  { sit: "facebody3", type: "facebody4", sprite: "fb34" }, // #4 variant 0
-];
-
-// ────────────────────────── PC Screen ──────────────────────────
-
-const PC_SCREEN_DEFS: {
-  stationIndex: number;
-  x: number;
-  y: number;
-  col: number;
-}[] = [
-  { stationIndex: 3, x: 130, y: 82, col: 0 },
-  { stationIndex: 4, x: 93, y: 101, col: 1 },
-];
+// Y-sort order: draw characters from back (low Y) to front (high Y)
+const DRAW_ORDER = Array.from({ length: NUM_SLOTS }, (_, i) => i).sort(
+  (a, b) => CHAR_POSITIONS[a].topY - CHAR_POSITIONS[b].topY
+);
 
 // ────────────────────────── Internal State Types ──────────────────────────
 
@@ -201,16 +81,17 @@ const EFFECT_DURATIONS: Record<EffectType, number> = {
 // ────────────────────────── Image Loading ──────────────────────────
 
 const SPRITE_BASE = "/sprites/";
-const IMAGE_SOURCES: Record<string, string> = {
-  floor: "floor.jpeg",
-  desk: "desk0new.png",
-  chair: "chair_new.png",
-  facebody1: "facebody1.png",
-  facebody2: "facebody2.png",
-  facebody3: "facebody3.png",
-  facebody4: "facebody4.png",
-  pc: "pc.png",
-};
+
+function buildImageSources(): Record<string, string> {
+  const sources: Record<string, string> = { floor: "floor.png" };
+  for (let i = 0; i < NUM_SLOTS; i++) {
+    sources[`char${i}-frame1`] = `char${i}-frame1.png`;
+    sources[`char${i}-frame2`] = `char${i}-frame2.png`;
+  }
+  return sources;
+}
+
+const IMAGE_SOURCES = buildImageSources();
 
 function loadImages(): Promise<Record<string, HTMLImageElement>> {
   return new Promise((resolve) => {
@@ -236,29 +117,6 @@ function loadImages(): Promise<Record<string, HTMLImageElement>> {
   });
 }
 
-// ────────────────────────── Sprite Drawing ──────────────────────────
-
-function drawSprite(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement | undefined,
-  x: number,
-  y: number,
-  sp: SpriteRegion
-) {
-  if (!img || !img.complete || !img.naturalWidth) return;
-  ctx.drawImage(
-    img,
-    sp.srcX,
-    sp.srcY,
-    sp.srcW,
-    sp.srcH,
-    x,
-    y,
-    sp.destW,
-    sp.destH
-  );
-}
-
 // ────────────────────────── Component ──────────────────────────
 
 export function PixelCanvas({
@@ -278,7 +136,7 @@ export function PixelCanvas({
 
   // Slot state machines
   const slotsRef = useRef<SlotMachine[]>(
-    Array.from({ length: 5 }, () => ({
+    Array.from({ length: NUM_SLOTS }, () => ({
       state: "empty" as SlotState,
       cycleIndex: 0,
       frameTicks: 0,
@@ -296,15 +154,10 @@ export function PixelCanvas({
   // Effects
   const activeEffectsRef = useRef<ActiveEffect[]>([]);
 
-  // PC screen animation
-  const pcFrameRef = useRef(0);
-  const pcTickCountRef = useRef(0);
-  const PC_TICKS_PER_FRAME = 20;
-
   // Sync props to refs
   useEffect(() => {
     slotsDataRef.current = slots;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < NUM_SLOTS; i++) {
       const externalState = slots[i]?.state ?? "empty";
       const machine = slotsRef.current[i];
       if (machine.state !== externalState) {
@@ -366,7 +219,7 @@ export function PixelCanvas({
     ctx.textAlign = "right";
     ctx.fillStyle = "#336";
     const count = agentCountRef.current;
-    ctx.fillText(`${count} agent${count !== 1 ? "s" : ""}`, 234, H / 2);
+    ctx.fillText(`${count} agent${count !== 1 ? "s" : ""}`, 250, H / 2);
 
     ctx.textAlign = "start";
     ctx.textBaseline = "alphabetic";
@@ -376,7 +229,7 @@ export function PixelCanvas({
     (ctx: CanvasRenderingContext2D, slotIndex: number) => {
       const sd = slotsDataRef.current[slotIndex];
       if (!sd?.sessionName) return;
-      const pos = EMP_POSITIONS[slotIndex];
+      const pos = CHAR_POSITIONS[slotIndex];
       ctx.font = "5px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -385,8 +238,8 @@ export function PixelCanvas({
           ? sd.sessionName.slice(0, 10) + ".."
           : sd.sessionName;
       const tw = ctx.measureText(text).width;
-      const px = pos.x + 8;
-      const py = pos.y - 4;
+      const px = pos.cx;
+      const py = pos.topY - 4;
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(px - tw / 2 - 2, py - 6, tw + 4, 7);
       ctx.fillStyle = "#fff";
@@ -401,7 +254,7 @@ export function PixelCanvas({
     const effs = activeEffectsRef.current;
     for (const eff of effs) {
       const progress = eff.elapsed / eff.duration;
-      const pos = EMP_POSITIONS[eff.slotIndex] || EMP_POSITIONS[0];
+      const pos = CHAR_POSITIONS[eff.slotIndex] || CHAR_POSITIONS[0];
 
       switch (eff.type) {
         case "bulb": {
@@ -411,8 +264,8 @@ export function PixelCanvas({
               : progress > 0.8
                 ? (1 - progress) / 0.2
                 : 1;
-          const bx = pos.x + 8;
-          const by = pos.y - 14 - Math.sin(progress * Math.PI * 4) * 2;
+          const bx = pos.cx;
+          const by = pos.topY - 14 - Math.sin(progress * Math.PI * 4) * 2;
           ctx.fillStyle = `rgba(255, 220, 50, ${alpha * 0.3})`;
           ctx.beginPath();
           ctx.arc(bx, by, 8, 0, Math.PI * 2);
@@ -429,9 +282,9 @@ export function PixelCanvas({
         }
         case "document": {
           const startX = CANVAS_W;
-          const endX = pos.x;
+          const endX = pos.cx;
           const curX = startX + (endX - startX) * Math.min(progress * 2, 1);
-          const curY = pos.y - 10 + Math.sin(progress * Math.PI) * -15;
+          const curY = pos.topY - 10 + Math.sin(progress * Math.PI) * -15;
           const alpha = progress > 0.8 ? (1 - progress) / 0.2 : 1;
           ctx.globalAlpha = alpha;
           ctx.fillStyle = "#f8f8f0";
@@ -448,8 +301,8 @@ export function PixelCanvas({
         }
         case "stars": {
           const alpha = progress > 0.7 ? (1 - progress) / 0.3 : 1;
-          const cx = pos.x + 8;
-          const cy = pos.y + 5;
+          const cx = pos.cx;
+          const cy = pos.cy;
           for (let i = 0; i < 8; i++) {
             const angle =
               (i / 8) * Math.PI * 2 + progress * Math.PI * 3;
@@ -488,159 +341,57 @@ export function PixelCanvas({
       ctx.save();
       ctx.scale(SCALE, SCALE);
 
-      // Floor background (scaled from 1200x880 source to 240x177)
-      if (images.floor?.complete && images.floor.naturalWidth) {
-        ctx.drawImage(images.floor, 0, 0, CANVAS_W, FLOOR_H);
+      // Floor background (256x256)
+      const floorImg = images.floor;
+      if (floorImg?.complete && floorImg.naturalWidth) {
+        ctx.drawImage(floorImg, 0, 0, CANVAS_W, CANVAS_H);
       }
 
-      // Dark bottom area below the floor
-      ctx.fillStyle = "#1a1a2e";
-      ctx.fillRect(0, FLOOR_H, CANVAS_W, CANVAS_H - FLOOR_H);
+      // Draw characters in Y-sorted order (back to front)
+      for (const si of DRAW_ORDER) {
+        const machine = slotsRef.current[si];
+        if (machine.state === "empty") continue;
+
+        // Pick frame: typing alternates frame1/frame2, others use frame1
+        const isTypingFrame2 =
+          machine.state === "typing" && machine.cycleIndex % 2 === 1;
+        const frameKey = `char${si}-frame${isTypingFrame2 ? 2 : 1}`;
+        const charImg = images[frameKey];
+
+        if (charImg?.complete && charImg.naturalWidth) {
+          // Celebrate: golden tint via alpha pulsing
+          if (machine.state === "celebrate") {
+            ctx.save();
+            ctx.globalAlpha = 0.85 + Math.sin(Date.now() / 200) * 0.15;
+          }
+
+          // Looking: slight vertical bob
+          const lookOffset =
+            machine.state === "looking"
+              ? Math.sin(Date.now() / 300) * 1
+              : 0;
+
+          // Character sprites are 256x256 with transparency, pre-positioned
+          if (lookOffset !== 0) {
+            ctx.save();
+            ctx.translate(0, lookOffset);
+          }
+          ctx.drawImage(charImg, 0, 0, CANVAS_W, CANVAS_H);
+          if (lookOffset !== 0) {
+            ctx.restore();
+          }
+
+          if (machine.state === "celebrate") {
+            ctx.restore();
+          }
+        }
+
+        // Session name label above character
+        renderSessionLabel(ctx, si);
+      }
 
       // Top bar overlay
       renderTopBar(ctx);
-
-      // Collect all sprites for Y-sort
-      const sprites: { type: string; y: number; draw: () => void }[] = [];
-
-      STATIONS.forEach((st, si) => {
-        const o = st.offsets;
-        const bx = st.baseX;
-        const by = st.baseY;
-        const deskSortY = by + o.desk.dy + o.desk.destH;
-        const chairInFront = st.variant === 0;
-
-        // Chair
-        sprites.push({
-          type: "chair",
-          y: chairInFront ? deskSortY + 2 : deskSortY - 2,
-          draw() {
-            drawSprite(
-              ctx,
-              images.chair,
-              bx + o.chair.dx,
-              by + o.chair.dy,
-              o.chair
-            );
-          },
-        });
-        if (o.chairBack) {
-          const cb = o.chairBack;
-          sprites.push({
-            type: "chairBack",
-            y: chairInFront ? deskSortY + 3 : deskSortY - 3,
-            draw() {
-              drawSprite(
-                ctx,
-                images.chair,
-                bx + cb.dx,
-                by + cb.dy,
-                cb
-              );
-            },
-          });
-        }
-
-        // Employee (only if slot is not empty)
-        const machine = slotsRef.current[si];
-        if (machine.state !== "empty") {
-          const app = EMP_APPEARANCES[si];
-          const fbSprite = FACEBODY_SPRITES[app.sprite];
-          const pos = EMP_POSITIONS[si];
-          const empAboveDesk = si === 3 || si === 4;
-
-          sprites.push({
-            type: "employee",
-            y: empAboveDesk ? deskSortY + 3 : deskSortY - 1,
-            draw() {
-              // Celebrate: golden tint via alpha pulsing
-              if (machine.state === "celebrate") {
-                ctx.save();
-                ctx.globalAlpha =
-                  0.85 + Math.sin(Date.now() / 200) * 0.15;
-              }
-
-              // Looking: slight head bob
-              const lookOffset =
-                machine.state === "looking"
-                  ? Math.sin(Date.now() / 300) * 1
-                  : 0;
-
-              // Combined facebody: toggle sit/type image based on cycleIndex
-              const isTyping =
-                machine.state === "typing" &&
-                machine.cycleIndex % 2 === 1;
-              const imgName = isTyping ? app.type : app.sit;
-
-              drawSprite(
-                ctx,
-                images[imgName],
-                pos.x,
-                pos.y + lookOffset,
-                fbSprite
-              );
-
-              if (machine.state === "celebrate") {
-                ctx.restore();
-              }
-
-              // Session name label above character
-              renderSessionLabel(ctx, si);
-            },
-          });
-        }
-
-        // Desk
-        sprites.push({
-          type: "desk",
-          y: deskSortY,
-          draw() {
-            drawSprite(
-              ctx,
-              images.desk,
-              bx + o.desk.dx,
-              by + o.desk.dy,
-              o.desk
-            );
-          },
-        });
-      });
-
-      // PC screens on variant-0 desks (visible when typing)
-      PC_SCREEN_DEFS.forEach((pc) => {
-        const machine = slotsRef.current[pc.stationIndex];
-        if (machine.state !== "typing") return;
-
-        const st = STATIONS[pc.stationIndex];
-        const o = st.offsets;
-        const deskSortY = st.baseY + o.desk.dy + o.desk.destH;
-
-        sprites.push({
-          type: "pc",
-          y: deskSortY + 0.5,
-          draw() {
-            const img = images.pc;
-            if (!img?.complete || !img.naturalWidth) return;
-            const fw = img.naturalWidth / 2;
-            const fh = img.naturalHeight / 4;
-            ctx.drawImage(
-              img,
-              pc.col * fw,
-              pcFrameRef.current * fh,
-              fw,
-              fh,
-              pc.x,
-              pc.y,
-              8,
-              11
-            );
-          },
-        });
-      });
-
-      // Y-sort and draw
-      sprites.sort((a, b) => a.y - b.y);
-      sprites.forEach((s) => s.draw());
 
       // Effects overlay
       renderEffects(ctx);
@@ -653,7 +404,7 @@ export function PixelCanvas({
   // ── Game Loop ──
 
   const tick = useCallback((deltaMs: number) => {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < NUM_SLOTS; i++) {
       const machine = slotsRef.current[i];
       if (machine.state === "empty") continue;
 
@@ -679,7 +430,7 @@ export function PixelCanvas({
         machine.stateTimer = 0;
       }
 
-      // Frame cycling for typing (toggle between sit/type frames)
+      // Frame cycling for typing (toggle between frame1/frame2)
       if (machine.state === "typing") {
         machine.frameTicks++;
         if (machine.frameTicks >= machine.ticksPerFrame) {
@@ -687,13 +438,6 @@ export function PixelCanvas({
           machine.cycleIndex = (machine.cycleIndex + 1) % 2;
         }
       }
-    }
-
-    // PC screen frame cycling
-    pcTickCountRef.current++;
-    if (pcTickCountRef.current >= PC_TICKS_PER_FRAME) {
-      pcTickCountRef.current = 0;
-      pcFrameRef.current = (pcFrameRef.current + 1) % 4;
     }
 
     // Update effects
