@@ -27,7 +27,7 @@ export function PixelCanvasWidget({ projectUuid, projectName }: PixelCanvasWidge
   const t = useTranslations("pixelCanvas");
   const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState<SlotData[]>(
-    Array.from({ length: 5 }, () => ({ state: "empty" as SlotState }))
+    Array.from({ length: 7 }, () => ({ state: "empty" as SlotState }))
   );
   const [agentCount, setAgentCount] = useState(0);
   const [effects, setEffects] = useState<PixelCanvasEffect[]>([]);
@@ -37,7 +37,7 @@ export function PixelCanvasWidget({ projectUuid, projectName }: PixelCanvasWidge
     if (!result.success || !result.data) return;
 
     const sessions = result.data;
-    const newSlots: SlotData[] = Array.from({ length: 5 }, (_, i) => {
+    const newSlots: SlotData[] = Array.from({ length: 7 }, (_, i) => {
       const session = sessions[i];
       if (!session) return { state: "empty" as SlotState };
       return {
@@ -72,7 +72,7 @@ export function PixelCanvasWidget({ projectUuid, projectName }: PixelCanvasWidge
               width={72}
               height={72}
               unoptimized
-              className="block"
+              className="block scale-[1.3]"
             />
           </div>
           {agentCount > 0 && (
