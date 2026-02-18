@@ -195,6 +195,41 @@ Skill 文件包含：MCP 配置指南、三个角色的完整工作流、Session
 
 ---
 
+## 项目进度
+
+基于 [AI-DLC 方法论](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)对标，当前实现状态：
+
+### 已实现
+
+- [x] **Reversed Conversation** — Proposal 审批流（AI 提议，人类验证）
+- [x] **Task DAG** — 任务依赖建模 + 环检测 + @xyflow/react 可视化
+- [x] **Context Continuity** — Plugin 自动注入上下文 + checkin 返回 persona/assignments
+- [x] **Session Observability** — 每个 Worker 独立 Session，Kanban/Task Detail 实时显示
+- [x] **Parallel Execution** — Claude Code Agent Teams (Swarm Mode) + Plugin 自动化
+- [x] **Feedback Loop** — AI Agent 可创建 Idea，形成 Ops → Idea 闭环
+- [x] **50+ MCP Tools** — 覆盖 Public/Session/Developer/PM/Admin 五个权限域
+- [x] **Activity Stream** — 全操作审计 + Session 归因
+
+### 部分实现
+
+- [x] **Task Auto-Scheduling** — `chorus_get_unblocked_tasks` MCP 工具 + SubagentStop Hook 自动发现解锁任务
+  - [ ] 事件驱动推送（任务解锁时主动通知）
+  - [ ] 自动分配给空闲 Agent
+
+### 待开发
+
+- [ ] **Notification & Event Push (P0)** — Proposal 提交/Task 验证/依赖解锁等事件的推送通知（Webhook / MCP / WebSocket）
+- [ ] **Execution Metrics (P1)** — Agent Hours、任务执行时长、项目 velocity 统计
+- [ ] **Proposal Granular Review (P1)** — 支持部分审批、条件审批、逐草稿 Review
+- [ ] **Session Auto-Expiry (P1)** — 后台定时扫描 inactive Session，自动关闭 + checkout
+- [ ] **Checkin Context Density (P2)** — 丰富 checkin 返回（项目概况、阻塞信息、建议操作）
+- [ ] **Proposal State Validation (P2)** — Proposal 状态机校验（防止非法状态转换）
+- [ ] **Bolt Cycles (P2)** — 迭代/里程碑分组（目前可用 Project 替代）
+
+> 详细分析见 [AI-DLC Gap Analysis](docs/AIDLC_GAP_ANALYSIS.md)
+
+---
+
 ## 文档
 
 | 文档 | 说明 |
