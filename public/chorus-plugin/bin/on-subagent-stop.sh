@@ -86,6 +86,12 @@ if [ -n "$AGENT_NAME" ] && [ -f "${SESSIONS_DIR}/${AGENT_NAME}.json" ]; then
   rm -f "${SESSIONS_DIR}/${AGENT_NAME}.json"
 fi
 
+# Clean up claimed file (written by SubagentStart)
+CLAIMED_DIR="${CLAUDE_PROJECT_DIR:-.}/.chorus/claimed"
+if [ -n "$AGENT_ID" ] && [ -f "${CLAIMED_DIR}/${AGENT_ID}" ]; then
+  rm -f "${CLAIMED_DIR}/${AGENT_ID}"
+fi
+
 # === Auto-dispatch: discover unblocked tasks ===
 UNBLOCKED_INFO=""
 if [ "$CLOSE_OK" = true ] && [ -n "$SESSION_DETAIL" ]; then

@@ -2,6 +2,9 @@
 # on-subagent-start.sh — SubagentStart hook
 # Triggered SYNCHRONOUSLY when a sub-agent (teammate) is spawned.
 #
+# Name resolution: Claims a per-agent pending file written by PreToolUse:Task
+# using atomic mv (only one process can successfully mv a given file).
+#
 # Session reuse logic:
 #   1. List existing sessions via MCP
 #   2. If a session with the same name exists and is active → reuse
@@ -34,7 +37,7 @@ fi
 # Extract agent info from event
 # Note: SubagentStart only provides agent_id and agent_type — NOT the name
 # from the Task tool call. The name is captured by on-pre-spawn-agent.sh
-# (PreToolUse:Task) and stored in .chorus/pending_names.
+# (PreToolUse:Task) and stored as a per-agent file in .chorus/pending/.
 AGENT_ID=$(echo "$EVENT" | jq -r '.agent_id // .agentId // empty' 2>/dev/null) || true
 AGENT_TYPE=$(echo "$EVENT" | jq -r '.agent_type // .agentType // empty' 2>/dev/null) || true
 
@@ -49,44 +52,47 @@ if [ -z "$AGENT_ID" ]; then
   exit 0
 fi
 
-# Resolve agent name from pending_names file (written by PreToolUse:Task hook).
-# The file acts as a "was this spawn expected?" signal:
-#   - If file is missing or empty → this is an internal/cleanup agent → skip
-#   - Entry "?" means no name was provided → use fallback name
-#   - Otherwise, try to match agent_type to a stored name, or FIFO
+# Claim a pending file written by PreToolUse:Task (on-pre-spawn-agent.sh).
+# Each pending file represents one expected sub-agent spawn.
 #
-# CC may internally re-spawn agents during cleanup (e.g., TeamDelete).
-# These bypass PreToolUse:Task, so no pending entry exists.
+# Claim strategy (atomic mv — only one process can succeed per file):
+#   1. Try exact match: mv .chorus/pending/{agent_type} → claimed/{agent_id}
+#      (CC often sets agent_type to the name from the Task tool call)
+#   2. Fallback: claim the oldest pending file (FIFO by modification time)
+#
+# If no pending file exists, this is an internal/cleanup agent → skip.
 AGENT_NAME=""
-PENDING_FILE="${CLAUDE_PROJECT_DIR:-.}/.chorus/pending_names"
+PENDING_DIR="${CLAUDE_PROJECT_DIR:-.}/.chorus/pending"
+CLAIMED_DIR="${CLAUDE_PROJECT_DIR:-.}/.chorus/claimed"
+mkdir -p "$CLAIMED_DIR"
 
-if [ ! -f "$PENDING_FILE" ] || [ ! -s "$PENDING_FILE" ]; then
-  # No pending spawn entry → internal/cleanup agent → skip session creation
-  exit 0
-fi
+CLAIMED_FILE=""
 
-# Consume one entry from the pending file
-# Strategy 1: agent_type matches a stored name exactly (CC uses name as agent_type)
-if grep -qx "$AGENT_TYPE" "$PENDING_FILE" 2>/dev/null; then
-  AGENT_NAME="$AGENT_TYPE"
-else
-  # Strategy 2: FIFO — pop the first line
-  AGENT_NAME=$(head -1 "$PENDING_FILE")
-fi
-
-# Remove the consumed line (first occurrence only)
-if [ -n "$AGENT_NAME" ]; then
-  TEMP=$(mktemp)
-  sed "0,/^$(printf '%s' "$AGENT_NAME" | sed 's/[.[\*^$/]/\\&/g')$/{//d}" "$PENDING_FILE" > "$TEMP" 2>/dev/null || true
-  mv "$TEMP" "$PENDING_FILE"
-  if [ ! -s "$PENDING_FILE" ]; then
-    rm -f "$PENDING_FILE"
+# Strategy 1: exact match by agent_type (CC uses name as agent_type)
+if [ -f "${PENDING_DIR}/${AGENT_TYPE}" ]; then
+  if mv "${PENDING_DIR}/${AGENT_TYPE}" "${CLAIMED_DIR}/${AGENT_ID}" 2>/dev/null; then
+    CLAIMED_FILE="${CLAIMED_DIR}/${AGENT_ID}"
+    AGENT_NAME="$AGENT_TYPE"
   fi
 fi
 
-# Handle "?" placeholder (name was not provided in Task tool call)
-if [ "$AGENT_NAME" = "?" ]; then
-  AGENT_NAME=""
+# Strategy 2: FIFO — claim oldest pending file
+if [ -z "$CLAIMED_FILE" ] && [ -d "$PENDING_DIR" ]; then
+  for candidate in $(ls -tr "$PENDING_DIR" 2>/dev/null); do
+    if mv "${PENDING_DIR}/${candidate}" "${CLAIMED_DIR}/${AGENT_ID}" 2>/dev/null; then
+      CLAIMED_FILE="${CLAIMED_DIR}/${AGENT_ID}"
+      # Read name from file content if available
+      FILE_NAME=$(jq -r '.name // empty' "$CLAIMED_FILE" 2>/dev/null) || true
+      AGENT_NAME="${FILE_NAME:-$candidate}"
+      break
+    fi
+    # mv failed → another process claimed it first, try next
+  done
+fi
+
+# No pending file claimed → internal/cleanup agent → skip session creation
+if [ -z "$CLAIMED_FILE" ]; then
+  exit 0
 fi
 
 # Fallback: use agent_type + short ID if no name was captured

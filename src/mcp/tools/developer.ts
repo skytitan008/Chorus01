@@ -1,5 +1,5 @@
 // src/mcp/tools/developer.ts
-// Developer Agent 专属 MCP 工具 (ARCHITECTURE.md §5.2)
+// Developer Agent MCP Tools (ARCHITECTURE.md §5.2)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -12,11 +12,11 @@ import * as sessionService from "@/services/session.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 
 export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_claim_task - 认领 Task
+  // chorus_claim_task - Claim a Task
   server.registerTool(
     "chorus_claim_task",
     {
-      description: "认领一个 Task（open → assigned）",
+      description: "Claim a Task (open -> assigned)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
       }),
@@ -24,7 +24,7 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
     async ({ taskUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
       try {
@@ -47,22 +47,22 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         });
 
         return {
-          content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
         };
       } catch (e) {
         if (e instanceof AlreadyClaimedError) {
-          return { content: [{ type: "text", text: "只能认领 open 状态的 Task" }], isError: true };
+          return { content: [{ type: "text", text: "Can only claim tasks with open status" }], isError: true };
         }
         throw e;
       }
     }
   );
 
-  // chorus_release_task - 放弃认领 Task
+  // chorus_release_task - Release a claimed Task
   server.registerTool(
     "chorus_release_task",
     {
-      description: "放弃认领 Task（assigned → open）",
+      description: "Release a claimed Task (assigned -> open)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
       }),
@@ -70,16 +70,16 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
     async ({ taskUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
-      // 检查是否是认领者 (UUID comparison)
+      // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
         (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
         (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "只有认领者可以放弃认领" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can release a task" }], isError: true };
       }
 
       try {
@@ -96,44 +96,44 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         });
 
         return {
-          content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
         };
       } catch (e) {
         if (e instanceof NotClaimedError) {
-          return { content: [{ type: "text", text: "只能放弃 assigned 状态的 Task" }], isError: true };
+          return { content: [{ type: "text", text: "Can only release tasks with assigned status" }], isError: true };
         }
         throw e;
       }
     }
   );
 
-  // chorus_update_task - 更新任务状态
+  // chorus_update_task - Update task status
   server.registerTool(
     "chorus_update_task",
     {
-      description: "更新任务状态（仅认领者可操作）",
+      description: "Update task status (only the assignee can operate)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
-        status: z.enum(["in_progress", "to_verify"]).describe("新状态"),
+        status: z.enum(["in_progress", "to_verify"]).describe("New status"),
         sessionUuid: z.string().optional().describe("Session UUID (for sub-agent identification)"),
       }),
     },
     async ({ taskUuid, status, sessionUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
-      // 检查是否是认领者 (UUID comparison)
+      // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
         (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
         (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "只有认领者可以更新状态" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can update task status" }], isError: true };
       }
 
-      // 解析 session 信息
+      // Resolve session info
       let sessionName: string | undefined;
       if (sessionUuid) {
         const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
@@ -143,10 +143,10 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         }
       }
 
-      // 验证状态转换
+      // Validate status transition
       if (!taskService.isValidTaskStatusTransition(task.status, status)) {
         return {
-          content: [{ type: "text", text: `无效的状态转换: ${task.status} → ${status}` }],
+          content: [{ type: "text", text: `Invalid status transition: ${task.status} -> ${status}` }],
           isError: true,
         };
       }
@@ -167,43 +167,43 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_submit_for_verify - 提交任务等待人类验证
+  // chorus_submit_for_verify - Submit task for human verification
   server.registerTool(
     "chorus_submit_for_verify",
     {
-      description: "提交任务等待人类验证（in_progress → to_verify）",
+      description: "Submit task for human verification (in_progress -> to_verify)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
-        summary: z.string().optional().describe("工作摘要"),
+        summary: z.string().optional().describe("Work summary"),
       }),
     },
     async ({ taskUuid, summary }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
-      // 检查是否是认领者 (UUID comparison)
+      // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
         (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
         (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "只有认领者可以提交验证" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can submit for verification" }], isError: true };
       }
 
       if (task.status !== "in_progress") {
-        return { content: [{ type: "text", text: "只能从 in_progress 状态提交验证" }], isError: true };
+        return { content: [{ type: "text", text: "Can only submit for verification from in_progress status" }], isError: true };
       }
 
       const updated = await taskService.updateTask(task.uuid, { status: "to_verify" });
 
-      // 记录活动
+      // Log activity
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
         projectUuid: task.projectUuid,
@@ -216,39 +216,39 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_report_work - 报告工作完成
+  // chorus_report_work - Report work progress or completion
   server.registerTool(
     "chorus_report_work",
     {
-      description: "报告工作进展或完成情况",
+      description: "Report work progress or completion",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
-        report: z.string().describe("工作报告内容"),
-        status: z.enum(["in_progress", "to_verify"]).optional().describe("可选：同时更新状态"),
+        report: z.string().describe("Work report content"),
+        status: z.enum(["in_progress", "to_verify"]).optional().describe("Optional: update status at the same time"),
         sessionUuid: z.string().optional().describe("Session UUID (for sub-agent identification)"),
       }),
     },
     async ({ taskUuid, report, status, sessionUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
-      // 检查是否是认领者 (UUID comparison)
+      // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
         (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
         (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "只有认领者可以报告工作" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can report work" }], isError: true };
       }
 
-      // 解析 session 信息
+      // Resolve session info
       let sessionName: string | undefined;
       if (sessionUuid) {
         const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
@@ -258,12 +258,12 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         }
       }
 
-      // 如果需要更新状态
+      // Update status if requested
       if (status && taskService.isValidTaskStatusTransition(task.status, status)) {
         await taskService.updateTask(task.uuid, { status });
       }
 
-      // 写入评论
+      // Write comment
       await commentService.createComment({
         companyUuid: auth.companyUuid,
         targetType: "task",
@@ -273,7 +273,7 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         authorUuid: auth.actorUuid,
       });
 
-      // 记录活动
+      // Log activity
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
         projectUuid: task.projectUuid,
@@ -288,7 +288,7 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       });
 
       return {
-        content: [{ type: "text", text: `工作报告已记录: ${report}` }],
+        content: [{ type: "text", text: `Work report recorded: ${report}` }],
       };
     }
   );

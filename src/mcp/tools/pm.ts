@@ -1,5 +1,5 @@
 // src/mcp/tools/pm.ts
-// PM Agent 专属 MCP 工具 (ARCHITECTURE.md §5.2)
+// PM Agent MCP Tools (ARCHITECTURE.md §5.2)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -15,11 +15,11 @@ import { getAgentByUuid } from "@/services/agent.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 
 export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_claim_idea - 认领 Idea
+  // chorus_claim_idea - Claim an Idea
   server.registerTool(
     "chorus_claim_idea",
     {
-      description: "认领一个 Idea（open → assigned）",
+      description: "Claim an Idea (open -> assigned)",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Idea UUID"),
       }),
@@ -27,7 +27,7 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
     async ({ ideaUuid }) => {
       const idea = await ideaService.getIdeaByUuid(auth.companyUuid, ideaUuid);
       if (!idea) {
-        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Idea not found" }], isError: true };
       }
 
       try {
@@ -50,22 +50,22 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         });
 
         return {
-          content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
         };
       } catch (e) {
         if (e instanceof AlreadyClaimedError) {
-          return { content: [{ type: "text", text: "只能认领 open 状态的 Idea" }], isError: true };
+          return { content: [{ type: "text", text: "Can only claim Ideas with open status" }], isError: true };
         }
         throw e;
       }
     }
   );
 
-  // chorus_release_idea - 放弃认领 Idea
+  // chorus_release_idea - Release a claimed Idea
   server.registerTool(
     "chorus_release_idea",
     {
-      description: "放弃认领 Idea（assigned → open）",
+      description: "Release a claimed Idea (assigned -> open)",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Idea UUID"),
       }),
@@ -73,16 +73,16 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
     async ({ ideaUuid }) => {
       const idea = await ideaService.getIdeaByUuid(auth.companyUuid, ideaUuid);
       if (!idea) {
-        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Idea not found" }], isError: true };
       }
 
-      // 检查是否是认领者 (UUID comparison)
+      // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
         (idea.assigneeType === "agent" && idea.assigneeUuid === auth.actorUuid) ||
         (idea.assigneeType === "user" && auth.ownerUuid && idea.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "只有认领者可以放弃认领" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can release a claimed Idea" }], isError: true };
       }
 
       try {
@@ -99,46 +99,46 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         });
 
         return {
-          content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
         };
       } catch (e) {
         if (e instanceof NotClaimedError) {
-          return { content: [{ type: "text", text: "只能放弃 assigned 状态的 Idea" }], isError: true };
+          return { content: [{ type: "text", text: "Can only release Ideas with assigned status" }], isError: true };
         }
         throw e;
       }
     }
   );
 
-  // chorus_update_idea_status - 更新 Idea 状态
+  // chorus_update_idea_status - Update Idea status
   server.registerTool(
     "chorus_update_idea_status",
     {
-      description: "更新 Idea 状态（仅认领者可操作）",
+      description: "Update Idea status (only assignee can operate)",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Idea UUID"),
-        status: z.enum(["in_progress", "pending_review", "completed"]).describe("新状态"),
+        status: z.enum(["in_progress", "pending_review", "completed"]).describe("New status"),
       }),
     },
     async ({ ideaUuid, status }) => {
       const idea = await ideaService.getIdeaByUuid(auth.companyUuid, ideaUuid);
       if (!idea) {
-        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Idea not found" }], isError: true };
       }
 
-      // 检查是否是认领者 (UUID comparison)
+      // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
         (idea.assigneeType === "agent" && idea.assigneeUuid === auth.actorUuid) ||
         (idea.assigneeType === "user" && auth.ownerUuid && idea.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "只有认领者可以更新状态" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can update the status" }], isError: true };
       }
 
-      // 验证状态转换
+      // Validate status transition
       if (!ideaService.isValidIdeaStatusTransition(idea.status, status)) {
         return {
-          content: [{ type: "text", text: `无效的状态转换: ${idea.status} → ${status}` }],
+          content: [{ type: "text", text: `Invalid status transition: ${idea.status} -> ${status}` }],
           isError: true,
         };
       }
@@ -157,44 +157,44 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_pm_create_proposal - 创建提议（容器模型）
+  // chorus_pm_create_proposal - Create a Proposal (container model)
   server.registerTool(
     "chorus_pm_create_proposal",
     {
-      description: "创建提议容器（可包含文档草稿和任务草稿）",
+      description: "Create a Proposal container (can include document drafts and task drafts)",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        title: z.string().describe("提议标题"),
-        description: z.string().optional().describe("提议描述"),
-        inputType: z.enum(["idea", "document"]).describe("输入来源类型"),
-        inputUuids: z.array(z.string()).describe("输入 UUID 列表"),
+        projectUuid: z.string().describe("Project UUID"),
+        title: z.string().describe("Proposal title"),
+        description: z.string().optional().describe("Proposal description"),
+        inputType: z.enum(["idea", "document"]).describe("Input source type"),
+        inputUuids: z.array(z.string()).describe("Input UUID list"),
         documentDrafts: z.array(z.object({
-          type: z.string().describe("文档类型（prd, tech_design, adr, spec, guide）"),
-          title: z.string().describe("文档标题"),
-          content: z.string().describe("文档内容（Markdown）"),
-        })).optional().describe("文档草稿列表"),
+          type: z.string().describe("Document type (prd, tech_design, adr, spec, guide)"),
+          title: z.string().describe("Document title"),
+          content: z.string().describe("Document content (Markdown)"),
+        })).optional().describe("Document drafts list"),
         taskDrafts: z.array(z.object({
-          title: z.string().describe("任务标题"),
-          description: z.string().optional().describe("任务描述"),
-          storyPoints: z.number().optional().describe("工作量估算（Agent 小时）"),
-          priority: z.enum(["low", "medium", "high"]).optional().describe("优先级"),
-          acceptanceCriteria: z.string().optional().describe("验收标准（Markdown）"),
-          dependsOnDraftUuids: z.array(z.string()).optional().describe("依赖的 taskDraft UUID 列表"),
-        })).optional().describe("任务草稿列表"),
+          title: z.string().describe("Task title"),
+          description: z.string().optional().describe("Task description"),
+          storyPoints: z.number().optional().describe("Effort estimate (agent hours)"),
+          priority: z.enum(["low", "medium", "high"]).optional().describe("Priority"),
+          acceptanceCriteria: z.string().optional().describe("Acceptance criteria (Markdown)"),
+          dependsOnDraftUuids: z.array(z.string()).optional().describe("Dependent taskDraft UUID list"),
+        })).optional().describe("Task drafts list"),
       }),
     },
     async ({ projectUuid, title, description, inputType, inputUuids, documentDrafts, taskDrafts }) => {
-      // 验证项目存在
+      // Validate project exists
       if (!(await projectExists(auth.companyUuid, projectUuid))) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
-      // 如果输入类型是 idea，验证认领者和唯一性
+      // If input type is idea, validate assignee and uniqueness
       if (inputType === "idea") {
         const assigneeCheck = await proposalService.checkIdeasAssignee(
           auth.companyUuid,
@@ -204,7 +204,7 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         );
         if (!assigneeCheck.valid) {
           return {
-            content: [{ type: "text", text: "只能基于自己认领的 Ideas 创建 Proposal" }],
+            content: [{ type: "text", text: "Can only create Proposals based on Ideas you have claimed" }],
             isError: true,
           };
         }
@@ -216,7 +216,7 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         if (!availabilityCheck.available) {
           const usedIdea = availabilityCheck.usedIdeas[0];
           return {
-            content: [{ type: "text", text: `Idea 已被 Proposal "${usedIdea.proposalTitle}" 使用` }],
+            content: [{ type: "text", text: `Idea is already used by Proposal "${usedIdea.proposalTitle}"` }],
             isError: true,
           };
         }
@@ -236,16 +236,16 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: proposal.uuid, title: proposal.title, status: proposal.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_pm_submit_proposal - 提交 Proposal 审批
+  // chorus_pm_submit_proposal - Submit Proposal for approval
   server.registerTool(
     "chorus_pm_submit_proposal",
     {
-      description: "提交 Proposal 进入审批流程（draft → pending）",
+      description: "Submit a Proposal for approval (draft -> pending)",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
       }),
@@ -257,41 +257,41 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           auth.companyUuid
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: proposal.uuid, status: proposal.status }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `提交 Proposal 失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to submit Proposal: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_create_document - 创建文档
+  // chorus_pm_create_document - Create a document
   server.registerTool(
     "chorus_pm_create_document",
     {
-      description: "创建文档（PRD、技术设计、ADR 等）",
+      description: "Create a document (PRD, tech design, ADR, etc.)",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        type: z.enum(["prd", "tech_design", "adr", "spec", "guide"]).describe("文档类型"),
-        title: z.string().describe("文档标题"),
-        content: z.string().optional().describe("文档内容（Markdown）"),
-        proposalUuid: z.string().optional().describe("关联的 Proposal UUID（可选）"),
+        projectUuid: z.string().describe("Project UUID"),
+        type: z.enum(["prd", "tech_design", "adr", "spec", "guide"]).describe("Document type"),
+        title: z.string().describe("Document title"),
+        content: z.string().optional().describe("Document content (Markdown)"),
+        proposalUuid: z.string().optional().describe("Associated Proposal UUID (optional)"),
       }),
     },
     async ({ projectUuid, type, title, content, proposalUuid }) => {
-      // 验证项目存在
+      // Validate project exists
       if (!(await projectExists(auth.companyUuid, projectUuid))) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
-      // 验证 Proposal 存在（如果提供）
+      // Validate Proposal exists (if provided)
       if (proposalUuid) {
         const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
         if (!proposal) {
-          return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+          return { content: [{ type: "text", text: "Proposal not found" }], isError: true };
         }
       }
 
@@ -306,46 +306,46 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(document, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: document.uuid, title: document.title, type: document.type }, null, 2) }],
       };
     }
   );
 
-  // chorus_pm_create_tasks - 批量创建任务
+  // chorus_pm_create_tasks - Batch create tasks
   server.registerTool(
     "chorus_pm_create_tasks",
     {
-      description: "批量创建任务（可关联 Proposal，支持批次内依赖）",
+      description: "Batch create tasks (can associate with a Proposal, supports intra-batch dependencies)",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        proposalUuid: z.string().optional().describe("关联的 Proposal UUID（可选）"),
+        projectUuid: z.string().describe("Project UUID"),
+        proposalUuid: z.string().optional().describe("Associated Proposal UUID (optional)"),
         tasks: z.array(z.object({
-          title: z.string().describe("任务标题"),
-          description: z.string().optional().describe("任务描述"),
-          priority: z.enum(["low", "medium", "high"]).optional().describe("优先级"),
-          storyPoints: z.number().optional().describe("工作量估算（Agent 小时）"),
-          acceptanceCriteria: z.string().optional().describe("验收标准（Markdown）"),
-          draftUuid: z.string().optional().describe("临时 UUID，供同批次 dependsOnDraftUuids 引用"),
-          dependsOnDraftUuids: z.array(z.string()).optional().describe("依赖的同批次 draftUuid 列表"),
-          dependsOnTaskUuids: z.array(z.string()).optional().describe("依赖的已有 Task UUID 列表"),
-        })).describe("任务列表"),
+          title: z.string().describe("Task title"),
+          description: z.string().optional().describe("Task description"),
+          priority: z.enum(["low", "medium", "high"]).optional().describe("Priority"),
+          storyPoints: z.number().optional().describe("Effort estimate (agent hours)"),
+          acceptanceCriteria: z.string().optional().describe("Acceptance criteria (Markdown)"),
+          draftUuid: z.string().optional().describe("Temporary UUID for intra-batch dependsOnDraftUuids references"),
+          dependsOnDraftUuids: z.array(z.string()).optional().describe("Dependent draftUuid list within this batch"),
+          dependsOnTaskUuids: z.array(z.string()).optional().describe("Dependent existing Task UUID list"),
+        })).describe("Task list"),
       }),
     },
     async ({ projectUuid, proposalUuid, tasks }) => {
-      // 验证项目存在
+      // Validate project exists
       if (!(await projectExists(auth.companyUuid, projectUuid))) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
-      // 验证 Proposal 存在（如果提供）
+      // Validate Proposal exists (if provided)
       if (proposalUuid) {
         const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
         if (!proposal) {
-          return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+          return { content: [{ type: "text", text: "Proposal not found" }], isError: true };
         }
       }
 
-      // 1. 批量创建任务
+      // 1. Batch create tasks
       const createdTasks = await Promise.all(
         tasks.map(task =>
           taskService.createTask({
@@ -362,7 +362,7 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         )
       );
 
-      // 2. 构建 draftUuid → realUuid Map
+      // 2. Build draftUuid -> realUuid map
       const draftToTaskUuidMap: Record<string, string> = {};
       for (let i = 0; i < tasks.length; i++) {
         if (tasks[i].draftUuid) {
@@ -370,13 +370,13 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         }
       }
 
-      // 3. 创建依赖关系
+      // 3. Create dependencies
       const warnings: string[] = [];
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i];
         const realUuid = createdTasks[i].uuid;
 
-        // 处理 dependsOnDraftUuids（批次内依赖）
+        // Handle dependsOnDraftUuids (intra-batch dependencies)
         if (task.dependsOnDraftUuids) {
           for (const draftUuid of task.dependsOnDraftUuids) {
             const depRealUuid = draftToTaskUuidMap[draftUuid];
@@ -387,33 +387,28 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
             try {
               await taskService.addTaskDependency(auth.companyUuid, realUuid, depRealUuid);
             } catch (error) {
-              warnings.push(`Task "${task.title}" → draftUuid "${draftUuid}": ${error instanceof Error ? error.message : "unknown error"}`);
+              warnings.push(`Task "${task.title}" -> draftUuid "${draftUuid}": ${error instanceof Error ? error.message : "unknown error"}`);
             }
           }
         }
 
-        // 处理 dependsOnTaskUuids（已有 Task 依赖）
+        // Handle dependsOnTaskUuids (existing Task dependencies)
         if (task.dependsOnTaskUuids) {
           for (const depUuid of task.dependsOnTaskUuids) {
             try {
               await taskService.addTaskDependency(auth.companyUuid, realUuid, depUuid);
             } catch (error) {
-              warnings.push(`Task "${task.title}" → taskUuid "${depUuid}": ${error instanceof Error ? error.message : "unknown error"}`);
+              warnings.push(`Task "${task.title}" -> taskUuid "${depUuid}": ${error instanceof Error ? error.message : "unknown error"}`);
             }
           }
         }
       }
 
       const result: {
-        tasks: typeof createdTasks;
-        count: number;
-        draftToTaskUuidMap?: Record<string, string>;
+        tasks: { uuid: string; title: string }[];
         warnings?: string[];
-      } = { tasks: createdTasks, count: createdTasks.length };
+      } = { tasks: createdTasks.map(t => ({ uuid: t.uuid, title: t.title })) };
 
-      if (Object.keys(draftToTaskUuidMap).length > 0) {
-        result.draftToTaskUuidMap = draftToTaskUuidMap;
-      }
       if (warnings.length > 0) {
         result.warnings = warnings;
       }
@@ -424,21 +419,21 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_pm_update_document - 更新文档内容
+  // chorus_pm_update_document - Update document content
   server.registerTool(
     "chorus_pm_update_document",
     {
-      description: "更新文档内容（会增加版本号）",
+      description: "Update document content (increments version number)",
       inputSchema: z.object({
-        documentUuid: z.string().describe("文档 UUID"),
-        title: z.string().optional().describe("新标题"),
-        content: z.string().optional().describe("新内容（Markdown）"),
+        documentUuid: z.string().describe("Document UUID"),
+        title: z.string().optional().describe("New title"),
+        content: z.string().optional().describe("New content (Markdown)"),
       }),
     },
     async ({ documentUuid, title, content }) => {
       const doc = await documentService.getDocument(auth.companyUuid, documentUuid);
       if (!doc) {
-        return { content: [{ type: "text", text: "文档不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Document not found" }], isError: true };
       }
 
       const updated = await documentService.updateDocument(documentUuid, {
@@ -448,23 +443,23 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, version: updated.version }, null, 2) }],
       };
     }
   );
 
-  // ===== Proposal Draft 管理工具 =====
+  // ===== Proposal Draft Management Tools =====
 
-  // chorus_pm_add_document_draft - 添加文档草稿到 Proposal
+  // chorus_pm_add_document_draft - Add document draft to Proposal
   server.registerTool(
     "chorus_pm_add_document_draft",
     {
-      description: "添加文档草稿到待审批的 Proposal 容器中",
+      description: "Add a document draft to a pending Proposal container",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        type: z.string().describe("文档类型（prd, tech_design, adr, spec, guide）"),
-        title: z.string().describe("文档标题"),
-        content: z.string().describe("文档内容（Markdown）"),
+        type: z.string().describe("Document type (prd, tech_design, adr, spec, guide)"),
+        title: z.string().describe("Document title"),
+        content: z.string().describe("Document content (Markdown)"),
       }),
     },
     async ({ proposalUuid, type, title, content }) => {
@@ -475,30 +470,30 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           { type, title, content }
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ proposalUuid: proposal.uuid, action: "document_draft_added" }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `添加文档草稿失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to add document draft: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_add_task_draft - 添加任务草稿到 Proposal
+  // chorus_pm_add_task_draft - Add task draft to Proposal
   server.registerTool(
     "chorus_pm_add_task_draft",
     {
-      description: "添加任务草稿到待审批的 Proposal 容器中",
+      description: "Add a task draft to a pending Proposal container",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        title: z.string().describe("任务标题"),
-        description: z.string().optional().describe("任务描述"),
-        storyPoints: z.number().optional().describe("工作量估算（Agent 小时）"),
-        priority: z.enum(["low", "medium", "high"]).optional().describe("优先级"),
-        acceptanceCriteria: z.string().optional().describe("验收标准（Markdown）"),
-        dependsOnDraftUuids: z.array(z.string()).optional().describe("依赖的 taskDraft UUID 列表"),
+        title: z.string().describe("Task title"),
+        description: z.string().optional().describe("Task description"),
+        storyPoints: z.number().optional().describe("Effort estimate (agent hours)"),
+        priority: z.enum(["low", "medium", "high"]).optional().describe("Priority"),
+        acceptanceCriteria: z.string().optional().describe("Acceptance criteria (Markdown)"),
+        dependsOnDraftUuids: z.array(z.string()).optional().describe("Dependent taskDraft UUID list"),
       }),
     },
     async ({ proposalUuid, title, description, storyPoints, priority, acceptanceCriteria, dependsOnDraftUuids }) => {
@@ -509,28 +504,28 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           { title, description, storyPoints, priority, acceptanceCriteria, dependsOnDraftUuids }
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ proposalUuid: proposal.uuid, action: "task_draft_added" }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `添加任务草稿失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to add task draft: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_update_document_draft - 更新文档草稿
+  // chorus_pm_update_document_draft - Update document draft
   server.registerTool(
     "chorus_pm_update_document_draft",
     {
-      description: "更新 Proposal 中的文档草稿",
+      description: "Update a document draft in a Proposal",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        draftUuid: z.string().describe("文档草稿 UUID"),
-        type: z.string().optional().describe("文档类型"),
-        title: z.string().optional().describe("文档标题"),
-        content: z.string().optional().describe("文档内容（Markdown）"),
+        draftUuid: z.string().describe("Document draft UUID"),
+        type: z.string().optional().describe("Document type"),
+        title: z.string().optional().describe("Document title"),
+        content: z.string().optional().describe("Document content (Markdown)"),
       }),
     },
     async ({ proposalUuid, draftUuid, type, title, content }) => {
@@ -547,31 +542,31 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           updates
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ proposalUuid: proposal.uuid, draftUuid, action: "document_draft_updated" }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `更新文档草稿失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to update document draft: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_update_task_draft - 更新任务草稿
+  // chorus_pm_update_task_draft - Update task draft
   server.registerTool(
     "chorus_pm_update_task_draft",
     {
-      description: "更新 Proposal 中的任务草稿",
+      description: "Update a task draft in a Proposal",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        draftUuid: z.string().describe("任务草稿 UUID"),
-        title: z.string().optional().describe("任务标题"),
-        description: z.string().optional().describe("任务描述"),
-        storyPoints: z.number().optional().describe("工作量估算（Agent 小时）"),
-        priority: z.enum(["low", "medium", "high"]).optional().describe("优先级"),
-        acceptanceCriteria: z.string().optional().describe("验收标准（Markdown）"),
-        dependsOnDraftUuids: z.array(z.string()).optional().describe("依赖的 taskDraft UUID 列表"),
+        draftUuid: z.string().describe("Task draft UUID"),
+        title: z.string().optional().describe("Task title"),
+        description: z.string().optional().describe("Task description"),
+        storyPoints: z.number().optional().describe("Effort estimate (agent hours)"),
+        priority: z.enum(["low", "medium", "high"]).optional().describe("Priority"),
+        acceptanceCriteria: z.string().optional().describe("Acceptance criteria (Markdown)"),
+        dependsOnDraftUuids: z.array(z.string()).optional().describe("Dependent taskDraft UUID list"),
       }),
     },
     async ({ proposalUuid, draftUuid, title, description, storyPoints, priority, acceptanceCriteria, dependsOnDraftUuids }) => {
@@ -591,25 +586,25 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           updates
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ proposalUuid: proposal.uuid, draftUuid, action: "task_draft_updated" }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `更新任务草稿失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to update task draft: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_remove_document_draft - 删除文档草稿
+  // chorus_pm_remove_document_draft - Remove document draft
   server.registerTool(
     "chorus_pm_remove_document_draft",
     {
-      description: "从 Proposal 中删除文档草稿",
+      description: "Remove a document draft from a Proposal",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        draftUuid: z.string().describe("文档草稿 UUID"),
+        draftUuid: z.string().describe("Document draft UUID"),
       }),
     },
     async ({ proposalUuid, draftUuid }) => {
@@ -620,25 +615,25 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           draftUuid
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ proposalUuid: proposal.uuid, draftUuid, action: "document_draft_removed" }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `删除文档草稿失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to remove document draft: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_remove_task_draft - 删除任务草稿
+  // chorus_pm_remove_task_draft - Remove task draft
   server.registerTool(
     "chorus_pm_remove_task_draft",
     {
-      description: "从 Proposal 中删除任务草稿",
+      description: "Remove a task draft from a Proposal",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        draftUuid: z.string().describe("任务草稿 UUID"),
+        draftUuid: z.string().describe("Task draft UUID"),
       }),
     },
     async ({ proposalUuid, draftUuid }) => {
@@ -649,25 +644,25 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           draftUuid
         );
         return {
-          content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ proposalUuid: proposal.uuid, draftUuid, action: "task_draft_removed" }, null, 2) }],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `删除任务草稿失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to remove task draft: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_add_task_dependency - 添加任务依赖
+  // chorus_add_task_dependency - Add task dependency
   server.registerTool(
     "chorus_add_task_dependency",
     {
-      description: "添加任务依赖关系（taskUuid 依赖于 dependsOnTaskUuid）。含同项目校验、自依赖校验、环检测。",
+      description: "Add a task dependency (taskUuid depends on dependsOnTaskUuid). Includes same-project validation, self-dependency check, and cycle detection.",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID（被依赖方的下游任务）"),
-        dependsOnTaskUuid: z.string().describe("依赖的 Task UUID（上游任务）"),
+        taskUuid: z.string().describe("Task UUID (downstream task)"),
+        dependsOnTaskUuid: z.string().describe("Dependent Task UUID (upstream task)"),
       }),
     },
     async ({ taskUuid, dependsOnTaskUuid }) => {
@@ -678,21 +673,21 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `添加依赖失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to add dependency: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_remove_task_dependency - 删除任务依赖
+  // chorus_remove_task_dependency - Remove task dependency
   server.registerTool(
     "chorus_remove_task_dependency",
     {
-      description: "删除任务依赖关系",
+      description: "Remove a task dependency",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
-        dependsOnTaskUuid: z.string().describe("要移除的依赖 Task UUID"),
+        dependsOnTaskUuid: z.string().describe("Dependent Task UUID to remove"),
       }),
     },
     async ({ taskUuid, dependsOnTaskUuid }) => {
@@ -703,66 +698,66 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `删除依赖失败: ${error instanceof Error ? error.message : "未知错误"}` }],
+          content: [{ type: "text", text: `Failed to remove dependency: ${error instanceof Error ? error.message : "Unknown error"}` }],
           isError: true,
         };
       }
     }
   );
 
-  // chorus_pm_assign_task - 分配任务给 Developer Agent
+  // chorus_pm_assign_task - Assign task to a Developer Agent
   server.registerTool(
     "chorus_pm_assign_task",
     {
-      description: "将任务分配给指定的 Developer Agent（task 须为 open 或 assigned 状态）",
+      description: "Assign a task to a specified Developer Agent (task must be in open or assigned status)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
-        agentUuid: z.string().describe("目标 Developer Agent UUID"),
+        agentUuid: z.string().describe("Target Developer Agent UUID"),
       }),
     },
     async ({ taskUuid, agentUuid }) => {
-      // 验证 task 存在
+      // Validate task exists
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
-      // 验证 task 状态
+      // Validate task status
       if (task.status !== "open" && task.status !== "assigned") {
         return {
-          content: [{ type: "text", text: `只能分配 open 或 assigned 状态的 Task，当前状态: ${task.status}` }],
+          content: [{ type: "text", text: `Can only assign tasks with open or assigned status, current status: ${task.status}` }],
           isError: true,
         };
       }
 
-      // 验证目标 agent 存在且属于同一 company
+      // Validate target agent exists and belongs to the same company
       const targetAgent = await getAgentByUuid(auth.companyUuid, agentUuid);
       if (!targetAgent) {
-        return { content: [{ type: "text", text: "目标 Agent 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Target Agent not found" }], isError: true };
       }
 
-      // 验证目标 agent 具有 developer 角色
+      // Validate target agent has the developer role
       const hasDeveloperRole = targetAgent.roles.some(
         (r: string) => r === "developer" || r === "developer_agent"
       );
       if (!hasDeveloperRole) {
         return {
-          content: [{ type: "text", text: `Agent "${targetAgent.name}" 不具有 developer 角色` }],
+          content: [{ type: "text", text: `Agent "${targetAgent.name}" does not have the developer role` }],
           isError: true,
         };
       }
 
-      // 执行分配
+      // Execute assignment
       try {
         const updated = await taskService.claimTask({
           taskUuid: task.uuid,
           companyUuid: auth.companyUuid,
           assigneeType: "agent",
           assigneeUuid: agentUuid,
-          assignedByUuid: auth.actorUuid, // PM Agent 作为分配者
+          assignedByUuid: auth.actorUuid,
         });
 
-        // 记录 activity
+        // Log activity
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
           projectUuid: task.projectUuid,
@@ -775,12 +770,12 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         });
 
         return {
-          content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status, assigneeUuid: agentUuid }, null, 2) }],
         };
       } catch (e) {
         if (e instanceof AlreadyClaimedError) {
           return {
-            content: [{ type: "text", text: `Task 已被认领，无法分配` }],
+            content: [{ type: "text", text: "Task is already claimed and cannot be assigned" }],
             isError: true,
           };
         }

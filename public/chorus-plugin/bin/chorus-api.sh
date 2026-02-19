@@ -81,31 +81,37 @@ state_set() {
   local key="$1"
   local value="$2"
   ensure_state
-  if command -v jq &>/dev/null; then
-    local tmp
-    tmp=$(mktemp)
-    jq --arg k "$key" --arg v "$value" '.[$k] = $v' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
-  else
-    # Fallback: simple sed-based update or append
-    if grep -q "\"${key}\":" "$STATE_FILE" 2>/dev/null; then
-      sed -i "s|\"${key}\":\"[^\"]*\"|\"${key}\":\"${value}\"|" "$STATE_FILE"
-    else
-      # Append key to JSON object
+  # Use flock to serialize concurrent state writes (multiple SubagentStart hooks
+  # may run in parallel, each calling state-set multiple times).
+  (
+    flock -w 5 200 || { echo "WARN: state_set flock timeout for key=$key" >&2; return 0; }
+    if command -v jq &>/dev/null; then
       local tmp
       tmp=$(mktemp)
-      sed "s|}$|,\"${key}\":\"${value}\"}|" "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+      jq --arg k "$key" --arg v "$value" '.[$k] = $v' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+    else
+      if grep -q "\"${key}\":" "$STATE_FILE" 2>/dev/null; then
+        sed -i "s|\"${key}\":\"[^\"]*\"|\"${key}\":\"${value}\"|" "$STATE_FILE"
+      else
+        local tmp
+        tmp=$(mktemp)
+        sed "s|}$|,\"${key}\":\"${value}\"}|" "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+      fi
     fi
-  fi
+  ) 200>"${STATE_FILE}.lock"
 }
 
 state_delete() {
   local key="$1"
   ensure_state
-  if command -v jq &>/dev/null; then
-    local tmp
-    tmp=$(mktemp)
-    jq --arg k "$key" 'del(.[$k])' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
-  fi
+  (
+    flock -w 5 200 || { echo "WARN: state_delete flock timeout for key=$key" >&2; return 0; }
+    if command -v jq &>/dev/null; then
+      local tmp
+      tmp=$(mktemp)
+      jq --arg k "$key" 'del(.[$k])' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+    fi
+  ) 200>"${STATE_FILE}.lock"
 }
 
 # ===== Hook Output =====
@@ -218,19 +224,23 @@ cmd_mcp_tool() {
 JSONEOF
 )
 
+  # Use a unique temp file for headers to avoid concurrent hooks overwriting each other
+  local headers_file
+  headers_file=$(mktemp "${STATE_DIR}/.mcp_headers.XXXXXX")
+
   local init_response
   init_response=$(curl -s -S -X POST \
     -H "$auth_header" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json, text/event-stream" \
-    -D /dev/stderr \
+    -D "$headers_file" \
     -d "$init_payload" \
-    "$mcp_url" 2>"$STATE_DIR/.mcp_headers") || die "MCP initialize failed"
+    "$mcp_url" 2>/dev/null) || { rm -f "$headers_file"; die "MCP initialize failed"; }
 
   # Extract session ID from response headers
   local session_id
-  session_id=$(grep -i "^mcp-session-id:" "$STATE_DIR/.mcp_headers" | tr -d '\r' | awk '{print $2}')
-  rm -f "$STATE_DIR/.mcp_headers"
+  session_id=$(grep -i "^mcp-session-id:" "$headers_file" | tr -d '\r' | awk '{print $2}')
+  rm -f "$headers_file"
 
   if [ -z "$session_id" ]; then
     die "No MCP session ID returned"
@@ -241,6 +251,7 @@ JSONEOF
   curl -s -S -X POST \
     -H "$auth_header" \
     -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
     -H "mcp-session-id: $session_id" \
     -d "$notif_payload" \
     "$mcp_url" >/dev/null 2>&1 || true

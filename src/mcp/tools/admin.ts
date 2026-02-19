@@ -1,6 +1,6 @@
 // src/mcp/tools/admin.ts
-// Admin Agent 专属 MCP 工具 (ARCHITECTURE.md §5.2)
-// Admin Agent 代理人类执行审批、验证、项目管理等操作
+// Admin Agent exclusive MCP tools (ARCHITECTURE.md S5.2)
+// Admin Agent acts on behalf of humans for approvals, verification, and project management
 // UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -14,14 +14,14 @@ import * as documentService from "@/services/document.service";
 import * as activityService from "@/services/activity.service";
 
 export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_admin_create_project - 创建新项目
+  // chorus_admin_create_project - Create a new project
   server.registerTool(
     "chorus_admin_create_project",
     {
-      description: "创建新项目（Admin 专属，代理人类操作）",
+      description: "Create a new project (Admin exclusive, acts on behalf of humans)",
       inputSchema: z.object({
-        name: z.string().describe("项目名称"),
-        description: z.string().optional().describe("项目描述"),
+        name: z.string().describe("Project name"),
+        description: z.string().optional().describe("Project description"),
       }),
     },
     async ({ name, description }) => {
@@ -32,27 +32,27 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(project, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: project.uuid, name: project.name }) }],
       };
     }
   );
 
-  // chorus_admin_create_idea - 创建 Idea（代理人类提出需求）
+  // chorus_admin_create_idea - Create an Idea (on behalf of humans)
   server.registerTool(
     "chorus_admin_create_idea",
     {
-      description: "创建 Idea（Admin 专属，代理人类提出需求）",
+      description: "Create an Idea (Admin exclusive, submits requirements on behalf of humans)",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        title: z.string().describe("Idea 标题"),
-        content: z.string().optional().describe("Idea 详细描述"),
+        projectUuid: z.string().describe("Project UUID"),
+        title: z.string().describe("Idea title"),
+        content: z.string().optional().describe("Idea detailed description"),
       }),
     },
     async ({ projectUuid, title, content }) => {
-      // 验证项目存在
+      // Verify project exists
       const project = await projectService.getProject(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const idea = await ideaService.createIdea({
@@ -60,39 +60,39 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
         projectUuid,
         title,
         content: content || null,
-        createdByUuid: auth.actorUuid,  // Admin Agent 作为创建者
+        createdByUuid: auth.actorUuid,  // Admin Agent as creator
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(idea, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: idea.uuid, title: idea.title }) }],
       };
     }
   );
 
-  // chorus_admin_approve_proposal - 审批通过 Proposal
+  // chorus_admin_approve_proposal - Approve a Proposal
   server.registerTool(
     "chorus_admin_approve_proposal",
     {
-      description: "审批通过 Proposal（Admin 专属，代理人类审批）。审批通过后，Proposal 中的 documentDrafts 和 taskDrafts 会自动物化为实际的 Document 和 Task，无需再手动调用 create_document/create_tasks。",
+      description: "Approve a Proposal (Admin exclusive, acts on behalf of humans). On approval, documentDrafts and taskDrafts in the Proposal are automatically materialized into real Document and Task entities -- no need to manually call create_document/create_tasks.",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        reviewNote: z.string().optional().describe("审批备注"),
+        reviewNote: z.string().optional().describe("Review note"),
       }),
     },
     async ({ proposalUuid, reviewNote }) => {
       const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
       if (!proposal) {
-        return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Proposal not found" }], isError: true };
       }
 
       if (proposal.status !== "pending") {
-        return { content: [{ type: "text", text: `只能审批 pending 状态的 Proposal，当前状态: ${proposal.status}` }], isError: true };
+        return { content: [{ type: "text", text: `Can only approve pending Proposals, current status: ${proposal.status}` }], isError: true };
       }
 
       const updated = await proposalService.approveProposal(
         proposalUuid,
         auth.companyUuid,
-        auth.actorUuid,  // Admin Agent 作为审批者
+        auth.actorUuid,  // Admin Agent as reviewer
         reviewNote || null
       );
 
@@ -108,34 +108,34 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );
 
-  // chorus_admin_reject_proposal - 打回 Proposal（回到 draft 可重新编辑）
+  // chorus_admin_reject_proposal - Reject a Proposal (returns to draft for re-editing)
   server.registerTool(
     "chorus_admin_reject_proposal",
     {
-      description: "打回 Proposal（Admin 专属，代理人类审批）。打回后 Proposal 回到 draft 状态，可重新编辑和提交。reviewNote 会保留作为修改参考。",
+      description: "Reject a Proposal (Admin exclusive, acts on behalf of humans). After rejection, the Proposal returns to draft status and can be re-edited and resubmitted. The reviewNote is preserved as reference for revisions.",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        reviewNote: z.string().describe("打回原因（必填，作为修改参考）"),
+        reviewNote: z.string().describe("Rejection reason (required, serves as revision reference)"),
       }),
     },
     async ({ proposalUuid, reviewNote }) => {
       const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
       if (!proposal) {
-        return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Proposal not found" }], isError: true };
       }
 
       if (proposal.status !== "pending") {
-        return { content: [{ type: "text", text: `只能打回 pending 状态的 Proposal，当前状态: ${proposal.status}` }], isError: true };
+        return { content: [{ type: "text", text: `Can only reject pending Proposals, current status: ${proposal.status}` }], isError: true };
       }
 
       const updated = await proposalService.rejectProposal(
         proposalUuid,
-        auth.actorUuid,  // Admin Agent 作为审批者
+        auth.actorUuid,  // Admin Agent as reviewer
         reviewNote
       );
 
@@ -151,29 +151,29 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );
 
-  // chorus_admin_close_proposal - 关闭 Proposal（终态）
+  // chorus_admin_close_proposal - Close a Proposal (terminal state)
   server.registerTool(
     "chorus_admin_close_proposal",
     {
-      description: "关闭 Proposal（Admin 专属，永久关闭提案）。关闭后 Proposal 进入 closed 终态，不可再编辑。",
+      description: "Close a Proposal (Admin exclusive, permanently closes the proposal). After closing, the Proposal enters the closed terminal state and cannot be edited.",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
-        reviewNote: z.string().describe("关闭原因（必填）"),
+        reviewNote: z.string().describe("Reason for closing (required)"),
       }),
     },
     async ({ proposalUuid, reviewNote }) => {
       const proposal = await proposalService.getProposalByUuid(auth.companyUuid, proposalUuid);
       if (!proposal) {
-        return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Proposal not found" }], isError: true };
       }
 
       if (proposal.status !== "pending") {
-        return { content: [{ type: "text", text: `只能关闭 pending 状态的 Proposal，当前状态: ${proposal.status}` }], isError: true };
+        return { content: [{ type: "text", text: `Can only close pending Proposals, current status: ${proposal.status}` }], isError: true };
       }
 
       const updated = await proposalService.closeProposal(
@@ -194,16 +194,16 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );
 
-  // chorus_admin_verify_task - 验证 Task（to_verify → done）
+  // chorus_admin_verify_task - Verify a Task (to_verify -> done)
   server.registerTool(
     "chorus_admin_verify_task",
     {
-      description: "验证 Task（to_verify → done，Admin 专属，代理人类验证）",
+      description: "Verify a Task (to_verify -> done, Admin exclusive, acts on behalf of humans)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
       }),
@@ -211,11 +211,11 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ taskUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
       if (task.status !== "to_verify") {
-        return { content: [{ type: "text", text: `只能验证 to_verify 状态的 Task，当前状态: ${task.status}` }], isError: true };
+        return { content: [{ type: "text", text: `Can only verify Tasks in to_verify status, current status: ${task.status}` }], isError: true };
       }
 
       const updated = await taskService.updateTask(task.uuid, { status: "done" });
@@ -231,16 +231,16 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );
 
-  // chorus_admin_reopen_task - 重新打开 Task（to_verify → in_progress）
+  // chorus_admin_reopen_task - Reopen a Task (to_verify -> in_progress)
   server.registerTool(
     "chorus_admin_reopen_task",
     {
-      description: "重新打开 Task（to_verify → in_progress，验证不通过时使用）",
+      description: "Reopen a Task (to_verify -> in_progress, used when verification fails)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
       }),
@@ -248,11 +248,11 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ taskUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
       if (task.status !== "to_verify") {
-        return { content: [{ type: "text", text: `只能重新打开 to_verify 状态的 Task，当前状态: ${task.status}` }], isError: true };
+        return { content: [{ type: "text", text: `Can only reopen Tasks in to_verify status, current status: ${task.status}` }], isError: true };
       }
 
       const updated = await taskService.updateTask(task.uuid, { status: "in_progress" });
@@ -268,16 +268,16 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );
 
-  // chorus_admin_close_task - 关闭 Task（any → closed）
+  // chorus_admin_close_task - Close a Task (any -> closed)
   server.registerTool(
     "chorus_admin_close_task",
     {
-      description: "关闭 Task（任何状态 → closed，Admin 专属）",
+      description: "Close a Task (any status -> closed, Admin exclusive)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
       }),
@@ -285,11 +285,11 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ taskUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
       if (task.status === "closed") {
-        return { content: [{ type: "text", text: "Task 已经是 closed 状态" }], isError: true };
+        return { content: [{ type: "text", text: "Task is already in closed status" }], isError: true };
       }
 
       const updated = await taskService.updateTask(task.uuid, { status: "closed" });
@@ -305,16 +305,16 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );
 
-  // chorus_admin_delete_idea - 删除 Idea
+  // chorus_admin_delete_idea - Delete an Idea
   server.registerTool(
     "chorus_admin_delete_idea",
     {
-      description: "删除 Idea（Admin 专属，可删除任意 Idea）",
+      description: "Delete an Idea (Admin exclusive, can delete any Idea)",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Idea UUID"),
       }),
@@ -322,22 +322,22 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ ideaUuid }) => {
       const idea = await ideaService.getIdeaByUuid(auth.companyUuid, ideaUuid);
       if (!idea) {
-        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Idea not found" }], isError: true };
       }
 
       await ideaService.deleteIdea(ideaUuid);
 
       return {
-        content: [{ type: "text", text: `Idea ${ideaUuid} 已删除` }],
+        content: [{ type: "text", text: `Idea ${ideaUuid} deleted` }],
       };
     }
   );
 
-  // chorus_admin_delete_task - 删除 Task
+  // chorus_admin_delete_task - Delete a Task
   server.registerTool(
     "chorus_admin_delete_task",
     {
-      description: "删除 Task（Admin 专属，可删除任意 Task）",
+      description: "Delete a Task (Admin exclusive, can delete any Task)",
       inputSchema: z.object({
         taskUuid: z.string().describe("Task UUID"),
       }),
@@ -345,22 +345,22 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ taskUuid }) => {
       const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
 
       await taskService.deleteTask(taskUuid);
 
       return {
-        content: [{ type: "text", text: `Task ${taskUuid} 已删除` }],
+        content: [{ type: "text", text: `Task ${taskUuid} deleted` }],
       };
     }
   );
 
-  // chorus_admin_delete_document - 删除 Document
+  // chorus_admin_delete_document - Delete a Document
   server.registerTool(
     "chorus_admin_delete_document",
     {
-      description: "删除 Document（Admin 专属，可删除任意 Document）",
+      description: "Delete a Document (Admin exclusive, can delete any Document)",
       inputSchema: z.object({
         documentUuid: z.string().describe("Document UUID"),
       }),
@@ -368,22 +368,22 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ documentUuid }) => {
       const doc = await documentService.getDocument(auth.companyUuid, documentUuid);
       if (!doc) {
-        return { content: [{ type: "text", text: "Document 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Document not found" }], isError: true };
       }
 
       await documentService.deleteDocument(documentUuid);
 
       return {
-        content: [{ type: "text", text: `Document ${documentUuid} 已删除` }],
+        content: [{ type: "text", text: `Document ${documentUuid} deleted` }],
       };
     }
   );
 
-  // chorus_admin_close_idea - 关闭 Idea（any → closed）
+  // chorus_admin_close_idea - Close an Idea (any -> closed)
   server.registerTool(
     "chorus_admin_close_idea",
     {
-      description: "关闭 Idea（任何状态 → closed，Admin 专属）",
+      description: "Close an Idea (any status -> closed, Admin exclusive)",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Idea UUID"),
       }),
@@ -391,11 +391,11 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     async ({ ideaUuid }) => {
       const idea = await ideaService.getIdeaByUuid(auth.companyUuid, ideaUuid);
       if (!idea) {
-        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Idea not found" }], isError: true };
       }
 
       if (idea.status === "closed") {
-        return { content: [{ type: "text", text: "Idea 已经是 closed 状态" }], isError: true };
+        return { content: [{ type: "text", text: "Idea is already in closed status" }], isError: true };
       }
 
       const updated = await ideaService.updateIdea(ideaUuid, auth.companyUuid, { status: "closed" });
@@ -411,7 +411,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, status: updated.status }) }],
       };
     }
   );

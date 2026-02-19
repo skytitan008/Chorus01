@@ -1,5 +1,5 @@
 // src/mcp/tools/session.ts
-// Agent Session MCP 工具 (所有角色可用)
+// Agent Session MCP tools (available to all roles)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -8,13 +8,13 @@ import type { AgentAuthContext } from "@/types/auth";
 import * as sessionService from "@/services/session.service";
 
 export function registerSessionTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_list_sessions - 列出当前 Agent 的 Sessions
+  // chorus_list_sessions - List current agent's sessions
   server.registerTool(
     "chorus_list_sessions",
     {
-      description: "列出当前 Agent 的所有 Sessions",
+      description: "List all Sessions for the current Agent",
       inputSchema: z.object({
-        status: z.enum(["active", "inactive", "closed"]).optional().describe("按状态筛选"),
+        status: z.enum(["active", "inactive", "closed"]).optional().describe("Filter by status"),
       }),
     },
     async ({ status }) => {
@@ -30,11 +30,11 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_get_session - 获取 Session 详情
+  // chorus_get_session - Get session details
   server.registerTool(
     "chorus_get_session",
     {
-      description: "获取 Session 详情及活跃 checkins",
+      description: "Get Session details and active checkins",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
@@ -42,11 +42,11 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     async ({ sessionUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
-        return { content: [{ type: "text", text: "Session 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Session not found" }], isError: true };
       }
 
       if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "无权访问此 Session" }], isError: true };
+        return { content: [{ type: "text", text: "No permission to access this Session" }], isError: true };
       }
 
       return {
@@ -55,7 +55,7 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_create_session - 创建新 Session
+  // chorus_create_session - Create a new session
   server.registerTool(
     "chorus_create_session",
     {
@@ -76,16 +76,16 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify(session, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: session.uuid, name: session.name, status: session.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_close_session - 关闭 Session
+  // chorus_close_session - Close a session
   server.registerTool(
     "chorus_close_session",
     {
-      description: "关闭一个 Session（批量 checkout 所有 checkins）",
+      description: "Close a Session (batch checkout all checkins)",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
@@ -93,22 +93,22 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     async ({ sessionUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
-        return { content: [{ type: "text", text: "Session 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Session not found" }], isError: true };
       }
 
       if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "无权关闭此 Session" }], isError: true };
+        return { content: [{ type: "text", text: "No permission to close this Session" }], isError: true };
       }
 
       const closed = await sessionService.closeSession(auth.companyUuid, sessionUuid);
 
       return {
-        content: [{ type: "text", text: JSON.stringify(closed, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: closed.uuid, status: closed.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_reopen_session - 重新打开已关闭的 Session
+  // chorus_reopen_session - Reopen a closed session
   server.registerTool(
     "chorus_reopen_session",
     {
@@ -134,16 +134,16 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
       const reopened = await sessionService.reopenSession(auth.companyUuid, sessionUuid);
 
       return {
-        content: [{ type: "text", text: JSON.stringify(reopened, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ uuid: reopened.uuid, status: reopened.status }, null, 2) }],
       };
     }
   );
 
-  // chorus_session_checkin_task - Session checkin 到 Task
+  // chorus_session_checkin_task - Check in session to a task
   server.registerTool(
     "chorus_session_checkin_task",
     {
-      description: "将 Session checkin 到指定 Task",
+      description: "Check in a Session to a specified Task",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
         taskUuid: z.string().describe("Task UUID"),
@@ -152,11 +152,11 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     async ({ sessionUuid, taskUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
-        return { content: [{ type: "text", text: "Session 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Session not found" }], isError: true };
       }
 
       if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "无权操作此 Session" }], isError: true };
+        return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
       }
 
       const checkin = await sessionService.sessionCheckinToTask(
@@ -166,16 +166,16 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(checkin, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ sessionUuid, taskUuid, checkedInAt: checkin.checkinAt }, null, 2) }],
       };
     }
   );
 
-  // chorus_session_checkout_task - Session checkout from Task
+  // chorus_session_checkout_task - Check out session from a task
   server.registerTool(
     "chorus_session_checkout_task",
     {
-      description: "将 Session 从指定 Task checkout",
+      description: "Check out a Session from a specified Task",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
         taskUuid: z.string().describe("Task UUID"),
@@ -184,26 +184,26 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     async ({ sessionUuid, taskUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
-        return { content: [{ type: "text", text: "Session 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Session not found" }], isError: true };
       }
 
       if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "无权操作此 Session" }], isError: true };
+        return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
       }
 
       await sessionService.sessionCheckoutFromTask(auth.companyUuid, sessionUuid, taskUuid);
 
       return {
-        content: [{ type: "text", text: "已成功 checkout" }],
+        content: [{ type: "text", text: `Successfully checked out from task ${taskUuid}` }],
       };
     }
   );
 
-  // chorus_session_heartbeat - 心跳
+  // chorus_session_heartbeat - Session heartbeat
   server.registerTool(
     "chorus_session_heartbeat",
     {
-      description: "Session 心跳（更新 lastActiveAt）",
+      description: "Session heartbeat (updates lastActiveAt)",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
@@ -211,17 +211,17 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     async ({ sessionUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
-        return { content: [{ type: "text", text: "Session 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Session not found" }], isError: true };
       }
 
       if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "无权操作此 Session" }], isError: true };
+        return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
       }
 
       await sessionService.heartbeatSession(auth.companyUuid, sessionUuid);
 
       return {
-        content: [{ type: "text", text: `心跳成功: ${new Date().toISOString()}` }],
+        content: [{ type: "text", text: `Heartbeat successful: ${new Date().toISOString()}` }],
       };
     }
   );

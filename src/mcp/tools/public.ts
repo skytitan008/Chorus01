@@ -1,5 +1,5 @@
 // src/mcp/tools/public.ts
-// 公共 MCP 工具 - 所有 Agent 可用 (ARCHITECTURE.md §5.2)
+// Public MCP tools - available to all Agents (ARCHITECTURE.md §5.2)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -17,19 +17,19 @@ import * as notificationService from "@/services/notification.service";
 import { prisma } from "@/lib/prisma";
 
 export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_get_project - 获取项目背景信息
+  // chorus_get_project - Get project details and context
   server.registerTool(
     "chorus_get_project",
     {
-      description: "获取项目详情和背景信息",
+      description: "Get project details and context",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
+        projectUuid: z.string().describe("Project UUID"),
       }),
     },
     async ({ projectUuid }) => {
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
       return {
         content: [{ type: "text", text: JSON.stringify(project, null, 2) }],
@@ -37,23 +37,23 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_ideas - 获取 Ideas 列表
+  // chorus_get_ideas - Get Ideas list
   server.registerTool(
     "chorus_get_ideas",
     {
-      description: "获取项目的 Ideas 列表",
+      description: "Get the list of Ideas for a project",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        status: z.string().optional().describe("筛选状态: open, assigned, in_progress, pending_review, completed, closed"),
-        page: z.number().optional().default(1).describe("页码"),
-        pageSize: z.number().optional().default(20).describe("每页数量"),
+        projectUuid: z.string().describe("Project UUID"),
+        status: z.string().optional().describe("Filter by status: open, assigned, in_progress, pending_review, completed, closed"),
+        page: z.number().optional().default(1).describe("Page number"),
+        pageSize: z.number().optional().default(20).describe("Items per page"),
       }),
     },
     async ({ projectUuid, status, page = 1, pageSize = 20 }) => {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
@@ -71,14 +71,14 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_documents - 获取 Documents 列表
+  // chorus_get_documents - Get Documents list
   server.registerTool(
     "chorus_get_documents",
     {
-      description: "获取项目的文档列表",
+      description: "Get the list of Documents for a project",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        type: z.string().optional().describe("筛选类型: prd, tech_design, adr 等"),
+        projectUuid: z.string().describe("Project UUID"),
+        type: z.string().optional().describe("Filter by type: prd, tech_design, adr, etc."),
         page: z.number().optional().default(1),
         pageSize: z.number().optional().default(20),
       }),
@@ -87,7 +87,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
@@ -105,19 +105,19 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_document - 获取单个 Document 详情
+  // chorus_get_document - Get single Document details
   server.registerTool(
     "chorus_get_document",
     {
-      description: "获取单个文档的详细内容",
+      description: "Get the detailed content of a single Document",
       inputSchema: z.object({
-        documentUuid: z.string().describe("文档 UUID"),
+        documentUuid: z.string().describe("Document UUID"),
       }),
     },
     async ({ documentUuid }) => {
       const document = await documentService.getDocument(auth.companyUuid, documentUuid);
       if (!document) {
-        return { content: [{ type: "text", text: "文档不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Document not found" }], isError: true };
       }
       return {
         content: [{ type: "text", text: JSON.stringify(document, null, 2) }],
@@ -125,14 +125,14 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_proposals - 获取提议列表
+  // chorus_get_proposals - Get Proposals list
   server.registerTool(
     "chorus_get_proposals",
     {
-      description: "获取项目的提议列表和状态",
+      description: "Get the list of Proposals and their statuses for a project",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        status: z.string().optional().describe("筛选状态: pending, approved, rejected, revised"),
+        projectUuid: z.string().describe("Project UUID"),
+        status: z.string().optional().describe("Filter by status: pending, approved, rejected, revised"),
         page: z.number().optional().default(1),
         pageSize: z.number().optional().default(20),
       }),
@@ -141,7 +141,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
@@ -159,19 +159,19 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_task - 获取任务详情
+  // chorus_get_task - Get Task details
   server.registerTool(
     "chorus_get_task",
     {
-      description: "获取单个任务的详细信息和上下文",
+      description: "Get detailed information and context for a single Task",
       inputSchema: z.object({
-        taskUuid: z.string().describe("任务 UUID"),
+        taskUuid: z.string().describe("Task UUID"),
       }),
     },
     async ({ taskUuid }) => {
       const task = await taskService.getTask(auth.companyUuid, taskUuid);
       if (!task) {
-        return { content: [{ type: "text", text: "任务不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Task not found" }], isError: true };
       }
       return {
         content: [{ type: "text", text: JSON.stringify(task, null, 2) }],
@@ -179,15 +179,15 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_list_tasks - 列出任务
+  // chorus_list_tasks - List Tasks
   server.registerTool(
     "chorus_list_tasks",
     {
-      description: "列出项目的任务",
+      description: "List Tasks for a project",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
-        status: z.string().optional().describe("筛选状态: open, assigned, in_progress, to_verify, done, closed"),
-        priority: z.string().optional().describe("筛选优先级: low, medium, high"),
+        projectUuid: z.string().describe("Project UUID"),
+        status: z.string().optional().describe("Filter by status: open, assigned, in_progress, to_verify, done, closed"),
+        priority: z.string().optional().describe("Filter by priority: low, medium, high"),
         page: z.number().optional().default(1),
         pageSize: z.number().optional().default(20),
       }),
@@ -196,7 +196,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
@@ -215,13 +215,13 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_activity - 获取项目活动流
+  // chorus_get_activity - Get project activity stream
   server.registerTool(
     "chorus_get_activity",
     {
-      description: "获取项目的活动流",
+      description: "Get the activity stream for a project",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
+        projectUuid: z.string().describe("Project UUID"),
         page: z.number().optional().default(1),
         pageSize: z.number().optional().default(50),
       }),
@@ -230,7 +230,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
@@ -247,15 +247,15 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_add_comment - 添加评论
+  // chorus_add_comment - Add a comment
   server.registerTool(
     "chorus_add_comment",
     {
-      description: "对 Idea/Proposal/Task/Document 添加评论",
+      description: "Add a comment to an Idea/Proposal/Task/Document",
       inputSchema: z.object({
-        targetType: z.enum(["idea", "proposal", "task", "document"]).describe("目标类型"),
-        targetUuid: z.string().describe("目标 UUID"),
-        content: z.string().describe("评论内容"),
+        targetType: z.enum(["idea", "proposal", "task", "document"]).describe("Target type"),
+        targetUuid: z.string().describe("Target UUID"),
+        content: z.string().describe("Comment content"),
       }),
     },
     async ({ targetType, targetUuid, content }) => {
@@ -284,26 +284,26 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         }
 
         return {
-          content: [{ type: "text", text: JSON.stringify(comment, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify({ uuid: comment.uuid, targetType, targetUuid }, null, 2) }],
         };
       } catch (error) {
         if (error instanceof Error && error.message.includes("not found")) {
-          return { content: [{ type: "text", text: `${targetType} 不存在` }], isError: true };
+          return { content: [{ type: "text", text: `${targetType} not found` }], isError: true };
         }
         throw error;
       }
     }
   );
 
-  // chorus_checkin - 心跳签到，返回 Agent 人格和待处理任务
+  // chorus_checkin - Agent heartbeat check-in
   server.registerTool(
     "chorus_checkin",
     {
-      description: "Agent 心跳签到，返回 Agent 人格定义、角色和待处理任务。建议在每个 session 开始时调用。",
+      description: "Agent heartbeat check-in. Returns the Agent persona, roles, and pending tasks. Recommended to call at the start of each session.",
       inputSchema: z.object({}),
     },
     async () => {
-      // 更新最后活跃时间并获取 Agent 信息 (query by UUID)
+      // Update last active time and get Agent info (query by UUID)
       const agent = await prisma.agent.update({
         where: { uuid: auth.actorUuid },
         data: { lastActiveAt: new Date() },
@@ -316,17 +316,17 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         },
       });
 
-      // 获取待处理的 Ideas 和 Tasks
+      // Get pending Ideas and Tasks
       const { ideas, tasks } = await assignmentService.getMyAssignments(auth);
 
-      // 获取未读通知数
+      // Get unread notification count
       const unreadNotificationCount = await notificationService.getUnreadCount(
         auth.companyUuid,
         auth.type,
         auth.actorUuid
       );
 
-      // 构建默认人格（如果未设置自定义人格）
+      // Build default persona (if no custom persona is set)
       const defaultPersonas: Record<string, string> = {
         pm: `你是一个经验丰富的产品经理 Agent。你的职责是：
 - 分析用户需求，提炼核心问题
@@ -345,7 +345,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
 工作风格：严谨、高效、注重代码质量`,
       };
 
-      // 确定有效的人格
+      // Determine the effective persona
       let effectivePersona = agent.persona;
       if (!effectivePersona && agent.roles.length > 0) {
         effectivePersona = defaultPersonas[agent.roles[0]] || null;
@@ -379,11 +379,11 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_my_assignments - 获取自己认领的 Ideas + Tasks
+  // chorus_get_my_assignments - Get own claimed Ideas + Tasks
   server.registerTool(
     "chorus_get_my_assignments",
     {
-      description: "获取自己认领的所有 Ideas 和 Tasks",
+      description: "Get all Ideas and Tasks claimed by the current Agent",
       inputSchema: z.object({}),
     },
     async () => {
@@ -395,20 +395,20 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_available_ideas - 获取可认领的 Ideas
+  // chorus_get_available_ideas - Get claimable Ideas
   server.registerTool(
     "chorus_get_available_ideas",
     {
-      description: "获取项目中可认领的 Ideas（status=open）",
+      description: "Get Ideas available to claim in a project (status=open)",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
+        projectUuid: z.string().describe("Project UUID"),
       }),
     },
     async ({ projectUuid }) => {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const { ideas } = await assignmentService.getAvailableItems(
@@ -424,20 +424,20 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_available_tasks - 获取可认领的 Tasks
+  // chorus_get_available_tasks - Get claimable Tasks
   server.registerTool(
     "chorus_get_available_tasks",
     {
-      description: "获取项目中可认领的 Tasks（status=open）",
+      description: "Get Tasks available to claim in a project (status=open)",
       inputSchema: z.object({
-        projectUuid: z.string().describe("项目 UUID"),
+        projectUuid: z.string().describe("Project UUID"),
       }),
     },
     async ({ projectUuid }) => {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const { tasks } = await assignmentService.getAvailableItems(
@@ -453,11 +453,11 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_idea - 获取单个 Idea 详情
+  // chorus_get_idea - Get single Idea details
   server.registerTool(
     "chorus_get_idea",
     {
-      description: "获取单个 Idea 的详细信息",
+      description: "Get detailed information for a single Idea",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Idea UUID"),
       }),
@@ -465,7 +465,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     async ({ ideaUuid }) => {
       const idea = await ideaService.getIdea(auth.companyUuid, ideaUuid);
       if (!idea) {
-        return { content: [{ type: "text", text: "Idea 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Idea not found" }], isError: true };
       }
       return {
         content: [{ type: "text", text: JSON.stringify(idea, null, 2) }],
@@ -473,20 +473,20 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_proposal - 获取单个 Proposal 详情（包含 drafts）
+  // chorus_get_proposal - Get single Proposal details (including drafts)
   server.registerTool(
     "chorus_get_proposal",
     {
-      description: "获取单个提议的详细信息，包含文档草稿和任务草稿",
+      description: "Get detailed information for a single Proposal, including document drafts and task drafts",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Proposal UUID"),
       }),
     },
     async ({ proposalUuid }) => {
-      // 使用 getProposal 返回完整的格式化响应，包含 drafts
+      // Use getProposal to return the full formatted response, including drafts
       const proposal = await proposalService.getProposal(auth.companyUuid, proposalUuid);
       if (!proposal) {
-        return { content: [{ type: "text", text: "Proposal 不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Proposal not found" }], isError: true };
       }
       return {
         content: [{ type: "text", text: JSON.stringify(proposal, null, 2) }],
@@ -494,7 +494,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_unblocked_tasks - 获取已解锁的任务（所有依赖已完成）
+  // chorus_get_unblocked_tasks - Get unblocked tasks (all dependencies resolved)
   server.registerTool(
     "chorus_get_unblocked_tasks",
     {
@@ -507,7 +507,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       // Verify project exists
       const project = await projectService.getProjectByUuid(auth.companyUuid, projectUuid);
       if (!project) {
-        return { content: [{ type: "text", text: "项目不存在" }], isError: true };
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
 
       const { tasks, total } = await taskService.getUnblockedTasks({
@@ -521,16 +521,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_comments - 获取评论列表
+  // chorus_get_comments - Get comments list
   server.registerTool(
     "chorus_get_comments",
     {
-      description: "获取 Idea/Proposal/Task/Document 的评论列表",
+      description: "Get the list of comments for an Idea/Proposal/Task/Document",
       inputSchema: z.object({
-        targetType: z.enum(["idea", "proposal", "task", "document"]).describe("目标类型"),
-        targetUuid: z.string().describe("目标 UUID"),
-        page: z.number().optional().default(1).describe("页码"),
-        pageSize: z.number().optional().default(20).describe("每页数量"),
+        targetType: z.enum(["idea", "proposal", "task", "document"]).describe("Target type"),
+        targetUuid: z.string().describe("Target UUID"),
+        page: z.number().optional().default(1).describe("Page number"),
+        pageSize: z.number().optional().default(20).describe("Items per page"),
       }),
     },
     async ({ targetType, targetUuid, page = 1, pageSize = 20 }) => {
@@ -549,15 +549,15 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_get_notifications - 获取当前 Agent 的通知列表
+  // chorus_get_notifications - Get notifications for the current Agent
   server.registerTool(
     "chorus_get_notifications",
     {
-      description: "获取当前 Agent 的通知列表",
+      description: "Get the list of notifications for the current Agent",
       inputSchema: z.object({
-        status: z.enum(["unread", "read", "all"]).default("unread").optional().describe("筛选状态"),
-        limit: z.number().default(20).optional().describe("每页数量"),
-        offset: z.number().default(0).optional().describe("偏移量"),
+        status: z.enum(["unread", "read", "all"]).default("unread").optional().describe("Filter by status"),
+        limit: z.number().default(20).optional().describe("Items per page"),
+        offset: z.number().default(0).optional().describe("Offset"),
       }),
     },
     async (params) => {
@@ -574,26 +574,26 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_mark_notification_read - 标记通知为已读（单条或全部）
+  // chorus_mark_notification_read - Mark notification(s) as read
   server.registerTool(
     "chorus_mark_notification_read",
     {
-      description: "标记通知为已读（单条或全部）",
+      description: "Mark notification(s) as read (single or all)",
       inputSchema: z.object({
-        notificationUuid: z.string().optional().describe("单条通知 UUID"),
-        all: z.boolean().default(false).optional().describe("是否标记全部已读"),
+        notificationUuid: z.string().optional().describe("Single notification UUID"),
+        all: z.boolean().default(false).optional().describe("Whether to mark all as read"),
       }),
     },
     async (params) => {
       if (params.all) {
-        const { count } = await notificationService.markAllRead(auth.companyUuid, auth.type, auth.actorUuid);
-        return { content: [{ type: "text" as const, text: JSON.stringify({ markedCount: count }) }] };
+        await notificationService.markAllRead(auth.companyUuid, auth.type, auth.actorUuid);
+        return { content: [{ type: "text" as const, text: JSON.stringify({ success: true }, null, 2) }] };
       }
       if (!params.notificationUuid) {
         return { content: [{ type: "text" as const, text: JSON.stringify({ error: "notificationUuid or all=true required" }) }], isError: true };
       }
-      const notification = await notificationService.markRead(params.notificationUuid, auth.companyUuid, auth.type, auth.actorUuid);
-      return { content: [{ type: "text" as const, text: JSON.stringify(notification, null, 2) }] };
+      await notificationService.markRead(params.notificationUuid, auth.companyUuid, auth.type, auth.actorUuid);
+      return { content: [{ type: "text" as const, text: JSON.stringify({ success: true }, null, 2) }] };
     }
   );
 }

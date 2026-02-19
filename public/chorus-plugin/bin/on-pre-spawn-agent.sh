@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # on-pre-spawn-agent.sh — PreToolUse hook for Task (spawning sub-agents)
-# 1. Captures agent name + type from tool_input and stores in pending_names
-#    (SubagentStart will pick this up since it doesn't receive the name field)
+# 1. Captures agent name + type from tool_input and writes a per-agent pending file
+#    (SubagentStart will claim this file atomically via mv)
 # 2. Reminds Team Lead to pass Chorus task info to sub-agents.
+#
+# Concurrency safety: Each PreToolUse writes a separate file under .chorus/pending/
+# so parallel spawns never contend on a shared file. SubagentStart claims files
+# atomically with mv (only one process can successfully mv a given file).
 #
 # Output: JSON with additionalContext
 
@@ -34,18 +38,24 @@ case "${AGENT_TYPE,,}" in
     ;;
 esac
 
-# Store pending agent name for SubagentStart to pick up.
+# Write a per-agent pending file for SubagentStart to claim.
 # SubagentStart only receives agent_id + agent_type — not the name.
-# Note: agent_type in SubagentStart may differ from subagent_type here
-# (CC sometimes uses the agent name as agent_type), so we store just the name.
+# CC sometimes uses the agent name as agent_type, so we store both.
 #
-# IMPORTANT: Always write an entry, even without a name (use "?" placeholder).
-# SubagentStart uses the file as a "was this spawn expected?" signal.
+# Each spawn gets its own file — no shared state, no concurrency issues.
+# File name is the agent name (or a unique fallback if name is empty).
+# SubagentStart claims by mv (atomic on same filesystem).
+#
 # CC may internally spawn cleanup agents that bypass PreToolUse:Task —
-# SubagentStart skips those if no pending entry exists.
-PENDING_FILE="${CLAUDE_PROJECT_DIR:-.}/.chorus/pending_names"
-mkdir -p "$(dirname "$PENDING_FILE")"
-echo "${AGENT_NAME:-?}" >> "$PENDING_FILE"
+# SubagentStart skips those if no pending file matches.
+PENDING_DIR="${CLAUDE_PROJECT_DIR:-.}/.chorus/pending"
+mkdir -p "$PENDING_DIR"
+
+# Use agent name as filename; fall back to timestamp-based unique name
+PENDING_NAME="${AGENT_NAME:-unknown-$(date +%s%N)}"
+printf '{"name":"%s","type":"%s","ts":"%s"}\n' \
+  "${AGENT_NAME:-}" "${AGENT_TYPE:-}" "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
+  > "${PENDING_DIR}/${PENDING_NAME}"
 
 CONTEXT="[Chorus Plugin — Sub-agent Spawn Checklist]
 A Chorus session will be auto-created (or reused) for this sub-agent by the plugin.
