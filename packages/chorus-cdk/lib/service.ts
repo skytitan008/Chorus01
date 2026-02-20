@@ -23,6 +23,7 @@ import { Secret } from 'aws-cdk-lib/aws-ecs';
 import path from 'path';
 import { Database, DB_NAME } from './database';
 import { Network } from './network';
+import { Cache } from './cache';
 
 const SERVICE_PORT = 3000;
 
@@ -30,6 +31,7 @@ export interface ServiceProps {
   readonly vpc: ec2.IVpc;
   readonly networkStack: Network;
   readonly database: Database;
+  readonly cache?: Cache;
   readonly acmCertificateArn: string;
   readonly customDomain: string;
   readonly desiredCount?: number;
@@ -80,6 +82,9 @@ export class Service extends Construct {
     // Grant execution role read access to secrets
     props.database.dbCredentialSecret.grantRead(taskExecutionRole);
     props.database.appConfigSecret.grantRead(taskExecutionRole);
+    if (props.cache) {
+      props.cache.redisSecret.grantRead(taskExecutionRole);
+    }
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
@@ -126,6 +131,11 @@ export class Service extends Construct {
         DB_HOST: props.database.dbEndpointAddress,
         DB_PORT: props.database.dbEndpointPort,
         NEXTAUTH_URL: this.endpoint,
+        ...(props.cache ? {
+          REDIS_HOST: props.cache.redisEndpoint,
+          REDIS_PORT: props.cache.redisPort,
+          REDIS_USERNAME: 'chorus',
+        } : {}),
       },
       secrets: {
         DB_USERNAME: Secret.fromSecretsManager(
@@ -148,6 +158,12 @@ export class Service extends Construct {
           props.database.appConfigSecret,
           'NEXTAUTH_SECRET',
         ),
+        ...(props.cache ? {
+          REDIS_PASSWORD: Secret.fromSecretsManager(
+            props.cache.redisSecret,
+            'password',
+          ),
+        } : {}),
       },
       logging: ecs.LogDrivers.awsLogs({
         streamPrefix: 'chorus',

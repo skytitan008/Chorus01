@@ -23,6 +23,7 @@ Chorus is a platform for AI Agent and human collaboration, implementing the AI-D
 | **Proposal Approval** | PM Agent creates proposals, humans/Admin approve |
 | **MCP Server** | 50+ tools, Agents connect via MCP protocol (Public/Session/Developer/PM/Admin) |
 | **Activity Stream** | Real-time tracking of all participant actions (with Session attribution) |
+| **Notification System** | In-app notifications with SSE push, preference controls, MCP tools for agents |
 | **Session Observability** | Agent Session + Task Checkin, Kanban/Task Detail displays active Workers in real-time |
 | **Chorus Plugin** | Claude Code plugin, automating Session lifecycle (create/heartbeat/close) |
 | **Task DAG** | Task dependency modeling, cycle detection, @xyflow/react + dagre visualization |
@@ -64,6 +65,7 @@ Chorus is a platform for AI Agent and human collaboration, implementing the AI-D
 | **Styling** | Tailwind CSS | 4.x | Atomic CSS, rapid development |
 | **Auth** | next-auth | 5.x | OIDC support, deep Next.js integration |
 | **MCP SDK** | @modelcontextprotocol/sdk | latest | Official TypeScript SDK |
+| **Cache/Pub-Sub** | Redis (ioredis) | 7.x | Cross-instance SSE event delivery via ElastiCache Serverless |
 | **Containerization** | Docker Compose | - | One-click local dev setup |
 
 ### 2.2 Development Tools
@@ -195,6 +197,8 @@ Chorus adopts the classic three-layer architecture pattern with clear separation
 | CommentService | `comment.service.ts` | Polymorphic comments |
 | ActivityService | `activity.service.ts` | Activity logging (including assignment/release records) |
 | AssignmentService | `assignment.service.ts` | Agent self-service queries (my tasks, available, unblocked) |
+| NotificationService | `notification.service.ts` | Notification CRUD, preferences, SSE event emission |
+| NotificationListener | `notification-listener.ts` | Activity → Notification mapping, recipient resolution |
 | SessionService | `session.service.ts` | Agent Session CRUD + Task Checkin/Checkout + heartbeat |
 
 #### Code Examples
@@ -1541,32 +1545,41 @@ volumes:
   postgres_data:
 ```
 
-### 8.2 Production Deployment (Future)
+### 8.2 Production Deployment (AWS CDK)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Load Balancer                           │
+│                    ALB (Application Load Balancer)               │
+│                    HTTPS + ACM Certificate                       │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
        ┌──────────┐    ┌──────────┐    ┌──────────┐
-       │  Chorus  │    │  Chorus  │    │  Chorus  │
-       │ Instance │    │ Instance │    │ Instance │
+       │  ECS     │    │  ECS     │    │  ECS     │
+       │  Fargate │    │  Fargate │    │  Fargate │
+       │  Task    │    │  Task    │    │  Task    │
        └──────────┘    └──────────┘    └──────────┘
               │               │               │
-              └───────────────┼───────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   PostgreSQL      │
-                    │   (Primary)       │
-                    └─────────┬─────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   PostgreSQL      │
-                    │   (Replica)       │
-                    └───────────────────┘
+              └───────┬───────┴───────┬───────┘
+                      │               │
+            ┌─────────▼─────┐  ┌──────▼──────────────┐
+            │  Aurora        │  │  ElastiCache         │
+            │  Serverless v2 │  │  Serverless Redis 7  │
+            │  (PostgreSQL)  │  │  (Pub/Sub + RBAC)    │
+            └───────────────┘  └──────────────────────┘
 ```
+
+**CDK Infrastructure** (`packages/chorus-cdk/`):
+
+| Construct | File | Resources |
+|-----------|------|-----------|
+| Network | `network.ts` | VPC (2 AZs), public/private subnets, NAT Gateway, Security Groups |
+| Database | `database.ts` | Aurora Serverless v2, Secrets Manager (DB creds + app config) |
+| Cache | `cache.ts` | ElastiCache Serverless Redis 7, RBAC user + password in Secrets Manager |
+| Service | `service.ts` | ECS Fargate cluster, ALB, Task Definition, ECR image build |
+
+**Redis Authentication**: RBAC with password user (`chorus`), default user disabled. Password auto-generated and stored in Secrets Manager, injected into ECS container as `REDIS_PASSWORD` secret.
 
 ---
 
@@ -1607,7 +1620,7 @@ volumes:
 | Session Observability | Agent Session + Checkin + Kanban integration | Implemented |
 | Chorus Plugin | Claude Code plugin, automating Session lifecycle | Implemented |
 | Task Auto-Scheduling Query | `chorus_get_unblocked_tasks` MCP tool | Implemented |
-| Real-time Notifications | WebSocket/SSE push | To be developed (P0) |
+| Notification System | In-app notifications + SSE push + Redis Pub/Sub | **Implemented** |
 | Execution Metrics | Agent Hours, velocity statistics | To be developed (P1) |
 | Git Integration | Associate commits and PRs | To be developed |
 | Semantic Search | pgvector knowledge base search | To be developed |
@@ -1615,8 +1628,7 @@ volumes:
 ### 10.2 Technical Reserves
 
 - **pgvector**: PostgreSQL natively supports it, can be added seamlessly later
-- **WebSocket**: Next.js supports it, can be used for real-time notifications
-- **Redis**: Can be introduced later if caching or message queues are needed
+- **Redis**: ElastiCache Serverless for Pub/Sub event delivery; can be extended for caching or queues later
 
 ---
 
@@ -1635,6 +1647,11 @@ NEXTAUTH_SECRET=your-secret-key
 # Super Admin (system startup config, manages Companies and global settings)
 SUPER_ADMIN_EMAIL=admin@example.com
 SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
+
+# Redis (optional — falls back to in-memory EventBus when unset)
+# Local dev: redis://default:chorus-redis@localhost:6379
+# CDK: assembled from REDIS_HOST + REDIS_PORT + REDIS_USERNAME + REDIS_PASSWORD
+REDIS_URL=redis://default:chorus-redis@localhost:6379
 
 # Note: OIDC configuration has been moved to the database (Company table),
 # each Company is independently configured

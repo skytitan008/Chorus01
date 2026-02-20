@@ -11,8 +11,11 @@ services:
       - DATABASE_URL=postgresql://chorus:chorus@db:5432/chorus
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-development-secret-change-in-production}
+      - REDIS_URL=redis://default:chorus-redis@redis:6379
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       # 开发模式：挂载源代码
@@ -20,6 +23,19 @@ services:
       - /app/node_modules
       - /app/.next
     command: pnpm run dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass chorus-redis
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "chorus-redis", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   db:
     image: postgres:16-alpine
@@ -39,3 +55,4 @@ services:
 
 volumes:
   chorus-data:
+  redis-data:

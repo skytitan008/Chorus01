@@ -1,8 +1,9 @@
 // src/lib/event-bus.ts
-// 内存事件总线 — 进程级单例
-// 将来多实例部署时替换为 Redis pub/sub，SSE 端点和客户端代码不变
-
+// Dual-layer event bus: local EventEmitter + optional Redis Pub/Sub
+// Local emit for same-process delivery, Redis for cross-instance delivery.
 import { EventEmitter } from "events";
+import { randomUUID } from "crypto";
+import { isRedisEnabled, getRedisPublisher, getRedisSubscriber } from "./redis";
 
 export interface RealtimeEvent {
   companyUuid: string;
@@ -12,9 +13,78 @@ export interface RealtimeEvent {
   action: "created" | "updated" | "deleted";
 }
 
+// Single Redis channel for all events (ElastiCache Serverless doesn't support PSUBSCRIBE)
+const REDIS_CHANNEL = "chorus:events";
+
+/** Envelope wrapping event data with origin ID for dedup + channel for local dispatch */
+interface RedisEnvelope {
+  _origin: string;
+  channel: string;
+  data: unknown;
+}
+
 class ChorusEventBus extends EventEmitter {
+  private _connected = false;
+  /** Unique per-process ID to deduplicate own messages from Redis */
+  private readonly _instanceId = randomUUID();
+
+  /** Call once at startup to initialize Redis subscriptions */
+  async connect(): Promise<void> {
+    if (this._connected || !isRedisEnabled()) return;
+    this._connected = true;
+
+    const sub = getRedisSubscriber();
+    const pub = getRedisPublisher();
+    if (!sub) return;
+
+    await sub.connect();
+    // Connect publisher eagerly so pub.status === "ready" when emit() checks it
+    if (pub) await pub.connect();
+    // Use SUBSCRIBE (not PSUBSCRIBE) — compatible with ElastiCache Serverless
+    await sub.subscribe(REDIS_CHANNEL);
+
+    sub.on("message", (_channel: string, message: string) => {
+      try {
+        const envelope: RedisEnvelope = JSON.parse(message);
+        // Skip messages we published ourselves — already delivered locally
+        if (envelope._origin === this._instanceId) return;
+        // Emit locally using the original channel name for cross-instance delivery
+        super.emit(envelope.channel, envelope.data);
+      } catch {
+        // Ignore malformed messages
+      }
+    });
+  }
+
+  // Override emit to publish to Redis when available
+  emit(event: string | symbol, ...args: unknown[]): boolean {
+    if (typeof event === "string" && isRedisEnabled()) {
+      const pub = getRedisPublisher();
+      if (pub && pub.status === "ready") {
+        const envelope: RedisEnvelope = {
+          _origin: this._instanceId,
+          channel: event,
+          data: args[0],
+        };
+        pub.publish(REDIS_CHANNEL, JSON.stringify(envelope)).catch(() => {
+          // Silently fail — local emit still works
+        });
+      }
+    }
+    // Always emit locally for same-process consumers
+    return super.emit(event, ...args);
+  }
+
   emitChange(event: RealtimeEvent) {
     this.emit("change", event);
+  }
+
+  async disconnect(): Promise<void> {
+    const pub = getRedisPublisher();
+    const sub = getRedisSubscriber();
+    if (sub) await sub.quit().catch(() => {});
+    if (pub) await pub.quit().catch(() => {});
+    this._connected = false;
   }
 }
 
@@ -25,3 +95,10 @@ const globalForEventBus = globalThis as unknown as {
 };
 
 export const eventBus = (globalForEventBus.chorusEventBus ??= new ChorusEventBus());
+
+// Auto-connect on import (non-blocking)
+if (isRedisEnabled()) {
+  eventBus.connect().catch((err) => {
+    console.error("[EventBus] Redis connect failed, falling back to memory:", err.message);
+  });
+}

@@ -2,6 +2,7 @@ import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { Network } from './network';
 import { Database } from './database';
+import { Cache } from './cache';
 import { Service } from './service';
 
 export interface ChorusStackProps extends StackProps {
@@ -27,10 +28,13 @@ export class ChorusStack extends Stack {
       nextAuthSecret: props.nextAuthSecret,
     });
 
+    const cache = new Cache(this, 'Cache', { networkStack: network });
+
     new Service(this, 'Service', {
       vpc: network.vpc,
       networkStack: network,
       database,
+      cache,
       acmCertificateArn: props.acmCertificateArn,
       customDomain: props.customDomain,
     });

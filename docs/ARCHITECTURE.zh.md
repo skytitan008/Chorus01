@@ -23,6 +23,7 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 | **提议审批** | PM Agent 创建提议，人类/Admin 审批 |
 | **MCP Server** | 50+ 工具，Agent 通过 MCP 协议接入（Public/Session/Developer/PM/Admin） |
 | **活动流** | 实时追踪所有参与者的操作（含 Session 归因） |
+| **通知系统** | 应用内通知 + SSE 实时推送 + Redis Pub/Sub 跨实例传播 + 偏好设置 + Agent MCP 工具 |
 | **Session 可观测性** | Agent Session + Task Checkin，Kanban/Task Detail 实时显示活跃 Worker |
 | **Chorus Plugin** | Claude Code 插件，自动化 Session 生命周期（创建/心跳/关闭） |
 | **Task DAG** | 任务依赖建模、环检测、@xyflow/react + dagre 可视化 |
@@ -64,6 +65,7 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 | **样式** | Tailwind CSS | 4.x | 原子化 CSS，快速开发 |
 | **认证** | next-auth | 5.x | OIDC 支持，与 Next.js 深度集成 |
 | **MCP SDK** | @modelcontextprotocol/sdk | latest | 官方 TypeScript SDK |
+| **缓存/消息** | Redis (ioredis) | 7.x | 通过 ElastiCache Serverless 实现跨实例 SSE 事件分发 |
 | **容器化** | Docker Compose | - | 本地开发一键启动 |
 
 ### 2.2 开发工具
@@ -195,6 +197,8 @@ Chorus 采用经典的三层架构模式，职责清晰分离：
 | CommentService | `comment.service.ts` | 多态评论 |
 | ActivityService | `activity.service.ts` | 活动日志（含分配/释放记录） |
 | AssignmentService | `assignment.service.ts` | Agent 自助查询（我的任务、可分配、未阻塞） |
+| NotificationService | `notification.service.ts` | 通知 CRUD、偏好设置、SSE 事件发送 |
+| NotificationListener | `notification-listener.ts` | Activity → 通知映射、收件人解析 |
 | SessionService | `session.service.ts` | Agent Session CRUD + Task Checkin/Checkout + 心跳 |
 
 #### 代码示例
@@ -1533,32 +1537,41 @@ volumes:
   postgres_data:
 ```
 
-### 8.2 生产部署（未来）
+### 8.2 生产部署（AWS CDK）
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Load Balancer                           │
+│                    ALB (Application Load Balancer)               │
+│                    HTTPS + ACM Certificate                       │
 └─────────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
        ┌──────────┐    ┌──────────┐    ┌──────────┐
-       │  Chorus  │    │  Chorus  │    │  Chorus  │
-       │ Instance │    │ Instance │    │ Instance │
+       │  ECS     │    │  ECS     │    │  ECS     │
+       │  Fargate │    │  Fargate │    │  Fargate │
+       │  Task    │    │  Task    │    │  Task    │
        └──────────┘    └──────────┘    └──────────┘
               │               │               │
-              └───────────────┼───────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   PostgreSQL      │
-                    │   (Primary)       │
-                    └─────────┬─────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   PostgreSQL      │
-                    │   (Replica)       │
-                    └───────────────────┘
+              └───────┬───────┴───────┬───────┘
+                      │               │
+            ┌─────────▼─────┐  ┌──────▼──────────────┐
+            │  Aurora        │  │  ElastiCache         │
+            │  Serverless v2 │  │  Serverless Redis 7  │
+            │  (PostgreSQL)  │  │  (Pub/Sub + RBAC)    │
+            └───────────────┘  └──────────────────────┘
 ```
+
+**CDK 基础设施** (`packages/chorus-cdk/`):
+
+| Construct | 文件 | 资源 |
+|-----------|------|------|
+| Network | `network.ts` | VPC（2 AZ）、公有/私有子网、NAT 网关、安全组 |
+| Database | `database.ts` | Aurora Serverless v2、Secrets Manager（数据库凭证 + 应用配置） |
+| Cache | `cache.ts` | ElastiCache Serverless Redis 7、RBAC 用户 + 密码存 Secrets Manager |
+| Service | `service.ts` | ECS Fargate 集群、ALB、Task Definition、ECR 镜像构建 |
+
+**Redis 鉴权**: RBAC 密码认证（用户 `chorus`），默认用户已禁用。密码自动生成并存储在 Secrets Manager，通过 `REDIS_PASSWORD` 环境变量注入 ECS 容器。
 
 ---
 
@@ -1599,7 +1612,7 @@ volumes:
 | ✅ Session 可观测性 | Agent Session + Checkin + Kanban 集成 | 已实现 |
 | ✅ Chorus Plugin | Claude Code 插件，自动化 Session 生命周期 | 已实现 |
 | ✅ Task 自动调度查询 | `chorus_get_unblocked_tasks` MCP 工具 | 已实现 |
-| 实时通知 | WebSocket/SSE 推送 | 待开发 (P0) |
+| 通知系统 | 应用内通知 + SSE 推送 + Redis Pub/Sub | **已实现** |
 | 执行度量 | Agent Hours、velocity 统计 | 待开发 (P1) |
 | Git 集成 | 关联 commit 和 PR | 待开发 |
 | 语义搜索 | pgvector 知识库搜索 | 待开发 |
@@ -1607,8 +1620,7 @@ volumes:
 ### 10.2 技术储备
 
 - **pgvector**: PostgreSQL 已原生支持，后续可无缝添加
-- **WebSocket**: Next.js 支持，可用于实时通知
-- **Redis**: 如需缓存或消息队列，可后续引入
+- **Redis**: ElastiCache Serverless 用于 Pub/Sub 事件分发；后续可扩展为缓存或队列
 
 ---
 
@@ -1627,6 +1639,11 @@ NEXTAUTH_SECRET=your-secret-key
 # Super Admin（系统启动配置，管理 Company 和全局设置）
 SUPER_ADMIN_EMAIL=admin@example.com
 SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
+
+# Redis（可选 — 未设置时退化为内存 EventBus）
+# 本地开发: redis://default:chorus-redis@localhost:6379
+# CDK 部署: 由 REDIS_HOST + REDIS_PORT + REDIS_USERNAME + REDIS_PASSWORD 组装
+REDIS_URL=redis://default:chorus-redis@localhost:6379
 
 # 注意：OIDC 配置已移至数据库（Company 表），每个 Company 独立配置
 # 仅支持 PKCE，无需 Client Secret

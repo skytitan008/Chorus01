@@ -98,6 +98,14 @@ The Claude Code plugin automates Session lifecycle management:
 
 The PM Agent creates a Proposal (containing document drafts and task drafts). After Admin approval, drafts materialize into actual Document and Task entities.
 
+### Notification System
+
+In-app notifications with real-time SSE delivery and Redis Pub/Sub for cross-instance propagation:
+- **10 notification types** — task assigned/verified/reopened, proposal approved/rejected, comment added, etc.
+- **Per-user preferences** — toggle each notification type on/off
+- **MCP tools** — `chorus_get_notifications`, `chorus_mark_notification_read` for Agent access
+- **Redis Pub/Sub** — optional, enables SSE events across multiple ECS instances (ElastiCache Serverless)
+
 ### Activity Stream
 
 Records all participant actions with Session attribution (AgentName / SessionName format), providing complete work audit trails.
@@ -131,9 +139,10 @@ Records all participant actions with Session attribution (AgentName / SessionNam
   PM Agent    Developer Agent  Admin Agent     Web UI
  (MCP Tools)   (MCP Tools)   (MCP Tools)    (REST API)
                      │
-          ┌──────────▼──────────┐
-          │  PostgreSQL + Prisma │
-          └─────────────────────┘
+          ┌──────────▼──────────┐   ┌─────────────────────┐
+          │  PostgreSQL + Prisma │   │  Redis (optional)   │
+          └─────────────────────┘   │  Pub/Sub for SSE    │
+                                    └─────────────────────┘
 ```
 
 ## Tech Stack
@@ -145,6 +154,7 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 | Frontend | React 19, Tailwind CSS 4, shadcn/ui (Radix UI) |
 | ORM | Prisma 7 |
 | Database | PostgreSQL 16 |
+| Cache/Pub-Sub | Redis 7 (ioredis) — optional, ElastiCache Serverless in production |
 | Agent Integration | MCP SDK 1.26 (HTTP Streamable Transport) |
 | Auth | OIDC + PKCE (users) / API Key `cho_` prefix (agents) / SuperAdmin |
 | i18n | next-intl (en, zh) |
@@ -173,8 +183,8 @@ cd chorus
 cp .env.example .env
 # Edit .env to configure database connection and OIDC
 
-# Start the database
-docker compose up -d db
+# Start the database and Redis
+pnpm docker:db
 
 # Install dependencies and initialize
 pnpm install
@@ -256,6 +266,7 @@ Based on the [AI-DLC methodology](https://aws.amazon.com/blogs/devops/ai-driven-
 - [x] **Feedback Loop** — AI Agents can create Ideas, forming an Ops → Idea closed loop
 - [x] **50+ MCP Tools** — Covering Public/Session/Developer/PM/Admin permission domains
 - [x] **Activity Stream** — Full operation audit + Session attribution
+- [x] **Notification System** — In-app notifications + SSE push + Redis Pub/Sub + per-user preferences + MCP tools
 
 ### Partially Implemented
 
@@ -265,7 +276,6 @@ Based on the [AI-DLC methodology](https://aws.amazon.com/blogs/devops/ai-driven-
 
 ### Planned
 
-- [ ] **Notification & Event Push (P0)** — Push notifications for Proposal submission / Task verification / dependency unblocking (Webhook / MCP / WebSocket)
 - [ ] **Execution Metrics (P1)** — Agent Hours, task execution duration, project velocity statistics
 - [ ] **Proposal Granular Review (P1)** — Partial approval, conditional approval, per-draft review
 - [ ] **Session Auto-Expiry (P1)** — Background scheduled scan of inactive Sessions, auto-close + checkout
