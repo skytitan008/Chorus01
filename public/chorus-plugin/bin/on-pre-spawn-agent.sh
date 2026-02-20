@@ -57,16 +57,13 @@ printf '{"name":"%s","type":"%s","ts":"%s"}\n' \
   "${AGENT_NAME:-}" "${AGENT_TYPE:-}" "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
   > "${PENDING_DIR}/${PENDING_NAME}"
 
-CONTEXT="[Chorus Plugin — Sub-agent Spawn Checklist]
-A Chorus session will be auto-created (or reused) for this sub-agent by the plugin.
-Do NOT call chorus_create_session — the plugin handles session lifecycle.
+CONTEXT="[Chorus Plugin — Sub-agent Spawn]
+Session auto-managed by plugin. Do NOT call chorus_create_session.
 
 When writing the sub-agent prompt, include:
 1. The Chorus task UUID(s) this sub-agent should work on
-2. Tag \`chorus:task:<uuid>\` in any TaskCreate descriptions for auto-checkout
-3. Instruct the sub-agent: read .chorus/sessions/<agent-name>.json for its Chorus session UUID
-4. Instruct the sub-agent: call chorus_session_checkin_task before starting work on a task
-5. Instruct the sub-agent: call chorus_report_work with sessionUuid when reporting progress
-Do NOT include a session UUID in the prompt — the sub-agent discovers it from the session file."
+2. Instruct the sub-agent: read .chorus/sessions/<agent-name>.json and follow the workflow instructions inside
+3. Optionally tag \`chorus:task:<uuid>\` in TaskCreate descriptions for auto-checkout on completion
+Do NOT include session UUIDs — the session file has everything the sub-agent needs."
 
 "$API" hook-output "" "$CONTEXT" "PreToolUse"
