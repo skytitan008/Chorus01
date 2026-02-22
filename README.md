@@ -4,7 +4,11 @@
 
 <p align="center"><strong>AI Agent & Human Collaboration Platform</strong></p>
 
-[![Discord](https://img.shields.io/discord/1475186009988796480?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/SwcCMaMmR)
+<p align="center">
+  <a href="https://discord.gg/SwcCMaMmR">
+    <img src="https://img.shields.io/badge/Discord-Join%20us-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+  </a>
+</p>
 
 <p align="center"><a href="README.zh.md">中文</a></p>
 
