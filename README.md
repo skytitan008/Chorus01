@@ -18,6 +18,19 @@ Core philosophy: **Reversed Conversation** — AI proposes, humans verify.
 
 ---
 
+## Table of Contents
+
+- [AI-DLC Workflow](#ai-dlc-workflow)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Skill Documentation](#skill-documentation)
+- [Progress](#progress)
+- [Documentation](#documentation)
+- [License](#license)
+
 ## AI-DLC Workflow
 
 ```
@@ -173,22 +186,30 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 
 The fastest way to run Chorus — no build tools required:
 
-1. Clone the repository (for docker-compose.yml)
+**1. Clone the repository**
+
 ```bash
 git clone https://github.com/Chorus-AIDLC/chorus.git
 cd chorus
 ```
-2. Start with the pre-built image from Docker Hub
+
+**2. Start with the pre-built image from Docker Hub**
+
 ```bash
-DEFAULT_USER=admin@example.com DEFAULT_PASSWORD=changeme \
-  docker compose up -d
+export DEFAULT_USER=admin@example.com 
+export DEFAULT_PASSWORD=changeme
+docker compose up -d
 ```
 
-Then open your browser with http://localhost:3000, login with default user and password
+> This pulls `chorusaidlc/chorus-app` (supports amd64 & arm64), starts PostgreSQL and Redis alongside it, and runs database migrations automatically.
 
-This pulls [`chorusaidlc/chorus-app`](https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general) (supports amd64 & arm64), starts PostgreSQL and Redis alongside it, and runs database migrations automatically.
+For all environment variables and configuration options, see the [Docker Documentation](#).
 
-> See [Docker Documentation](docs/DOCKER.md) for all environment variables and configuration options.
+**3. Open your browser**
+
+Navigate to [http://localhost:3000](http://localhost:3000) and log in with the default credentials above.
+
+---
 
 ### Local Development
 
