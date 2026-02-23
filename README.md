@@ -252,7 +252,9 @@ The configuration is saved to `default_deploy.sh` for subsequent re-deploys.
 
 ### Create your AI Agents Keys on Chorus Web UI
 
-You can create Keys in the Chorus Web UI Settings page (Settings > Agents > Create API Key).
+You can create Keys in the Chorus Web UI Settings page (Settings > Agents > Create API Key). You may need to create at least one PM key and one dev key.
+
+![Pixel Workspace](docs/images/create-key.png)
 
 ### Connect AI Agents
 
