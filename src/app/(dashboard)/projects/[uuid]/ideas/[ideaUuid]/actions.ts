@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { assignIdea, releaseIdea, getIdeaByUuid } from "@/services/idea.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
+import { createActivity } from "@/services/activity.service";
 
 export async function claimIdeaAction(ideaUuid: string) {
   const auth = await getServerAuthContext();
@@ -29,6 +30,17 @@ export async function claimIdeaAction(ideaUuid: string) {
       assigneeType: auth.type,
       assigneeUuid: auth.actorUuid,
       assignedByUuid: auth.actorUuid,
+    });
+
+    await createActivity({
+      companyUuid: auth.companyUuid,
+      projectUuid: idea.projectUuid,
+      targetType: "idea",
+      targetUuid: ideaUuid,
+      actorType: auth.type,
+      actorUuid: auth.actorUuid,
+      action: "assigned",
+      value: { assigneeType: auth.type, assigneeUuid: auth.actorUuid },
     });
 
     revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
@@ -65,6 +77,17 @@ export async function claimIdeaToAgentAction(ideaUuid: string, agentUuid: string
       assigneeType: "agent",
       assigneeUuid: agentUuid,
       assignedByUuid: auth.actorUuid,
+    });
+
+    await createActivity({
+      companyUuid: auth.companyUuid,
+      projectUuid: idea.projectUuid,
+      targetType: "idea",
+      targetUuid: ideaUuid,
+      actorType: "user",
+      actorUuid: auth.actorUuid,
+      action: "assigned",
+      value: { assigneeType: "agent", assigneeUuid: agentUuid },
     });
 
     revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);

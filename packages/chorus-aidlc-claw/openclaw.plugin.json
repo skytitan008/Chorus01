@@ -1,0 +1,29 @@
+{
+  "id": "chorus-aidlc-claw",
+  "configSchema": {
+    "type": "object",
+    "required": ["chorusUrl", "apiKey"],
+    "additionalProperties": false,
+    "properties": {
+      "chorusUrl": {
+        "type": "string",
+        "description": "Chorus server URL"
+      },
+      "apiKey": {
+        "type": "string",
+        "description": "Chorus API Key (cho_ prefix)"
+      },
+      "projectUuids": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": [],
+        "description": "Project UUIDs to monitor (empty = all)"
+      },
+      "autoStart": {
+        "type": "boolean",
+        "default": true,
+        "description": "Auto-claim tasks on assignment"
+      }
+    }
+  }
+}

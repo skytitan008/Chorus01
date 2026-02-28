@@ -302,6 +302,15 @@ Skill 文件包含：MCP 配置指南、三个角色的完整工作流、Session
 
 ---
 
+## 子包
+
+| 包 | 说明 |
+|---|------|
+| [`packages/chorus-aidlc-claw`](packages/chorus-aidlc-claw) | **OpenClaw 插件** — 通过 SSE 长连接 + MCP 工具桥接 [OpenClaw](https://openclaw.ai) 与 Chorus。OpenClaw agent 可实时接收 Chorus 事件（任务分配、@提及、提案拒绝等），并通过 21+ 注册工具参与完整的 AI-DLC 工作流。 |
+| [`packages/chorus-cdk`](packages/chorus-cdk) | **AWS CDK** — Chorus 的 AWS 基础设施即代码（VPC、Aurora Serverless、ElastiCache、ECS Fargate、ALB）。 |
+
+---
+
 ## 项目进度
 
 基于 [AI-DLC 方法论](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)对标，当前实现状态：

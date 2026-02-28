@@ -15,6 +15,7 @@ import {
   removeDocumentDraft,
   removeTaskDraft,
 } from "@/services/proposal.service";
+import { createActivity } from "@/services/activity.service";
 
 export async function approveProposalAction(proposalUuid: string) {
   const auth = await getServerAuthContext();
@@ -35,6 +36,16 @@ export async function approveProposalAction(proposalUuid: string) {
     }
 
     await approveProposal(proposalUuid, auth.companyUuid, auth.actorUuid);
+
+    await createActivity({
+      companyUuid: auth.companyUuid,
+      projectUuid: proposal.projectUuid,
+      targetType: "proposal",
+      targetUuid: proposalUuid,
+      actorType: auth.type,
+      actorUuid: auth.actorUuid,
+      action: "approved",
+    });
 
     revalidatePath(`/projects/${proposal.projectUuid}/proposals/${proposalUuid}`);
     revalidatePath(`/projects/${proposal.projectUuid}/proposals`);
@@ -95,6 +106,17 @@ export async function rejectProposalAction(proposalUuid: string, reviewNote?: st
     }
 
     await rejectProposal(proposalUuid, auth.actorUuid, reviewNote || "");
+
+    await createActivity({
+      companyUuid: auth.companyUuid,
+      projectUuid: proposal.projectUuid,
+      targetType: "proposal",
+      targetUuid: proposalUuid,
+      actorType: auth.type,
+      actorUuid: auth.actorUuid,
+      action: "rejected_to_draft",
+      value: reviewNote ? { reviewNote } : undefined,
+    });
 
     revalidatePath(`/projects/${proposal.projectUuid}/proposals/${proposalUuid}`);
     revalidatePath(`/projects/${proposal.projectUuid}/proposals`);

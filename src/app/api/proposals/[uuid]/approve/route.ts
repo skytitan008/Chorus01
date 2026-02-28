@@ -7,6 +7,7 @@ import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { getProposalByUuid, approveProposal } from "@/services/proposal.service";
+import { createActivity } from "@/services/activity.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -45,6 +46,17 @@ export const POST = withErrorHandler<{ uuid: string }>(
       auth.actorUuid,
       body.reviewNote
     );
+
+    await createActivity({
+      companyUuid: auth.companyUuid,
+      projectUuid: proposal.projectUuid,
+      targetType: "proposal",
+      targetUuid: proposal.uuid,
+      actorType: "user",
+      actorUuid: auth.actorUuid,
+      action: "approved",
+      value: body.reviewNote ? { reviewNote: body.reviewNote } : undefined,
+    });
 
     return success(updated);
   }
