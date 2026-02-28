@@ -121,6 +121,238 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
     },
   });
 
+  // --- List tools for project exploration ---
+
+  api.registerTool({
+    name: "chorus_list_projects",
+    description: "List all projects for the current company. Returns projects with counts of ideas, documents, tasks, and proposals.",
+    parameters: {
+      type: "object",
+      properties: {
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 20)" },
+      },
+      additionalProperties: false,
+    },
+    async execute(_id: string, { page, pageSize }: { page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = {};
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_list_projects", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_list_tasks",
+    description: "List tasks for a project. Can filter by status and priority.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+        status: { type: "string", description: "Filter by status: open | assigned | in_progress | to_verify | done | closed" },
+        priority: { type: "string", description: "Filter by priority: low | medium | high" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 20)" },
+      },
+      required: ["projectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid, status, priority, page, pageSize }: { projectUuid: string; status?: string; priority?: string; page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = { projectUuid };
+      if (status) args.status = status;
+      if (priority) args.priority = priority;
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_list_tasks", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_ideas",
+    description: "List ideas for a project. Can filter by status.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+        status: { type: "string", description: "Filter by status: open | elaborating | proposal_created | completed | closed" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 20)" },
+      },
+      required: ["projectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid, status, page, pageSize }: { projectUuid: string; status?: string; page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = { projectUuid };
+      if (status) args.status = status;
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_get_ideas", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_proposals",
+    description: "List proposals for a project. Can filter by status.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+        status: { type: "string", description: "Filter by status: draft | pending | approved | rejected" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 20)" },
+      },
+      required: ["projectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid, status, page, pageSize }: { projectUuid: string; status?: string; page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = { projectUuid };
+      if (status) args.status = status;
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_get_proposals", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_documents",
+    description: "List documents for a project. Can filter by type.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+        type: { type: "string", description: "Filter by type: prd | tech_design | adr | spec | guide" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 20)" },
+      },
+      required: ["projectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid, type, page, pageSize }: { projectUuid: string; type?: string; page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = { projectUuid };
+      if (type) args.type = type;
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_get_documents", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_document",
+    description: "Get the detailed content of a single document.",
+    parameters: {
+      type: "object",
+      properties: {
+        documentUuid: { type: "string", description: "Document UUID" },
+      },
+      required: ["documentUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { documentUuid }: { documentUuid: string }) {
+      const result = await mcpClient.callTool("chorus_get_document", { documentUuid });
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_unblocked_tasks",
+    description: "Get tasks that are ready to start — status is open/assigned and all dependencies are resolved (done/to_verify).",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+      },
+      required: ["projectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid }: { projectUuid: string }) {
+      const result = await mcpClient.callTool("chorus_get_unblocked_tasks", { projectUuid });
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_activity",
+    description: "Get the activity stream for a project. Shows all actions taken by agents and users.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 50)" },
+      },
+      required: ["projectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid, page, pageSize }: { projectUuid: string; page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = { projectUuid };
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_get_activity", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_comments",
+    description: "Get comments for an Idea, Proposal, Task, or Document. Useful for understanding context, decisions, and feedback.",
+    parameters: {
+      type: "object",
+      properties: {
+        targetType: { type: "string", description: "Target type: idea | proposal | task | document" },
+        targetUuid: { type: "string", description: "Target UUID" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        pageSize: { type: "number", description: "Items per page (default: 20)" },
+      },
+      required: ["targetType", "targetUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { targetType, targetUuid, page, pageSize }: { targetType: string; targetUuid: string; page?: number; pageSize?: number }) {
+      const args: Record<string, unknown> = { targetType, targetUuid };
+      if (page !== undefined) args.page = page;
+      if (pageSize !== undefined) args.pageSize = pageSize;
+      const result = await mcpClient.callTool("chorus_get_comments", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_elaboration",
+    description: "Get the full elaboration state for an Idea, including all rounds, questions, answers, and progress summary.",
+    parameters: {
+      type: "object",
+      properties: {
+        ideaUuid: { type: "string", description: "Idea UUID" },
+      },
+      required: ["ideaUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
+      const result = await mcpClient.callTool("chorus_get_elaboration", { ideaUuid });
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  api.registerTool({
+    name: "chorus_get_my_assignments",
+    description: "Get all Ideas and Tasks currently assigned to you.",
+    parameters: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+    async execute() {
+      const result = await mcpClient.callTool("chorus_get_my_assignments", {});
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  // --- Write tools ---
+
   api.registerTool({
     name: "chorus_add_comment",
     description: "Add a comment to an Idea, Proposal, Task, or Document",
