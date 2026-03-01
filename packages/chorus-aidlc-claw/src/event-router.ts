@@ -21,6 +21,8 @@ interface NotificationDetail {
   entityTitle: string;
   action: string;
   message: string;
+  actorType: string;
+  actorUuid: string;
   actorName: string;
 }
 
@@ -127,7 +129,20 @@ export class ChorusEventRouter {
     }
   }
 
+  /**
+   * Build @mention guidance for agent messages.
+   * Instructs the agent to @mention the actor after completing work.
+   */
+  private buildMentionGuidance(n: NotificationDetail, entityType: string): string {
+    return (
+      `After completing your work, post a comment on this ${entityType} using chorus_add_comment with @mention:\n` +
+      `Use this exact mention format: @[${n.actorName}](${n.actorType}:${n.actorUuid})`
+    );
+  }
+
   private async handleTaskAssigned(n: NotificationDetail): Promise<void> {
+    const mentionGuidance = this.buildMentionGuidance(n, "task");
+
     if (this.config.autoStart) {
       try {
         await this.mcpClient.callTool("chorus_claim_task", { taskUuid: n.entityUuid });
@@ -138,12 +153,12 @@ export class ChorusEventRouter {
       }
 
       this.triggerAgent(
-        `[Chorus] Task assigned: ${n.entityTitle}. Task UUID: ${n.entityUuid}, Project UUID: ${n.projectUuid}. Use chorus_get_task to see details and begin work.`,
+        `[Chorus] Task assigned: ${n.entityTitle}. Task UUID: ${n.entityUuid}, Project UUID: ${n.projectUuid}. Use chorus_get_task to see details and begin work.\n${mentionGuidance}`,
         { notificationUuid: n.uuid, action: "task_assigned", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
       );
     } else {
       this.triggerAgent(
-        `[Chorus] Task assigned: ${n.entityTitle}. Task UUID: ${n.entityUuid}, Project UUID: ${n.projectUuid}. Use chorus_get_task to review when ready.`,
+        `[Chorus] Task assigned: ${n.entityTitle}. Task UUID: ${n.entityUuid}, Project UUID: ${n.projectUuid}. Use chorus_get_task to review when ready.\n${mentionGuidance}`,
         { notificationUuid: n.uuid, action: "task_assigned", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
       );
     }
@@ -164,36 +179,49 @@ export class ChorusEventRouter {
   }
 
   private handleProposalRejected(n: NotificationDetail): void {
+    const mentionGuidance = this.buildMentionGuidance(n, "proposal");
+
     this.triggerAgent(
       `[Chorus] Proposal '${n.entityTitle}' was REJECTED (proposalUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). Review note: "${n.message}". ` +
       `Use chorus_get_proposal to review the proposal, then fix issues with chorus_update_task_draft / chorus_update_document_draft. ` +
-      `After fixing, call chorus_validate_proposal then chorus_submit_proposal to resubmit.`,
+      `After fixing, call chorus_validate_proposal then chorus_submit_proposal to resubmit.\n` +
+      mentionGuidance,
       { notificationUuid: n.uuid, action: "proposal_rejected", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
     );
   }
 
   private handleProposalApproved(n: NotificationDetail): void {
+    const mentionGuidance = this.buildMentionGuidance(n, "proposal");
+
     this.triggerAgent(
       `[Chorus] Proposal '${n.entityTitle}' was APPROVED (projectUuid: ${n.projectUuid})! Documents and tasks have been created. ` +
-      `Use chorus_get_available_tasks with projectUuid: "${n.projectUuid}" to see the new tasks ready for work.`,
+      `Use chorus_get_available_tasks with projectUuid: "${n.projectUuid}" to see the new tasks ready for work.\n` +
+      mentionGuidance,
       { notificationUuid: n.uuid, action: "proposal_approved", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
     );
   }
 
   private handleIdeaClaimed(n: NotificationDetail): void {
+    const mentionGuidance = this.buildMentionGuidance(n, "idea");
+
     this.triggerAgent(
       `[Chorus] Idea '${n.entityTitle}' has been assigned to you (ideaUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). ` +
-      `Use chorus_get_idea to review the idea, then chorus_claim_idea to start elaboration.`,
+      `Use chorus_get_idea to review the idea, then chorus_claim_idea to start elaboration.\n` +
+      mentionGuidance,
       { notificationUuid: n.uuid, action: "idea_claimed", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
     );
   }
 
   private handleElaborationAnswered(n: NotificationDetail): void {
+    const mentionGuidance = this.buildMentionGuidance(n, "idea");
+
     this.triggerAgent(
       `[Chorus] Elaboration answers submitted for idea '${n.entityTitle}' (ideaUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). ` +
       `Review the answers with chorus_get_elaboration, then either:\n` +
       `- Call chorus_validate_elaboration with empty issues [] to resolve and proceed to proposal creation\n` +
-      `- Call chorus_validate_elaboration with issues + followUpQuestions for another round`,
+      `- Call chorus_validate_elaboration with issues + followUpQuestions for another round\n\n` +
+      `After reviewing, @mention the answerer to ask if they have any further questions before you proceed.\n` +
+      mentionGuidance,
       { notificationUuid: n.uuid, action: "elaboration_answered", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
     );
   }

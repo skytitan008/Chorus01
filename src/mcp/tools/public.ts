@@ -325,7 +325,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "chorus_checkin",
     {
-      description: "Agent heartbeat check-in. Returns the Agent persona, roles, and pending tasks. Recommended to call at the start of each session.",
+      description: "Agent check-in. Returns agent identity (including owner/master info), roles, assigned work, and pending counts. Recommended at session start.",
       inputSchema: z.object({}),
     },
     async () => {
@@ -339,6 +339,8 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
           roles: true,
           persona: true,
           systemPrompt: true,
+          ownerUuid: true,
+          owner: { select: { uuid: true, name: true, email: true } },
         },
       });
 
@@ -385,6 +387,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
           roles: agent.roles,
           persona: effectivePersona,
           systemPrompt: agent.systemPrompt,
+          owner: agent.owner ? { uuid: agent.owner.uuid, name: agent.owner.name, email: agent.owner.email } : null,
         },
         assignments: {
           ideas: ideas.filter(i => ["assigned", "in_progress"].includes(i.status)),

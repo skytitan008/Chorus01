@@ -192,6 +192,19 @@ cat > "${SESSIONS_DIR}/${SESSION_NAME}.json" <<SESSIONEOF
 }
 SESSIONEOF
 
+# === Owner info: read from state (stored by on-session-start.sh from checkin response) ===
+OWNER_SECTION=""
+OWNER_UUID=$("$API" state-get "owner_uuid" 2>/dev/null) || true
+if [ -n "$OWNER_UUID" ]; then
+  OWNER_NAME=$("$API" state-get "owner_name" 2>/dev/null) || true
+  OWNER_EMAIL=$("$API" state-get "owner_email" 2>/dev/null) || true
+  OWNER_SECTION="
+## Owner Info
+
+Your owner (the human who created your API key): ${OWNER_NAME} (${OWNER_EMAIL}), UUID: ${OWNER_UUID}
+Use this info when you need to @mention your owner in comments."
+fi
+
 # === Output: inject workflow directly into sub-agent context via additionalContext ===
 WORKFLOW="## Chorus Session (Auto-injected by plugin)
 
@@ -212,7 +225,7 @@ The plugin manages session lifecycle (heartbeat, close). Do NOT call chorus_crea
 4. Check out: chorus_session_checkout_task({ sessionUuid: \"${SESSION_UUID}\", taskUuid: \"<TASK_UUID>\" })
 5. Submit: chorus_submit_for_verify({ taskUuid: \"<TASK_UUID>\", summary: \"...\" })
 
-Replace <TASK_UUID> with the actual Chorus task UUID from your prompt."
+Replace <TASK_UUID> with the actual Chorus task UUID from your prompt.${OWNER_SECTION}"
 
 "$API" hook-output \
   "Chorus session ${SESSION_ACTION}: '${SESSION_NAME}' (${SESSION_UUID:0:8}...)" \

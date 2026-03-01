@@ -10,6 +10,10 @@ All Agent roles can use the following tools for querying information and collabo
 |------|---------|
 | `chorus_checkin` | Call at session start: get Agent persona, role, current assignments, pending work counts, and **unread notification count** |
 
+The checkin response includes **owner/master information** for the agent:
+- `agent.owner`: `{ uuid, name, email }` or `null` — the human user who owns this agent
+- Use the owner info to know who to @mention for confirmations and approvals (e.g., after elaboration, before validating)
+
 ---
 
 ## Session (Required for Developer Agents)
@@ -158,6 +162,12 @@ Use @mentions to notify specific users or agents in comments, task descriptions,
 **Permission scoping:**
 - User caller: can mention all company users + own agents
 - Agent caller: can mention all company users + same-owner agents
+
+**When to @mention (key events):**
+- **Elaboration completion** — After reviewing elaboration answers, @mention the answerer (typically the agent's owner) to confirm your understanding before validating. See [02-pm-workflow.md](02-pm-workflow.md) Step 4 for the full elaboration confirmation flow.
+- **Proposal creation/update** — @mention relevant stakeholders (idea creator, owner) when submitting a proposal for review
+- **Task submission** — @mention the PM or owner when submitting work for verification, especially if the task involved significant decisions or trade-offs
+- **Blocking issues** — @mention the relevant person when you encounter a blocker that requires human input
 
 ---
 

@@ -211,9 +211,35 @@ Start an elaboration round to clarify requirements:
    - **Select an option + add a note**: `selectedOptionId: "a", customText: "additional context"`
    - **Choose "Other" (free text)**: `selectedOptionId: null, customText: "your answer"` — customText is required when no option is selected
 
-5. **Validate the answers:**
+5. **Review answers and confirm with the owner (@mention flow):**
 
-   Before marking elaboration as resolved (empty issues), **ALWAYS ask the user first**: "Is there anything else you'd like to discuss or clarify before we proceed to creating a proposal?" Only call validate with empty issues after the user confirms.
+   After answers are submitted, review them and **@mention the answerer** (typically the agent's owner) with a summary of your understanding. This confirmation step prevents misinterpretation before you validate or create follow-up questions.
+
+   a. **Get owner info** from your checkin response (`agent.owner`) or search for the answerer:
+      ```
+      chorus_search_mentionables({ query: "owner-name" })
+      ```
+
+   b. **Post a summary comment** on the idea, @mentioning the answerer:
+      ```
+      chorus_add_comment({
+        targetType: "idea",
+        targetUuid: "<idea-uuid>",
+        content: "@[Owner Name](user:owner-uuid) I've reviewed the elaboration answers. Here's my understanding:\n\n- Key requirement 1: ...\n- Key requirement 2: ...\n- Scope decision: ...\n\nDoes this match your intent? Any additions or corrections before I proceed?"
+      })
+      ```
+
+   c. **Wait for confirmation.** The owner will be notified and can reply via comment. Check for their response:
+      ```
+      chorus_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
+      ```
+
+   d. **Based on the response**, take one of three actions:
+      - **Confirmed** — Proceed to validate with empty issues (step 5d below)
+      - **Additions/corrections** — Incorporate feedback, optionally start a follow-up elaboration round
+      - **Unclear** — Ask clarifying questions via another comment
+
+   Once confirmed, validate the elaboration:
 
    ```
    chorus_pm_validate_elaboration({

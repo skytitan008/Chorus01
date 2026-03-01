@@ -416,4 +416,24 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       return JSON.stringify(result, null, 2);
     },
   });
+
+  api.registerTool({
+    name: "chorus_search_mentionables",
+    description: "Search for users and agents that can be @mentioned. Returns name, type, and UUID. Use the UUID to write mentions as @[Name](type:uuid) in comment text.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Name or keyword to search" },
+        limit: { type: "number", description: "Max results to return (default 10)" },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { query, limit }: { query: string; limit?: number }) {
+      const args: Record<string, unknown> = { query };
+      if (limit !== undefined) args.limit = limit;
+      const result = await mcpClient.callTool("chorus_search_mentionables", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
 }

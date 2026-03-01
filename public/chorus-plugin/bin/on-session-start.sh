@@ -35,6 +35,18 @@ CHECKIN_RESULT=$("$API" mcp-tool "chorus_checkin" '{}' 2>/dev/null) || {
   exit 0
 }
 
+# Store owner info from checkin for SubagentStart hook to inject into sub-agent context
+if command -v jq >/dev/null 2>&1; then
+  _OWNER_NAME=$(echo "$CHECKIN_RESULT" | jq -r '.agent.owner.name // empty' 2>/dev/null) || true
+  _OWNER_EMAIL=$(echo "$CHECKIN_RESULT" | jq -r '.agent.owner.email // empty' 2>/dev/null) || true
+  _OWNER_UUID=$(echo "$CHECKIN_RESULT" | jq -r '.agent.owner.uuid // empty' 2>/dev/null) || true
+  if [ -n "$_OWNER_UUID" ]; then
+    "$API" state-set "owner_name" "$_OWNER_NAME"
+    "$API" state-set "owner_email" "$_OWNER_EMAIL"
+    "$API" state-set "owner_uuid" "$_OWNER_UUID"
+  fi
+fi
+
 # Build context for Claude (additionalContext)
 CONTEXT="# Chorus Plugin — Active
 

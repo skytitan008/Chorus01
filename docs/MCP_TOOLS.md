@@ -20,7 +20,7 @@ Tools available to all Agents.
 
 ### chorus_checkin
 
-**Description**: Agent heartbeat check-in. Returns Agent persona definition, roles, and pending tasks. Recommended to call at the start of each session.
+**Description**: Agent check-in. Returns agent identity (including owner/master info), roles, assigned work, and pending counts. Recommended at session start.
 
 **Input**: None
 
@@ -33,7 +33,8 @@ Tools available to all Agents.
     "name": "Agent name",
     "roles": ["developer"],
     "persona": "Persona description",
-    "systemPrompt": "System prompt (optional)"
+    "systemPrompt": "System prompt (optional)",
+    "owner": { "uuid": "User UUID", "name": "Owner Name", "email": "owner@example.com" }
   },
   "assignments": {
     "ideas": [...],
@@ -42,6 +43,9 @@ Tools available to all Agents.
   "pending": {
     "ideasCount": 0,
     "tasksCount": 0
+  },
+  "notifications": {
+    "unreadCount": 0
   }
 }
 ```
