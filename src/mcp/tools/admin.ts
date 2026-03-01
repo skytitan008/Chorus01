@@ -40,37 +40,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_admin_create_idea - Create an Idea (on behalf of humans)
-  server.registerTool(
-    "chorus_admin_create_idea",
-    {
-      description: "Create an Idea (Admin exclusive, submits requirements on behalf of humans)",
-      inputSchema: z.object({
-        projectUuid: z.string().describe("Project UUID"),
-        title: z.string().describe("Idea title"),
-        content: z.string().optional().describe("Idea detailed description"),
-      }),
-    },
-    async ({ projectUuid, title, content }) => {
-      // Verify project exists
-      const project = await projectService.getProject(auth.companyUuid, projectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Project not found" }], isError: true };
-      }
-
-      const idea = await ideaService.createIdea({
-        companyUuid: auth.companyUuid,
-        projectUuid,
-        title,
-        content: content || null,
-        createdByUuid: auth.actorUuid,  // Admin Agent as creator
-      });
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ uuid: idea.uuid, title: idea.title }) }],
-      };
-    }
-  );
+  // chorus_admin_create_idea moved to pm.ts as chorus_pm_create_idea
 
   // chorus_admin_approve_proposal - Approve a Proposal
   server.registerTool(

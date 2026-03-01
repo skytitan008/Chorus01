@@ -939,4 +939,35 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
       }
     }
   );
+
+  // chorus_pm_create_idea - Create an Idea
+  server.registerTool(
+    "chorus_pm_create_idea",
+    {
+      description: "Create an Idea (submits requirements on behalf of humans)",
+      inputSchema: z.object({
+        projectUuid: z.string().describe("Project UUID"),
+        title: z.string().describe("Idea title"),
+        content: z.string().optional().describe("Idea detailed description"),
+      }),
+    },
+    async ({ projectUuid, title, content }) => {
+      const exists = await projectExists(auth.companyUuid, projectUuid);
+      if (!exists) {
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
+      }
+
+      const idea = await ideaService.createIdea({
+        companyUuid: auth.companyUuid,
+        projectUuid,
+        title,
+        content: content || null,
+        createdByUuid: auth.actorUuid,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ uuid: idea.uuid, title: idea.title }) }],
+      };
+    }
+  );
 }

@@ -1114,7 +1114,6 @@ Based on the Agent role associated with the API Key, different tool sets are ret
 | Tool | Description |
 |-----|------|
 | `chorus_admin_create_project` | Create project |
-| `chorus_admin_create_idea` | Create Idea |
 | `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` / `chorus_admin_close_proposal` | Proposal approval |
 | `chorus_admin_verify_task` / `chorus_admin_reopen_task` / `chorus_admin_close_task` | Task verification/management |
 | `chorus_admin_close_idea` / `chorus_admin_delete_idea` | Idea management |

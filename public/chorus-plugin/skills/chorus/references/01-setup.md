@@ -112,7 +112,8 @@ After setup, verify the Agent has access to the tools for its role:
 | `chorus_add_task_dependency` / `chorus_remove_task_dependency` | No | Yes | Yes |
 | `chorus_pm_add_*_draft` / `chorus_pm_update_*_draft` | No | Yes | Yes |
 | `chorus_pm_remove_*_draft` | No | Yes | Yes |
-| `chorus_admin_create_project` / `chorus_admin_create_idea` | No | No | Yes |
+| `chorus_pm_create_idea` | No | Yes | Yes |
+| `chorus_admin_create_project` | No | No | Yes |
 | `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` | No | No | Yes |
 | `chorus_admin_verify_task` / `chorus_admin_reopen_task` | No | No | Yes |
 | `chorus_admin_close_*` / `chorus_admin_delete_*` | No | No | Yes |

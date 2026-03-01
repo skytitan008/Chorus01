@@ -354,27 +354,6 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
   // --- Admin tools ---
 
   api.registerTool({
-    name: "chorus_admin_create_idea",
-    description: "Create a new Idea in a project. Use this when you discover a bug, have a new feature request, or want to propose work.",
-    parameters: {
-      type: "object",
-      properties: {
-        projectUuid: { type: "string", description: "Project UUID" },
-        title: { type: "string", description: "Idea title" },
-        content: { type: "string", description: "Idea detailed description" },
-      },
-      required: ["projectUuid", "title"],
-      additionalProperties: false,
-    },
-    async execute(_id: string, { projectUuid, title, content }: { projectUuid: string; title: string; content?: string }) {
-      const args: Record<string, unknown> = { projectUuid, title };
-      if (content) args.content = content;
-      const result = await mcpClient.callTool("chorus_admin_create_idea", args);
-      return JSON.stringify(result, null, 2);
-    },
-  });
-
-  api.registerTool({
     name: "chorus_admin_create_project",
     description: "Create a new project. Call chorus_get_project_groups first to find the right groupUuid.",
     parameters: {

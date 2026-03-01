@@ -951,6 +951,19 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 }
 ```
 
+### chorus_pm_create_idea
+
+**Description**: Create an Idea in a project (submit requirements on behalf of humans or from discovered requirements)
+
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| title | string | Yes | Idea title |
+| content | string | No | Idea detailed description |
+
+**Output**: Created Idea JSON (`{ uuid, title }`)
+
 ---
 
 ## Developer Agent Tools
@@ -1039,19 +1052,6 @@ Available only to Admin Agent. Used to perform approval, verification, and proje
 | description | string | No | Project description |
 
 **Output**: Created Project JSON
-
-### chorus_admin_create_idea
-
-**Description**: Create an Idea (submit a requirement on behalf of a human)
-
-**Input**:
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| projectUuid | string | Yes | Project UUID |
-| title | string | Yes | Idea title |
-| content | string | No | Idea detailed description |
-
-**Output**: Created Idea JSON
 
 ### chorus_admin_approve_proposal
 
@@ -1232,7 +1232,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 | 1 | chorus_checkin | Agent check-in | ✅ Pass | Returns agent info, assignments, pending |
 | 2 | chorus_admin_create_project | Create project | ✅ Pass | Returns project UUID |
 | 3 | chorus_get_project | Get project details | ✅ Pass | |
-| 4 | chorus_admin_create_idea | Create Idea | ✅ Pass | status=open |
+| 4 | chorus_pm_create_idea | Create Idea | ✅ Pass | status=open |
 | 5 | chorus_get_ideas | Get Ideas list | ✅ Pass | Pagination correct |
 | 6 | chorus_get_idea | Get single Idea | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
 | 7 | chorus_get_available_ideas | Get claimable Ideas | ✅ Pass | |

@@ -39,7 +39,7 @@ Chorus Server
   │     └──────────────────────┘      (immediate heartbeat)
   │
   ├── MCP (POST /api/mcp)
-  │     41 Chorus MCP tools available as native
+  │     40 Chorus MCP tools available as native
   │     OpenClaw agent tools via @modelcontextprotocol/sdk
   │
   └─────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ Chorus Server
 
 **Key design decisions:**
 
-- **MCP Client, not REST** — Uses `@modelcontextprotocol/sdk` to call Chorus MCP tools directly. Zero Chorus-side code changes needed. 41 tools registered out of the box. When Chorus adds new MCP tools, adding them to the plugin is a one-liner.
+- **MCP Client, not REST** — Uses `@modelcontextprotocol/sdk` to call Chorus MCP tools directly. Zero Chorus-side code changes needed. 40 tools registered out of the box. When Chorus adds new MCP tools, adding them to the plugin is a one-liner.
 - **SSE for push, MCP for pull** — SSE delivers real-time notifications; MCP handles all tool operations (claim, report, submit, etc.).
 - **Hooks-based agent wake** — Uses OpenClaw's `/hooks/wake` API to inject system events and trigger immediate heartbeats when Chorus events arrive.
 
@@ -133,9 +133,9 @@ The plugin maintains a persistent SSE connection to Chorus and reacts to these e
 
 **Resilience:** Exponential backoff reconnect (1s → 2s → 4s → ... → 30s max). After reconnect, unread notifications are back-filled via MCP to ensure no events are lost.
 
-### Registered Tools (41 total)
+### Registered Tools (40 total)
 
-#### PM Workflow (14 tools)
+#### PM Workflow (15 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -153,6 +153,7 @@ The plugin maintains a persistent SSE connection to Chorus and reacts to these e
 | `chorus_remove_task_draft` | Remove task draft |
 | `chorus_validate_proposal` | Check proposal completeness before submit |
 | `chorus_submit_proposal` | Submit proposal for approval |
+| `chorus_pm_create_idea` | Create a new idea in a project |
 
 #### Developer Workflow (4 tools)
 
@@ -163,7 +164,7 @@ The plugin maintains a persistent SSE connection to Chorus and reacts to these e
 | `chorus_report_work` | Report work progress |
 | `chorus_submit_for_verify` | Submit completed task for verification |
 
-#### Common & Exploration (21 tools)
+#### Common & Exploration (20 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -188,11 +189,10 @@ The plugin maintains a persistent SSE connection to Chorus and reacts to these e
 | `chorus_get_elaboration` | Get full elaboration state for an idea |
 | `chorus_get_my_assignments` | Get all claimed ideas and tasks |
 
-#### Admin (2 tools)
+#### Admin (1 tool)
 
 | Tool | Description |
 |------|-------------|
-| `chorus_admin_create_idea` | Create an idea on behalf of humans |
 | `chorus_admin_create_project` | Create a new project |
 
 ### Commands

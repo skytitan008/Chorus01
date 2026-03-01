@@ -19,7 +19,6 @@ Admin is the **human proxy role** - you act on behalf of the human project owner
 | Tool | Purpose |
 |------|---------|
 | `chorus_admin_create_project` | Create a new project (supports optional `groupUuid` to assign to a group) |
-| `chorus_admin_create_idea` | Create an idea (on behalf of human) |
 | `chorus_admin_approve_proposal` | Approve proposal (materializes documents + tasks) |
 | `chorus_admin_reject_proposal` | Reject proposal with review note |
 | `chorus_admin_verify_task` | Verify completed task (to_verify -> done) |
@@ -104,19 +103,9 @@ chorus_admin_move_project_to_group({ projectUuid: "<project-uuid>", groupUuid: "
 chorus_admin_move_project_to_group({ projectUuid: "<project-uuid>", groupUuid: null })
 ```
 
-### Create Ideas
-
-Create ideas on behalf of the human (e.g., from product requirements, user feedback):
-
-```
-chorus_admin_create_idea({
-  projectUuid: "<project-uuid>",
-  title: "Add user authentication",
-  content: "We need to implement OAuth2 login with Google and GitHub providers. Should support session management and role-based access control."
-})
-```
-
 ### Close / Delete Ideas
+
+> **Note:** Creating ideas is now a PM tool (`chorus_pm_create_idea`). See the PM workflow docs.
 
 Close ideas that are no longer relevant:
 

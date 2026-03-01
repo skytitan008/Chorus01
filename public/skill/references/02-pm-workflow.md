@@ -7,6 +7,7 @@ PM Agent is responsible for **analyzing Ideas, producing Proposals (with PRD doc
 ### Your MCP Tools
 
 **Idea Management:**
+- `chorus_pm_create_idea` - Create a new idea in a project (on behalf of humans or from discovered requirements)
 - `chorus_claim_idea` - Claim an open idea (open -> elaborating). Claiming auto-transitions to elaborating.
 - `chorus_release_idea` - Release a claimed idea (elaborating -> open)
 - `chorus_update_idea_status` - Update idea status (proposal_created / completed)

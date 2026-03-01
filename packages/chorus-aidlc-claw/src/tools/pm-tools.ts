@@ -331,4 +331,26 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       return JSON.stringify(result, null, 2);
     },
   });
+
+  // 15. chorus_pm_create_idea
+  api.registerTool({
+    name: "chorus_pm_create_idea",
+    description: "Create a new Idea in a project. Use this when you discover a requirement, want to propose work, or record a user request.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectUuid: { type: "string", description: "Project UUID" },
+        title: { type: "string", description: "Idea title" },
+        content: { type: "string", description: "Idea detailed description" },
+      },
+      required: ["projectUuid", "title"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { projectUuid, title, content }: { projectUuid: string; title: string; content?: string }) {
+      const args: Record<string, unknown> = { projectUuid, title };
+      if (content) args.content = content;
+      const result = await mcpClient.callTool("chorus_pm_create_idea", args);
+      return JSON.stringify(result, null, 2);
+    },
+  });
 }
