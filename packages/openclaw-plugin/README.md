@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="images/slug.png" alt="chorus-aidlc-claw" width="240" />
+  <img src="images/slug.png" alt="@chorus-aidlc/chorus-openclaw-plugin" width="240" />
 </p>
 
-<p align="center"><strong>chorus-aidlc-claw</strong></p>
+<p align="center"><strong>@chorus-aidlc/chorus-openclaw-plugin</strong></p>
 
 <p align="center">
   <a href="https://discord.gg/SwcCMaMmR">
@@ -60,42 +60,47 @@ Chorus Server
 
 ## Installation
 
-### From local path (development)
+### 1. Install the plugin
 
-Add to your `~/.openclaw/openclaw.json`:
+```bash
+openclaw plugins install @chorus-aidlc/chorus-openclaw-plugin
+```
+
+### 2. Enable hooks
+
+Hooks are required for the agent wake mechanism. Add to your `~/.openclaw/openclaw.json`:
 
 ```json
 {
   "hooks": {
     "enabled": true,
     "token": "your-hooks-token"
-  },
+  }
+}
+```
+
+> The `hooks.token` must be different from `gateway.auth.token`.
+
+### 3. Configure the plugin
+
+Add the plugin entry to `~/.openclaw/openclaw.json`:
+
+```json
+{
   "plugins": {
     "enabled": true,
-    "allow": ["chorus-aidlc-claw"],
-    "load": {
-      "paths": ["/path/to/chorus-aidlc-claw"]
-    },
     "entries": {
-      "chorus-aidlc-claw": {
+      "chorus-openclaw-plugin": {
         "enabled": true,
         "config": {
           "chorusUrl": "https://chorus.example.com",
           "apiKey": "cho_your_api_key_here",
-          "projectUuids": [],
           "autoStart": true
         }
       }
     }
   }
 }
-```
-
-### From npm (planned)
-
-```bash
-# Coming soon
-pnpm add chorus-aidlc-claw
 ```
 
 ## Configuration
@@ -208,7 +213,7 @@ Bypass LLM for fast status queries:
 ## Architecture
 
 ```
-packages/chorus-aidlc-claw/
+packages/openclaw-plugin/
 ├── package.json              # npm package config
 ├── openclaw.plugin.json      # OpenClaw plugin manifest
 ├── tsconfig.json
@@ -247,24 +252,10 @@ Wraps `@modelcontextprotocol/sdk` with:
 - Routes by notification `action` type
 - All handlers catch errors internally — never crashes the gateway
 
-## Development
-
-```bash
-# In the chorus-aidlc-claw directory
-pnpm install
-pnpm dev          # Watch mode (tsc --watch)
-pnpm build        # Production build
-
-# Test with OpenClaw gateway
-cd /path/to/openclaw && node openclaw.mjs gateway
-```
-
-No build step needed for development — OpenClaw loads `.ts` files directly via `jiti`.
-
 ## Troubleshooting
 
 ### "plugin id mismatch" warning
-Ensure `package.json` `name`, `openclaw.plugin.json` `id`, and `index.ts` `id` all match `chorus-aidlc-claw`.
+Ensure `openclaw.plugin.json` `id` and `index.ts` `id` both equal `chorus-openclaw-plugin`.
 
 ### "Wake agent failed: HTTP 405"
 Hooks are not enabled. Add to `openclaw.json`:
@@ -281,6 +272,38 @@ OpenClaw tool `execute` signature is `execute(toolCallId, params)` — the first
 
 ### Bedrock "inputSchema.json.type must be object"
 All tool `parameters` must be full JSON Schema with `type: "object"` at the top level, not shorthand `{ key: { type: "string" } }`.
+
+## Appendix: Local Development Install
+
+If you're developing the plugin from the Chorus repo source:
+
+```bash
+# No build needed — OpenClaw loads .ts files directly via jiti
+cd /path/to/Chorus/packages/openclaw-plugin
+```
+
+Add to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "plugins": {
+    "enabled": true,
+    "load": {
+      "paths": ["/path/to/Chorus/packages/openclaw-plugin"]
+    },
+    "entries": {
+      "chorus-openclaw-plugin": {
+        "enabled": true,
+        "config": {
+          "chorusUrl": "http://localhost:3000",
+          "apiKey": "cho_your_dev_key",
+          "autoStart": true
+        }
+      }
+    }
+  }
+}
+```
 
 ## License
 

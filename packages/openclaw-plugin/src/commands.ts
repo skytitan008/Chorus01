@@ -49,14 +49,14 @@ interface AssignmentsResponse {
 function formatStatus(checkin: CheckinResponse, connectionStatus: string): string {
   const lines: string[] = [
     `Connection: ${connectionStatus}`,
-    `Assignments: ${checkin.pending.ideasCount} ideas, ${checkin.pending.tasksCount} tasks`,
-    `Notifications: ${checkin.notifications.unreadCount} unread`,
+    `Assignments: ${checkin?.pending?.ideasCount ?? 0} ideas, ${checkin?.pending?.tasksCount ?? 0} tasks`,
+    `Notifications: ${checkin?.notifications?.unreadCount ?? 0} unread`,
   ];
   return lines.join("\n");
 }
 
-function formatTaskList(tasks: AssignedTask[]): string {
-  if (tasks.length === 0) {
+function formatTaskList(tasks: AssignedTask[] | undefined): string {
+  if (!tasks?.length) {
     return "No assigned tasks.";
   }
 
@@ -66,8 +66,8 @@ function formatTaskList(tasks: AssignedTask[]): string {
   return `Assigned tasks (${tasks.length}):\n${lines.join("\n")}`;
 }
 
-function formatIdeaList(ideas: AssignedIdea[]): string {
-  if (ideas.length === 0) {
+function formatIdeaList(ideas: AssignedIdea[] | undefined): string {
+  if (!ideas?.length) {
     return "No assigned ideas.";
   }
 
@@ -115,7 +115,7 @@ export function registerChorusCommands(
             "chorus_get_my_assignments",
             {}
           )) as AssignmentsResponse;
-          return { text: formatTaskList(data.tasks) };
+          return { text: formatTaskList(data?.tasks) };
         } catch (err) {
           return { text: `Failed to fetch tasks: ${err instanceof Error ? err.message : String(err)}` };
         }
@@ -128,7 +128,7 @@ export function registerChorusCommands(
             "chorus_get_my_assignments",
             {}
           )) as AssignmentsResponse;
-          return { text: formatIdeaList(data.ideas) };
+          return { text: formatIdeaList(data?.ideas) };
         } catch (err) {
           return { text: `Failed to fetch ideas: ${err instanceof Error ? err.message : String(err)}` };
         }

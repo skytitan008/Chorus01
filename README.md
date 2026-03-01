@@ -188,7 +188,7 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 
 | Package | Description |
 |---------|-------------|
-| [`packages/chorus-aidlc-claw`](packages/chorus-aidlc-claw) | **OpenClaw Plugin** — Connects [OpenClaw](https://openclaw.ai) to Chorus via persistent SSE + MCP bridge. Enables OpenClaw agents to receive real-time Chorus events (task assignments, @mentions, proposal rejections) and participate in the full AI-DLC workflow using 21+ registered tools. |
+| [`packages/openclaw-plugin`](packages/openclaw-plugin) | **OpenClaw Plugin** (`@chorus-aidlc/chorus-openclaw-plugin`) — Connects [OpenClaw](https://openclaw.ai) to Chorus via persistent SSE + MCP bridge. Enables OpenClaw agents to receive real-time Chorus events (task assignments, @mentions, proposal rejections) and participate in the full AI-DLC workflow using 40 registered tools. |
 | [`packages/chorus-cdk`](packages/chorus-cdk) | **AWS CDK** — Infrastructure-as-code for deploying Chorus to AWS (VPC, Aurora Serverless, ElastiCache, ECS Fargate, ALB). |
 
 ## Tech Stack

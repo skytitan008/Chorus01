@@ -1,3 +1,3 @@
 packages:
   - "packages/*"
-  - "!packages/chorus-aidlc-claw"
+  - "!packages/openclaw-plugin"

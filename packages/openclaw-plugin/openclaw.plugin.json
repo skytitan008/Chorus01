@@ -1,5 +1,5 @@
 {
-  "id": "chorus-aidlc-claw",
+  "id": "chorus-openclaw-plugin",
   "configSchema": {
     "type": "object",
     "required": ["chorusUrl", "apiKey"],

@@ -41,15 +41,26 @@ async function wakeAgent(
 }
 
 const plugin = {
-  id: "chorus-aidlc-claw",
+  id: "chorus-openclaw-plugin",
   name: "Chorus",
   description:
     "Chorus AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
   configSchema: chorusConfigSchema,
 
   register(api: OpenClawPluginApi) {
-    const config = api.pluginConfig as ChorusPluginConfig;
+    const rawConfig = api.pluginConfig ?? {};
+    const config: ChorusPluginConfig = {
+      chorusUrl: rawConfig.chorusUrl ?? "",
+      apiKey: rawConfig.apiKey ?? "",
+      projectUuids: rawConfig.projectUuids ?? [],
+      autoStart: rawConfig.autoStart ?? true,
+    };
     const logger = api.logger;
+
+    if (!config.chorusUrl || !config.apiKey) {
+      logger.error("Chorus plugin missing required config: chorusUrl and apiKey");
+      return;
+    }
 
     // Resolve gateway URL and hooks token from OpenClaw config
     const gatewayPort = api.config?.gateway?.port ?? 18789;

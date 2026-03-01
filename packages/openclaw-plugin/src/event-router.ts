@@ -38,7 +38,7 @@ export class ChorusEventRouter {
     this.config = opts.config;
     this.triggerAgent = opts.triggerAgent;
     this.logger = opts.logger;
-    this.projectFilter = new Set(opts.config.projectUuids);
+    this.projectFilter = new Set(opts.config.projectUuids ?? []);
   }
 
   /**
