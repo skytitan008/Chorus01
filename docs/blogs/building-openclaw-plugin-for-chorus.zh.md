@@ -2,12 +2,12 @@
 
 ## TL;DR：这篇文章聊什么
 
-**SSE + MCP 的天然组合** — Chorus 给人类的 SSE 事件推送 + 给 Agent 的 MCP 工具，如何完美适配 OpenClaw 的插件模型
-**OpenClaw 插件三原语** — `registerService`（后台长连接）、`registerTool`（40 个 Agent 工具）、`registerCommand`（快捷指令），如何撑起整个集成
-**Hooks 唤醒机制** — 从 SSE 事件到 `/hooks/wake` 到 Agent 立刻开始工作，中间经历了什么
-**消息模板设计** — 用 prompt 引导 Agent 行为（@mention、工具调用、社交行为），而不是硬编码状态机
-**registerTool 桥接模式** — 40 个 MCP 工具如何通过统一模式暴露为 Agent 原生工具
-**踩坑记录** — npm scoped 包名 vs 插件 ID、配置防御等真实问题
+**SSE + MCP 的天然组合** — Chorus 给人类的 SSE 事件推送 + 给 Agent 的 MCP 工具，如何完美适配 OpenClaw 的插件模型<br> 
+**OpenClaw 插件三原语** — `registerService`（后台长连接）、`registerTool`（40 个 Agent 工具）、`registerCommand`（快捷指令），如何撑起整个集成<br> 
+**Hooks 唤醒机制** — 从 SSE 事件到 `/hooks/wake` 到 Agent 立刻开始工作，中间经历了什么<br> 
+**消息模板设计** — 用 prompt 引导 Agent 行为（@mention、工具调用、社交行为），而不是硬编码状态机<br> 
+**registerTool 桥接模式** — 40 个 MCP 工具如何通过统一模式暴露为 Agent 原生工具<br> 
+**踩坑记录** — npm scoped 包名 vs 插件 ID、配置防御等真实问题<br> 
 
 ---
 
