@@ -54,7 +54,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex h-full flex-col p-8">
+    <div className="flex h-full flex-col p-4 md:p-8">
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <Link href={`/projects/${projectUuid}/documents`} className="text-[#6B6B6B] hover:text-[#2C2C2C]">
@@ -65,13 +65,13 @@ export default async function DocumentDetailPage({ params }: PageProps) {
       </div>
 
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F5F2EC]">
-            {(() => { const Icon = docTypeConfig[document.type]?.icon || FileText; return <Icon className="h-6 w-6 text-[#6B6B6B]" />; })()}
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="flex items-start gap-3 md:gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F2EC] md:h-12 md:w-12">
+            {(() => { const Icon = docTypeConfig[document.type]?.icon || FileText; return <Icon className="h-5 w-5 text-[#6B6B6B] md:h-6 md:w-6" />; })()}
           </div>
-          <div>
-            <div className="mb-1 flex items-center gap-3">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2 md:gap-3">
               <Badge className={docTypeConfig[document.type]?.color || ""}>
                 {t(docTypeConfig[document.type]?.labelKey || "documents.typeOther")}
               </Badge>
@@ -79,8 +79,8 @@ export default async function DocumentDetailPage({ params }: PageProps) {
                 v{document.version}
               </span>
             </div>
-            <h1 className="text-2xl font-semibold text-[#2C2C2C]">{document.title}</h1>
-            <div className="mt-2 flex items-center gap-3 text-sm text-[#6B6B6B]">
+            <h1 className="text-xl font-semibold text-[#2C2C2C] md:text-2xl">{document.title}</h1>
+            <div className="mt-1 flex items-center gap-3 text-sm text-[#6B6B6B] md:mt-2">
               <span>{t("common.updated")} {new Date(document.updatedAt).toLocaleDateString()}</span>
             </div>
           </div>
@@ -92,7 +92,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 gap-6 overflow-hidden">
+      <div className="flex flex-1 flex-col gap-6 overflow-hidden lg:flex-row">
         {/* Main Content */}
         <DocumentContent
           documentUuid={documentUuid}
@@ -101,7 +101,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         />
 
         {/* Sidebar */}
-        <div className="w-64 flex-shrink-0 space-y-4">
+        <div className="w-full space-y-4 lg:w-64 lg:flex-shrink-0">
           {/* Source Proposal */}
           {document.proposalUuid && (
             <Card className="border-[#E5E0D8] p-4">

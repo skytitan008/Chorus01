@@ -202,7 +202,7 @@ export default function ProjectGroupDashboardPage() {
   ];
 
   return (
-    <div className="flex h-full flex-col gap-6 bg-[#FAF8F4] p-6 lg:p-8">
+    <div className="flex h-full flex-col gap-6 bg-[#FAF8F4] p-4 md:p-6 lg:p-8">
       {/* Breadcrumb */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[12px]">
@@ -241,7 +241,7 @@ export default function ProjectGroupDashboardPage() {
       </div>
 
       {/* Stats Overview Row */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map((stat) => (
           <Card
             key={stat.label}
@@ -258,9 +258,9 @@ export default function ProjectGroupDashboardPage() {
       </div>
 
       {/* Content Columns */}
-      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[1fr_420px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row">
         {/* Left: Projects in this group */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-[14px] font-semibold text-[#2C2C2C]">
               {t("groupDashboard.projectsInGroup")}
@@ -325,7 +325,7 @@ export default function ProjectGroupDashboardPage() {
         </div>
 
         {/* Right: Recent Activity */}
-        <div className="flex flex-col gap-4">
+        <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:shrink-0">
           <h2 className="text-[14px] font-semibold text-[#2C2C2C]">
             {t("dashboard.recentActivity")}
           </h2>

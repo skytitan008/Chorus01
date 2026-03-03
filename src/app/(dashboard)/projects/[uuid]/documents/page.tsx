@@ -62,7 +62,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
     : allDocuments.filter((doc) => doc.type === filter);
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -73,7 +73,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-6 flex gap-2 border-b border-border pb-4">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border pb-4">
         <Link href={`/projects/${projectUuid}/documents`}>
           <Button variant={filter === "all" ? "default" : "ghost"} size="sm">
             {t("documents.all")} ({allDocuments.length})

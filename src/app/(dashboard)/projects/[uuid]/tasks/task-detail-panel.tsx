@@ -659,7 +659,7 @@ export function TaskDetailPanel({
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 z-50 flex h-full w-[480px] flex-col bg-white shadow-xl border-l border-[#E5E0D8] animate-in slide-in-from-right duration-300">
+      <div className="fixed right-0 top-14 md:top-0 z-50 flex h-[calc(100%-3.5rem)] md:h-full w-full md:w-[480px] flex-col bg-white shadow-xl border-l border-[#E5E0D8] animate-in slide-in-from-right duration-300">
         {/* Panel Header */}
         <div className="flex items-center justify-between border-b border-[#F5F2EC] px-6 py-5">
           <div className="flex-1 min-w-0">

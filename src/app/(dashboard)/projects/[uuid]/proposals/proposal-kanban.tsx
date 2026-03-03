@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Bot, User } from "lucide-react";
 import { Streamdown } from "streamdown";
 import type { DocumentDraft, TaskDraft } from "@/services/proposal.service";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Proposal {
   uuid: string;
@@ -71,13 +73,152 @@ function getTypeTagKey(proposal: Proposal): string | null {
   return null;
 }
 
+// Mobile filter tabs — "all" plus one per column
+const mobileFilterTabs = [
+  { id: "all", labelKey: "proposals.all", statuses: [] as string[] },
+  ...columnConfigs,
+];
+
+function ProposalCard({
+  proposal,
+  projectUuid,
+  t,
+}: {
+  proposal: Proposal;
+  projectUuid: string;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const typeTagKey = getTypeTagKey(proposal);
+
+  return (
+    <Link
+      href={`/projects/${projectUuid}/proposals/${proposal.uuid}`}
+      className="block"
+    >
+      <Card className="cursor-pointer border-[#E5E0D8] bg-white p-4 transition-all hover:border-[#C67A52] hover:shadow-sm">
+        {/* Row 1: Status badge + Type tag */}
+        <div className="mb-2 flex items-start justify-between">
+          <Badge
+            className={
+              statusColors[proposal.status] || statusColors.draft
+            }
+          >
+            {t(
+              `status.${statusI18nKeys[proposal.status] || proposal.status}`
+            )}
+          </Badge>
+          {typeTagKey && (
+            <span className="rounded bg-[#FFF3E0] px-2 py-0.5 text-xs font-medium text-[#E65100]">
+              {t(typeTagKey)}
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <h4 className="mb-1 font-medium text-[#2C2C2C]">
+          {proposal.title}
+        </h4>
+
+        {/* Description */}
+        {proposal.description && (
+          <div className="prose prose-sm max-w-none mb-2 line-clamp-2 text-sm text-[#6B6B6B]">
+            <Streamdown>{proposal.description}</Streamdown>
+          </div>
+        )}
+
+        {/* Bottom row: Creator */}
+        <div className="flex items-center justify-between text-xs text-[#9A9A9A]">
+          {proposal.createdBy && (
+            <span className="flex items-center gap-1">
+              {proposal.createdByType === "agent" ? (
+                <Bot className="h-3 w-3" />
+              ) : (
+                <User className="h-3 w-3" />
+              )}
+              {proposal.createdBy.name}
+            </span>
+          )}
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
 export function ProposalKanban({ projectUuid, proposals }: ProposalKanbanProps) {
   const t = useTranslations();
+  const isMobile = useIsMobile();
+  const [activeFilter, setActiveFilter] = useState("all");
   useRealtimeRefresh();
 
   const getProposalsForColumn = (statuses: string[]) =>
     proposals.filter((p) => statuses.includes(p.status));
 
+  // Mobile: vertical list with horizontal status filter tabs
+  if (isMobile) {
+    const activeTab = mobileFilterTabs.find((tab) => tab.id === activeFilter) || mobileFilterTabs[0];
+    const filteredProposals =
+      activeFilter === "all"
+        ? proposals
+        : getProposalsForColumn(activeTab.statuses);
+
+    return (
+      <div className="flex flex-1 flex-col">
+        {/* Horizontal status filter tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
+          {mobileFilterTabs.map((tab) => {
+            const count =
+              tab.id === "all"
+                ? proposals.length
+                : getProposalsForColumn(tab.statuses).length;
+            const isActive = activeFilter === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-[#C67A52] text-white"
+                    : "bg-[#F5F2EC] text-[#6B6B6B] hover:bg-[#EDE9E1]"
+                }`}
+              >
+                {t(tab.labelKey)}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-xs ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-white text-[#6B6B6B]"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Vertical proposal list */}
+        <div className="flex-1 space-y-3">
+          {filteredProposals.length === 0 ? (
+            <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed border-[#E5E0D8] text-sm text-[#9A9A9A]">
+              {t("proposals.noProposals")}
+            </div>
+          ) : (
+            filteredProposals.map((proposal) => (
+              <ProposalCard
+                key={proposal.uuid}
+                proposal={proposal}
+                projectUuid={projectUuid}
+                t={t}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: horizontal kanban columns
   return (
     <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
       {columnConfigs.map((column) => {
@@ -107,63 +248,14 @@ export function ProposalKanban({ projectUuid, proposals }: ProposalKanbanProps) 
                   {t("proposals.noProposals")}
                 </div>
               ) : (
-                columnProposals.map((proposal) => {
-                  const typeTagKey = getTypeTagKey(proposal);
-
-                  return (
-                    <Link
-                      key={proposal.uuid}
-                      href={`/projects/${projectUuid}/proposals/${proposal.uuid}`}
-                      className="block"
-                    >
-                      <Card className="cursor-pointer border-[#E5E0D8] bg-white p-4 transition-all hover:border-[#C67A52] hover:shadow-sm">
-                        {/* Row 1: Status badge + Type tag */}
-                        <div className="mb-2 flex items-start justify-between">
-                          <Badge
-                            className={
-                              statusColors[proposal.status] || statusColors.draft
-                            }
-                          >
-                            {t(
-                              `status.${statusI18nKeys[proposal.status] || proposal.status}`
-                            )}
-                          </Badge>
-                          {typeTagKey && (
-                            <span className="rounded bg-[#FFF3E0] px-2 py-0.5 text-xs font-medium text-[#E65100]">
-                              {t(typeTagKey)}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Title */}
-                        <h4 className="mb-1 font-medium text-[#2C2C2C]">
-                          {proposal.title}
-                        </h4>
-
-                        {/* Description */}
-                        {proposal.description && (
-                          <div className="prose prose-sm max-w-none mb-2 line-clamp-2 text-sm text-[#6B6B6B]">
-                            <Streamdown>{proposal.description}</Streamdown>
-                          </div>
-                        )}
-
-                        {/* Bottom row: Creator */}
-                        <div className="flex items-center justify-between text-xs text-[#9A9A9A]">
-                          {proposal.createdBy && (
-                            <span className="flex items-center gap-1">
-                              {proposal.createdByType === "agent" ? (
-                                <Bot className="h-3 w-3" />
-                              ) : (
-                                <User className="h-3 w-3" />
-                              )}
-                              {proposal.createdBy.name}
-                            </span>
-                          )}
-                        </div>
-                      </Card>
-                    </Link>
-                  );
-                })
+                columnProposals.map((proposal) => (
+                  <ProposalCard
+                    key={proposal.uuid}
+                    proposal={proposal}
+                    projectUuid={projectUuid}
+                    t={t}
+                  />
+                ))
               )}
             </div>
           </div>

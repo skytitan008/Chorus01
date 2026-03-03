@@ -162,7 +162,7 @@ function ProjectCardContent({ project }: { project: ProjectData }) {
 
       {/* Stats Row */}
       <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <span className="flex items-center gap-1">
             <ClipboardList className="h-3 w-3" />
             {project.counts.tasks} {t("projects.tasks")}
@@ -215,43 +215,45 @@ function GroupSection({
               }`}
             >
               {/* Group Header */}
-              <div className="flex items-center justify-between px-6 py-4">
+              <div className="flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
                 <CollapsibleTrigger className="flex flex-1 cursor-pointer items-center gap-3 text-left">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C67A5215]">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#C67A5215]">
                     <Folder className="h-4 w-4 text-[#C67A52]" />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-base font-semibold text-[#2C2C2C]">
-                      {group.name}
-                    </h2>
-                    <Badge
-                      variant="secondary"
-                      className="border-0 bg-[#F0EDE8] text-[11px] font-medium text-[#6B6B6B]"
-                    >
-                      {projects.length} {t("projectGroups.projectCount")}
-                    </Badge>
-                  </div>
-                  <div className="ml-4 flex items-center gap-4 text-[11px] text-[#9A9A9A]">
-                    <span>
-                      {stats.totalTasks} {t("projects.tasks")} &middot;{" "}
-                      {completionRate}% {t("projectGroups.complete")}
-                    </span>
-                    <span>
-                      {stats.openIdeas} {t("projectGroups.openIdeas")}
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="truncate text-base font-semibold text-[#2C2C2C]">
+                        {group.name}
+                      </h2>
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 border-0 bg-[#F0EDE8] text-[11px] font-medium text-[#6B6B6B]"
+                      >
+                        {projects.length} {t("projectGroups.projectCount")}
+                      </Badge>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#9A9A9A]">
+                      <span>
+                        {stats.totalTasks} {t("projects.tasks")} &middot;{" "}
+                        {completionRate}% {t("projectGroups.complete")}
+                      </span>
+                      <span>
+                        {stats.openIdeas} {t("projectGroups.openIdeas")}
+                      </span>
+                    </div>
                   </div>
                   {isOpen ? (
-                    <ChevronDown className="ml-2 h-4 w-4 text-[#9A9A9A]" />
+                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
                   ) : (
-                    <ChevronRight className="ml-2 h-4 w-4 text-[#9A9A9A]" />
+                    <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
                   )}
                 </CollapsibleTrigger>
-                <div className="flex items-center gap-2">
-                  <Link href={`/project-groups/${group.uuid}`}>
+                <div className={`grid grid-cols-2 gap-2 md:flex md:items-center ${isOpen ? "grid" : "hidden md:flex"}`}>
+                  <Link href={`/project-groups/${group.uuid}`} className="md:w-auto">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-[#C67A52] hover:text-[#B56A42]"
+                      className="w-full text-xs text-[#C67A52] hover:text-[#B56A42]"
                     >
                       {t("projectGroups.viewDashboard")}
                       <ArrowRight className="ml-1 h-3 w-3" />
@@ -260,7 +262,7 @@ function GroupSection({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-[#E5E2DC] text-xs"
+                    className="w-full border-[#E5E2DC] text-xs md:w-auto"
                     onClick={onNewProject}
                   >
                     <Plus className="mr-1 h-3 w-3" />
@@ -271,13 +273,13 @@ function GroupSection({
 
               {/* Projects Grid */}
               <CollapsibleContent>
-                <div className="border-t border-[#E5E2DC] px-6 pb-5 pt-4">
+                <div className="border-t border-[#E5E2DC] px-4 pb-4 pt-3 md:px-6 md:pb-5 md:pt-4">
                   {projects.length === 0 && !snapshot.isDraggingOver ? (
                     <p className="py-4 text-center text-sm text-[#9A9A9A]">
                       {t("projectGroups.noProjectsInGroup")}
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {projects.map((project, index) => (
                         <Draggable
                           key={project.uuid}
@@ -350,32 +352,32 @@ function UngroupedSection({ projects, onNewProject }: { projects: ProjectData[];
                 }`}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
                   <CollapsibleTrigger className="flex flex-1 cursor-pointer items-center gap-3 text-left">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F0EDE8]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0EDE8]">
                       <FolderOpen className="h-4 w-4 text-[#9A9A9A]" />
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <h2 className="text-base font-semibold text-[#6B6B6B]">
                         {t("projectGroups.ungrouped")}
                       </h2>
                       <Badge
                         variant="secondary"
-                        className="border-0 bg-[#F0EDE8] text-[11px] font-medium text-[#6B6B6B]"
+                        className="shrink-0 border-0 bg-[#F0EDE8] text-[11px] font-medium text-[#6B6B6B]"
                       >
                         {projects.length} {t("projectGroups.projectCount")}
                       </Badge>
                     </div>
                     {isOpen ? (
-                      <ChevronDown className="ml-2 h-4 w-4 text-[#9A9A9A]" />
+                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
                     ) : (
-                      <ChevronRight className="ml-2 h-4 w-4 text-[#9A9A9A]" />
+                      <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
                     )}
                   </CollapsibleTrigger>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-[#E5E2DC] text-xs"
+                    className={`ml-2 shrink-0 border-[#E5E2DC] text-xs md:inline-flex ${isOpen ? "inline-flex" : "hidden"}`}
                     onClick={onNewProject}
                   >
                     <Plus className="mr-1 h-3 w-3" />
@@ -385,13 +387,13 @@ function UngroupedSection({ projects, onNewProject }: { projects: ProjectData[];
 
                 {/* Projects Grid */}
                 <CollapsibleContent>
-                  <div className="border-t border-[#E5E2DC] px-6 pb-5 pt-4">
+                  <div className="border-t border-[#E5E2DC] px-4 pb-4 pt-3 md:px-6 md:pb-5 md:pt-4">
                     {projects.length === 0 ? (
                       <p className="py-4 text-center text-sm text-[#9A9A9A]">
                         {t("projectGroups.noProjectsInGroup")}
                       </p>
                     ) : (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {projects.map((project, index) => (
                           <Draggable
                             key={project.uuid}
@@ -559,7 +561,7 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-full bg-[#FAF8F4] p-8">
+      <div className="min-h-full bg-[#FAF8F4] p-4 md:p-8">
         <p className="text-sm text-[#6B6B6B]">
           {t("projects.loadingProjects")}
         </p>
@@ -570,9 +572,9 @@ export default function ProjectsPage() {
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="min-h-full bg-[#FAF8F4] p-8">
+        <div className="min-h-full bg-[#FAF8F4] p-4 md:p-8">
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex flex-col gap-3 md:mb-8 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-[#2C2C2C]">
                 {t("projects.title")}

@@ -120,7 +120,8 @@
     "activity": "Activity",
     "logout": "Sign out",
     "newProject": "New Project",
-    "backToProjects": "Projects"
+    "backToProjects": "Projects",
+    "openMenu": "Open menu"
   },
   "priority": {
     "low": "Low",
@@ -392,7 +393,9 @@
     "failedToRemoveDep": "Failed to remove dependency",
     "noTasksToDisplay": "No tasks to display",
     "kanbanView": "Kanban",
-    "dagView": "DAG"
+    "dagView": "DAG",
+    "listView": "List",
+    "allStatuses": "All"
   },
   "proposals": {
     "pageTitle": "Proposals",
@@ -526,6 +529,7 @@
     "backToDocuments": "Back to Documents",
     "updated": "Updated {date}",
     "sourceProposal": "Source Proposal",
+    "viewProposal": "View Proposal",
     "versionHistory": "Version History",
     "previousVersions": "previous version(s)",
     "documentContent": "Document content...",

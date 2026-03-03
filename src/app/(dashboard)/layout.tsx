@@ -18,12 +18,14 @@ import {
   FolderKanban,
   Settings,
   LogOut,
+  Menu,
 } from "lucide-react";
 import { getAccessToken, authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
 import { PixelCanvasWidget } from "@/components/pixel-canvas-widget";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { NotificationBell } from "@/components/notification-bell";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface User {
   uuid: string;
@@ -55,6 +57,12 @@ export default function DashboardLayout({
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile drawer on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   // Get current project UUID from URL (stateful URL)
   const currentProjectUuid = extractProjectUuid(pathname);
@@ -185,185 +193,226 @@ export default function DashboardLayout({
     return pathname === href || pathname.startsWith(href + "/");
   };
 
-  return (
-    <NotificationProvider>
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="sticky top-0 flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
-        <div className="flex flex-col gap-8 p-6">
-          {/* Logo + Notification Bell */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <img src="/chorus-icon.png" alt="Chorus" className="h-7 w-7" />
-              <span className="text-base font-semibold text-foreground">
-                {t("common.appName")}
-              </span>
-            </div>
+  // Shared sidebar content used by both desktop aside and mobile Sheet
+  const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => {
+    // Mobile drawer uses larger text/icons since it has more room (280px vs 220px)
+    const navTextSize = mobile ? "text-[15px]" : "text-[13px]";
+    const navIconSize = mobile ? "h-5 w-5" : "h-4 w-4";
+    const navGap = mobile ? "gap-1.5" : "gap-1";
+    const navItemPy = mobile ? "h-10" : "";
+    const smallTextSize = mobile ? "text-[13px]" : "text-[11px]";
+    const profileNameSize = mobile ? "text-[15px]" : "text-[13px]";
+    const profileEmailSize = mobile ? "text-[12px]" : "text-[11px]";
+
+    return (
+    <>
+      <div className="flex flex-col gap-8 p-6">
+        {/* Logo + Notification Bell */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src="/chorus-icon.png" alt="Chorus" className="h-7 w-7" />
+            <span className="text-base font-semibold text-foreground">
+              {t("common.appName")}
+            </span>
+          </div>
+          <div className="hidden md:block">
             <NotificationBell />
           </div>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex flex-col gap-1">
-            {isProjectContext && currentProjectUuid ? (
-              <>
-                {/* Back to Projects */}
-                <Link href="/projects">
+        {/* Navigation */}
+        <nav className={`flex flex-col ${navGap}`}>
+          {isProjectContext && currentProjectUuid ? (
+            <>
+              {/* Back to Projects */}
+              <Link href="/projects">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`w-full justify-start gap-2.5 text-muted-foreground hover:text-foreground ${navTextSize} ${navItemPy}`}
+                >
+                  <ArrowLeft className={mobile ? "h-4 w-4" : "h-3 w-3"} />
+                  {t("nav.backToProjects")}
+                </Button>
+              </Link>
+
+              {/* Current Project Selector */}
+              {currentProject && (
+                <div className="relative mt-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start gap-2.5 text-muted-foreground hover:text-foreground"
+                    onClick={() => setProjectMenuOpen(!projectMenuOpen)}
+                    className="w-full justify-between px-3 py-1.5"
                   >
-                    <ArrowLeft className="h-3 w-3" />
-                    {t("nav.backToProjects")}
+                    <span className={`truncate font-semibold uppercase tracking-wider text-foreground ${smallTextSize}`}>
+                      {currentProject.name}
+                    </span>
+                    <ChevronDown
+                      className={`h-3 w-3 text-muted-foreground transition-transform ${projectMenuOpen ? "rotate-180" : ""}`}
+                    />
                   </Button>
-                </Link>
-
-                {/* Current Project Selector */}
-                {currentProject && (
-                  <div className="relative mt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setProjectMenuOpen(!projectMenuOpen)}
-                      className="w-full justify-between px-3 py-1.5"
-                    >
-                      <span className="truncate text-[11px] font-semibold uppercase tracking-wider text-foreground">
-                        {currentProject.name}
-                      </span>
-                      <ChevronDown
-                        className={`h-3 w-3 text-muted-foreground transition-transform ${projectMenuOpen ? "rotate-180" : ""}`}
-                      />
-                    </Button>
-                    {projectMenuOpen && (
-                      <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border border-border bg-card py-1 shadow-lg">
-                        {projects.map((project) => (
-                          <Button
-                            key={project.uuid}
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => selectProject(project)}
-                            className={`w-full justify-start px-3 py-2 text-[13px] [&>*]:truncate ${
-                              currentProject?.uuid === project.uuid
-                                ? "bg-secondary font-medium text-foreground"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            <span className="truncate">{project.name}</span>
-                          </Button>
-                        ))}
-                        <div className="my-1 border-t border-border" />
-                        <Link
-                          href="/projects/new"
-                          onClick={() => setProjectMenuOpen(false)}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start gap-2 px-3 py-2 text-[13px] text-primary"
-                          >
-                            <Plus className="h-3 w-3" />
-                            {t("nav.newProject")}
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Project Navigation Items */}
-                <div className="mt-2 flex flex-col gap-1">
-                  {getProjectNavItems(currentProjectUuid).map((item) => {
-                    const isActive = isNavActive(item.href);
-                    const Icon = item.icon;
-                    return (
-                      <Link key={item.href} href={item.href}>
+                  {projectMenuOpen && (
+                    <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border border-border bg-card py-1 shadow-lg">
+                      {projects.map((project) => (
                         <Button
-                          variant={isActive ? "secondary" : "ghost"}
+                          key={project.uuid}
+                          variant="ghost"
                           size="sm"
-                          className={`w-full justify-start gap-2.5 text-[13px] ${
-                            isActive
-                              ? "font-medium text-foreground"
-                              : "text-muted-foreground hover:text-foreground"
+                          onClick={() => selectProject(project)}
+                          className={`w-full justify-start px-3 py-2 ${navTextSize} [&>*]:truncate ${
+                            currentProject?.uuid === project.uuid
+                              ? "bg-secondary font-medium text-foreground"
+                              : "text-muted-foreground"
                           }`}
                         >
-                          <Icon
-                            className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                          />
-                          {item.label}
+                          <span className="truncate">{project.name}</span>
                         </Button>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Global Navigation Items */}
-                <div className="flex flex-col gap-1">
-                  {globalNavItems.map((item) => {
-                    const isActive = isNavActive(item.href);
-                    const Icon = item.icon;
-                    return (
-                      <Link key={item.href} href={item.href}>
+                      ))}
+                      <div className="my-1 border-t border-border" />
+                      <Link
+                        href="/projects/new"
+                        onClick={() => setProjectMenuOpen(false)}
+                      >
                         <Button
-                          variant={isActive ? "secondary" : "ghost"}
+                          variant="ghost"
                           size="sm"
-                          className={`w-full justify-start gap-2.5 text-[13px] ${
-                            isActive
-                              ? "font-medium text-foreground"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`w-full justify-start gap-2 px-3 py-2 ${navTextSize} text-primary`}
                         >
-                          <Icon className="h-4 w-4" />
-                          {item.label}
+                          <Plus className="h-3 w-3" />
+                          {t("nav.newProject")}
                         </Button>
                       </Link>
-                    );
-                  })}
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
-          </nav>
-        </div>
+              )}
 
-        {/* User Profile */}
-        <div className="p-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-              {user?.name?.charAt(0) || "U"}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-foreground">
-                {user?.name}
+              {/* Project Navigation Items */}
+              <div className={`mt-2 flex flex-col ${navGap}`}>
+                {getProjectNavItems(currentProjectUuid).map((item) => {
+                  const isActive = isNavActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link key={item.href} href={item.href}>
+                      <Button
+                        variant={isActive ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`w-full justify-start gap-2.5 ${navTextSize} ${navItemPy} ${
+                          isActive
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Icon
+                          className={`${navIconSize} ${isActive ? "text-primary" : ""}`}
+                        />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  );
+                })}
               </div>
-              <div className="truncate text-[11px] text-muted-foreground">
-                {user?.email}
+            </>
+          ) : (
+            <>
+              {/* Global Navigation Items */}
+              <div className={`flex flex-col ${navGap}`}>
+                {globalNavItems.map((item) => {
+                  const isActive = isNavActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link key={item.href} href={item.href}>
+                      <Button
+                        variant={isActive ? "secondary" : "ghost"}
+                        size="sm"
+                        className={`w-full justify-start gap-2.5 ${navTextSize} ${navItemPy} ${
+                          isActive
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className={navIconSize} />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  );
+                })}
               </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              title={t("common.signOut")}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            </>
+          )}
+        </nav>
+      </div>
+
+      {/* User Profile */}
+      <div className="p-6">
+        <div className="flex items-center gap-2">
+          <div className={`flex items-center justify-center rounded-full bg-primary font-medium text-primary-foreground ${mobile ? "h-10 w-10 text-base" : "h-9 w-9 text-sm"}`}>
+            {user?.name?.charAt(0) || "U"}
           </div>
+          <div className="min-w-0 flex-1">
+            <div className={`truncate font-medium text-foreground ${profileNameSize}`}>
+              {user?.name}
+            </div>
+            <div className={`truncate text-muted-foreground ${profileEmailSize}`}>
+              {user?.email}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            title={t("common.signOut")}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
+      </div>
+    </>
+    );
+  };
+
+  return (
+    <NotificationProvider>
+    <div className="flex min-h-screen bg-background">
+      {/* Mobile Header - visible below md */}
+      <header className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card px-4 md:hidden">
+        <button onClick={() => setMobileMenuOpen(true)} aria-label={t("nav.openMenu")}>
+          <Menu className="h-5 w-5 text-muted-foreground" />
+        </button>
+        <div className="flex items-center gap-2">
+          <img src="/chorus-icon.png" alt="Chorus" className="h-6 w-6" />
+          <span className="text-sm font-semibold text-foreground">{t("common.appName")}</span>
+        </div>
+        <NotificationBell />
+      </header>
+
+      {/* Mobile Drawer */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-[280px] p-0">
+          <div className="flex h-full flex-col justify-between overflow-y-auto">
+            <SidebarContent mobile />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar - hidden below md */}
+      <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
+        <SidebarContent />
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content - add top padding on mobile for the fixed header */}
       {isProjectContext && currentProject ? (
         <RealtimeProvider projectUuid={currentProject.uuid}>
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
           <PixelCanvasWidget
             projectUuid={currentProject.uuid}
             projectName={currentProject.name}
           />
         </RealtimeProvider>
       ) : (
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
       )}
     </div>
     </NotificationProvider>

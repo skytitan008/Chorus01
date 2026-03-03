@@ -41,7 +41,7 @@ export default async function TasksPage({ params, searchParams }: PageProps) {
   const totalHours = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
 
   return (
-    <div className="flex h-full flex-col p-8">
+    <div className="flex h-full flex-col p-4 md:p-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>

@@ -107,7 +107,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
     : [];
 
   return (
-    <div className="px-10 py-8">
+    <div className="px-4 py-4 md:px-10 md:py-8">
       {/* Breadcrumb */}
       <div className="mb-7 flex items-center gap-2 text-xs">
         <Link href={`/projects/${projectUuid}/proposals`} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -118,7 +118,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
       </div>
 
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F5F2EC]">
             <ClipboardList className="h-6 w-6 text-[#C67A52]" />
@@ -172,7 +172,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
       </div>
 
       {/* Content — two column layout */}
-      <div className="flex gap-7">
+      <div className="flex flex-col lg:flex-row gap-5 lg:gap-7">
         {/* Main Content */}
         <div className="min-w-0 flex-1 space-y-6">
           {/* Description */}
@@ -211,7 +211,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="w-80 shrink-0 space-y-5">
+        <div className="w-full lg:w-80 lg:shrink-0 space-y-5">
           {/* Details Card */}
           <Card className="border-[#E5E2DC] shadow-none rounded-2xl gap-0 py-0 overflow-hidden">
             <CardHeader className="border-b border-[#F5F2EC] px-5 py-4">

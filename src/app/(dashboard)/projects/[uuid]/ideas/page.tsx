@@ -106,7 +106,7 @@ export default async function IdeasPage({ params, searchParams }: PageProps) {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">{t("ideas.title")}</h1>
@@ -121,7 +121,7 @@ export default async function IdeasPage({ params, searchParams }: PageProps) {
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-6 flex gap-2 border-b border-border pb-4">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border pb-4">
         <Link href={`/projects/${projectUuid}/ideas`}>
           <Button variant={filter === "all" && !isAssignedToMeFilter ? "default" : "ghost"} size="sm">
             {t("ideas.all")} ({allIdeas.length})

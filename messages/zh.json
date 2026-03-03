@@ -120,7 +120,8 @@
     "activity": "动态",
     "logout": "退出登录",
     "newProject": "新建项目",
-    "backToProjects": "项目"
+    "backToProjects": "项目",
+    "openMenu": "打开菜单"
   },
   "priority": {
     "low": "低",
@@ -393,7 +394,9 @@
     "failedToRemoveDep": "移除依赖失败",
     "noTasksToDisplay": "暂无任务",
     "kanbanView": "看板",
-    "dagView": "DAG"
+    "dagView": "DAG",
+    "listView": "列表",
+    "allStatuses": "全部"
   },
   "proposals": {
     "pageTitle": "提案",
@@ -527,6 +530,7 @@
     "backToDocuments": "返回文档列表",
     "updated": "更新于 {date}",
     "sourceProposal": "来源提案",
+    "viewProposal": "查看提案",
     "versionHistory": "版本历史",
     "previousVersions": "个历史版本",
     "documentContent": "文档内容...",

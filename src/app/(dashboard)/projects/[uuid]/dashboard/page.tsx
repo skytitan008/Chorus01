@@ -144,9 +144,9 @@ export default async function DashboardPage({ params }: PageProps) {
   const pipelineTotal = stats.tasks.total;
 
   return (
-    <div className="flex h-full flex-col gap-7 p-7 lg:p-9">
+    <div className="flex h-full flex-col gap-7 p-5 md:p-7 lg:p-9">
       {/* Title Section */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-[26px] font-semibold tracking-tight text-[#2C2C2C]">
             {project.name}
@@ -185,24 +185,24 @@ export default async function DashboardPage({ params }: PageProps) {
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         {statCards.map((stat) => (
           <Link key={stat.label} href={stat.href}>
-            <Card className="cursor-pointer rounded-2xl border-0 bg-white p-5 shadow-none transition-all hover:shadow-md">
-              <div className="mb-3.5 flex items-center justify-between">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.iconBg}`}>
+            <Card className="cursor-pointer rounded-2xl border-0 bg-white p-3 shadow-none transition-all hover:shadow-md md:p-5">
+              <div className="mb-2 flex items-center justify-between md:mb-3.5">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg md:h-10 md:w-10 md:rounded-xl ${stat.iconBg}`}>
                   {stat.icon}
                 </div>
                 {stat.badge && (
-                  <span className={`rounded-lg px-2.5 py-1 text-[11px] font-medium ${stat.badgeStyle}`}>
+                  <span className={`hidden rounded-lg px-2.5 py-1 text-[11px] font-medium sm:inline ${stat.badgeStyle}`}>
                     {stat.badge}
                   </span>
                 )}
               </div>
-              <div className="text-[32px] font-semibold leading-none tracking-tight text-[#2C2C2C]">
+              <div className="text-2xl font-semibold leading-none tracking-tight text-[#2C2C2C] md:text-[32px]">
                 {stat.value}
               </div>
-              <div className="mt-0.5 text-[13px] text-[#6B6B6B]">{stat.label}</div>
+              <div className="mt-0.5 text-[12px] text-[#6B6B6B] md:text-[13px]">{stat.label}</div>
             </Card>
           </Link>
         ))}

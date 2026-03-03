@@ -61,7 +61,7 @@ export function PixelCanvasWidget({ projectUuid, projectName }: PixelCanvasWidge
     <>
       {/* Floating GIF button — fixed bottom-right */}
       <div
-        className="fixed bottom-6 right-6 z-40 cursor-pointer"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 cursor-pointer"
         onClick={() => setOpen(true)}
       >
         <div className="relative transition-transform hover:scale-105">
