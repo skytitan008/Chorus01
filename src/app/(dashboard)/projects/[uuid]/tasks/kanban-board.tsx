@@ -37,7 +37,9 @@ interface KanbanBoardProps {
   projectUuid: string;
   initialTasks: Task[];
   currentUserUuid: string;
-  initialSelectedTaskUuid?: string | null;
+  selectedTaskUuid?: string | null;
+  onTaskSelect: (taskUuid: string) => void;
+  onPanelClose: () => void;
 }
 
 // Status color configuration
@@ -68,11 +70,10 @@ const columnConfigs = [
   { id: "done", labelKey: "done", statuses: ["done", "closed"] },
 ];
 
-export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, initialSelectedTaskUuid }: KanbanBoardProps) {
+export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, selectedTaskUuid, onTaskSelect, onPanelClose }: KanbanBoardProps) {
   const t = useTranslations();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [selectedTaskUuid, setSelectedTaskUuid] = useState<string | null>(initialSelectedTaskUuid ?? null);
   const [workerCounts, setWorkerCounts] = useState<Record<string, number>>({});
   useRealtimeRefresh();
 
@@ -80,13 +81,6 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, initia
   useEffect(() => {
     setTasks(initialTasks);
   }, [initialTasks]);
-
-  // Sync selected task when URL query param changes (e.g., clicking a notification)
-  useEffect(() => {
-    if (initialSelectedTaskUuid) {
-      setSelectedTaskUuid(initialSelectedTaskUuid);
-    }
-  }, [initialSelectedTaskUuid]);
 
   // Fetch active worker counts in a single batch query instead of N individual calls
   useEffect(() => {
@@ -244,7 +238,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, initia
                               {...provided.dragHandleProps}
                               onClick={() => {
                                 if (!snapshot.isDragging) {
-                                  setSelectedTaskUuid(task.uuid);
+                                  onTaskSelect(task.uuid);
                                 }
                               }}
                             >
@@ -359,7 +353,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, initia
         task={selectedTask}
         projectUuid={projectUuid}
         currentUserUuid={currentUserUuid}
-        onClose={() => setSelectedTaskUuid(null)}
+        onClose={onPanelClose}
       />
     )}
 

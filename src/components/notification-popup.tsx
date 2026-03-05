@@ -113,9 +113,9 @@ function getEntityPath(notification: Notification): string {
   const base = `/projects/${projectUuid}`;
   switch (entityType) {
     case "task":
-      return `${base}/tasks?task=${entityUuid}`;
+      return `${base}/tasks/${entityUuid}`;
     case "idea":
-      return `${base}/ideas?idea=${entityUuid}`;
+      return `${base}/ideas/${entityUuid}`;
     case "proposal":
       return `${base}/proposals/${entityUuid}`;
     case "document":

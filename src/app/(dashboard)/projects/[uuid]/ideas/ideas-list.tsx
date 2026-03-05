@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Bot, MessageSquare, FileText, User } from "lucide-react";
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Streamdown } from "streamdown";
 import { IdeaDetailPanel } from "./idea-detail-panel";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { usePanelUrl } from "@/hooks/use-panel-url";
 
 interface IdeaItem {
   uuid: string;
@@ -87,20 +88,23 @@ export function IdeasList({
 }: IdeasListProps) {
   const t = useTranslations();
   useRealtimeRefresh();
-  const [selectedIdeaUuid, setSelectedIdeaUuid] = useState<string | null>(initialSelectedIdeaUuid ?? null);
 
-  // Sync selected idea when URL query param changes (e.g., clicking a notification)
-  useEffect(() => {
-    if (initialSelectedIdeaUuid) {
-      setSelectedIdeaUuid(initialSelectedIdeaUuid);
-    }
-  }, [initialSelectedIdeaUuid]);
+  const basePath = `/projects/${projectUuid}/ideas`;
+  const { selectedId, openPanel, closePanel } = usePanelUrl(basePath, initialSelectedIdeaUuid);
+
   const usedSet = new Set(usedIdeaUuids);
 
-  // Derive selectedIdea from current props — always in sync with server data
+  // If selectedId is not in the current list (e.g., filter changed), close panel
+  useEffect(() => {
+    if (selectedId && !ideas.some((i) => i.uuid === selectedId)) {
+      closePanel();
+    }
+  }, [selectedId, ideas, closePanel]);
+
+  // Derive selectedIdea from current props
   const selectedIdea = useMemo(
-    () => (selectedIdeaUuid ? ideas.find((i) => i.uuid === selectedIdeaUuid) ?? null : null),
-    [selectedIdeaUuid, ideas]
+    () => (selectedId ? ideas.find((i) => i.uuid === selectedId) ?? null : null),
+    [selectedId, ideas]
   );
 
   return (
@@ -114,7 +118,7 @@ export function IdeasList({
             <Card
               key={idea.uuid}
               className="cursor-pointer border-[#E5E0D8] py-4 transition-all hover:border-[#C67A52]/50 hover:shadow-sm"
-              onClick={() => setSelectedIdeaUuid(idea.uuid)}
+              onClick={() => openPanel(idea.uuid)}
             >
               {/* Header: Author meta + Status badge */}
               <CardHeader className="gap-0 py-0">
@@ -206,8 +210,8 @@ export function IdeasList({
           projectUuid={projectUuid}
           currentUserUuid={currentUserUuid}
           isUsedInProposal={usedSet.has(selectedIdea.uuid)}
-          onClose={() => setSelectedIdeaUuid(null)}
-          onDeleted={() => setSelectedIdeaUuid(null)}
+          onClose={closePanel}
+          onDeleted={closePanel}
         />
       )}
     </>

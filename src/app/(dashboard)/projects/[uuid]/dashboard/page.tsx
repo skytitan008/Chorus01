@@ -258,7 +258,7 @@ export default async function DashboardPage({ params }: PageProps) {
                   const style = taskStatusStyle[task.status] || taskStatusStyle.open;
                   const dotColor = taskStatusDot[task.status] || "bg-[#9A9A9A]";
                   return (
-                    <Link key={task.uuid} href={`/projects/${projectUuid}/tasks?task=${task.uuid}`}>
+                    <Link key={task.uuid} href={`/projects/${projectUuid}/tasks/${task.uuid}`}>
                       <div className={`flex items-center gap-3 py-2.5 ${i < recentTasks.length - 1 ? "border-b border-[#F5F2EC]" : ""}`}>
                         <div className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
                         <span className="flex-1 truncate text-[13px] text-[#2C2C2C]">{task.title}</span>

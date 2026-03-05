@@ -161,6 +161,25 @@ async function handleUserSessionRefresh(request: NextRequest): Promise<NextRespo
 
 // ─── Main middleware ─────────────────────────────────────────────────────────
 export async function middleware(request: NextRequest) {
+  // --- 0. Legacy URL redirects: ?idea={id} → /ideas/{id}, ?task={id} → /tasks/{id} ---
+  const { pathname, searchParams } = request.nextUrl;
+  const ideasMatch = pathname.match(/^\/projects\/([^/]+)\/ideas$/);
+  if (ideasMatch && searchParams.has("idea")) {
+    const ideaUuid = searchParams.get("idea")!;
+    const url = request.nextUrl.clone();
+    url.pathname = `/projects/${ideasMatch[1]}/ideas/${ideaUuid}`;
+    url.searchParams.delete("idea");
+    return NextResponse.redirect(url, 307);
+  }
+  const tasksMatch = pathname.match(/^\/projects\/([^/]+)\/tasks$/);
+  if (tasksMatch && searchParams.has("task")) {
+    const taskUuid = searchParams.get("task")!;
+    const url = request.nextUrl.clone();
+    url.pathname = `/projects/${tasksMatch[1]}/tasks/${taskUuid}`;
+    url.searchParams.delete("task");
+    return NextResponse.redirect(url, 307);
+  }
+
   // --- 1. Try user_session refresh (Default Auth) ---
   // Check this first because it's a quick local operation (no external fetch).
   const userResult = await handleUserSessionRefresh(request);

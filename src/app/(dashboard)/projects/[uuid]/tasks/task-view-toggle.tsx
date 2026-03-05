@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePanelUrl } from "@/hooks/use-panel-url";
 import { KanbanBoard } from "./kanban-board";
 import { DagView } from "./dag-view";
 import { TaskDetailPanel } from "./task-detail-panel";
@@ -75,7 +76,9 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
   const t = useTranslations();
   const isMobile = useIsMobile();
   const [view, setView] = useState<"kanban" | "dag" | "list">("kanban");
-  const [selectedTaskUuid, setSelectedTaskUuid] = useState<string | null>(null);
+
+  const basePath = `/projects/${projectUuid}/tasks`;
+  const { selectedId: selectedTaskUuid, openPanel, closePanel } = usePanelUrl(basePath, initialSelectedTaskUuid);
 
   // Switch to list view on mobile after hydration
   useEffect(() => {
@@ -156,7 +159,7 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
         <Button
           className="bg-[#C67A52] hover:bg-[#B56A42] text-white"
           onClick={() => {
-            setSelectedTaskUuid(null);
+            closePanel();
             setShowCreatePanel(true);
           }}
         >
@@ -206,7 +209,7 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
                 <Card
                   key={task.uuid}
                   className="cursor-pointer border-[#E5E0D8] bg-white p-4 transition-all hover:border-[#C67A52] hover:shadow-sm"
-                  onClick={() => setSelectedTaskUuid(task.uuid)}
+                  onClick={() => openPanel(task.uuid)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -247,7 +250,7 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
               task={selectedTask}
               projectUuid={projectUuid}
               currentUserUuid={currentUserUuid}
-              onClose={() => setSelectedTaskUuid(null)}
+              onClose={closePanel}
               onDependencyChange={handleDependencyChange}
             />
           )}
@@ -257,13 +260,15 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
           projectUuid={projectUuid}
           initialTasks={initialTasks}
           currentUserUuid={currentUserUuid}
-          initialSelectedTaskUuid={initialSelectedTaskUuid}
+          selectedTaskUuid={selectedTaskUuid}
+          onTaskSelect={openPanel}
+          onPanelClose={closePanel}
         />
       ) : (
         <div className="flex flex-1 flex-col">
           <DagView
             projectUuid={projectUuid}
-            onTaskSelect={(taskUuid) => setSelectedTaskUuid(taskUuid)}
+            onTaskSelect={(taskUuid) => openPanel(taskUuid)}
             refreshKey={dagRefreshKey}
           />
           {selectedTask && (
@@ -271,7 +276,7 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
               task={selectedTask}
               projectUuid={projectUuid}
               currentUserUuid={currentUserUuid}
-              onClose={() => setSelectedTaskUuid(null)}
+              onClose={closePanel}
               onDependencyChange={handleDependencyChange}
             />
           )}
