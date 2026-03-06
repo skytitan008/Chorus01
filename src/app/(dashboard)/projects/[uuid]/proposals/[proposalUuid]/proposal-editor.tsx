@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 import {
   addDocumentDraftAction,
   updateDocumentDraftAction,
@@ -460,7 +461,7 @@ export function ProposalEditor({
                     {isExpanded && doc.content && (
                       <div className="ml-7 mt-3 rounded-lg bg-[#F5F2EC] p-4">
                         <div className="prose prose-sm max-w-none text-[#6B6B6B]">
-                          <Streamdown>{doc.content}</Streamdown>
+                          <Streamdown plugins={{ code }}>{doc.content}</Streamdown>
                         </div>
                       </div>
                     )}
@@ -572,7 +573,7 @@ export function ProposalEditor({
                             {t("tasks.acceptanceCriteria")}
                           </div>
                           <div className="prose prose-sm max-w-none text-[11px] text-[#6B6B6B]">
-                            <Streamdown>{task.acceptanceCriteria}</Streamdown>
+                            <Streamdown plugins={{ code }}>{task.acceptanceCriteria}</Streamdown>
                           </div>
                         </div>
                       )}

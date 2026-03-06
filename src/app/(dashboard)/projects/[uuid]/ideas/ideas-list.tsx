@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 import { IdeaDetailPanel } from "./idea-detail-panel";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { usePanelUrl } from "@/hooks/use-panel-url";
@@ -172,7 +173,7 @@ export function IdeasList({
                 {/* Content */}
                 {idea.content && (
                   <div className="prose prose-sm max-w-none line-clamp-3 text-[13px] leading-relaxed text-[#2C2C2C]">
-                    <Streamdown>{idea.content}</Streamdown>
+                    <Streamdown plugins={{ code }}>{idea.content}</Streamdown>
                   </div>
                 )}
               </CardContent>

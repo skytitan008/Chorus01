@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 
 /**
  * Regex to match @[DisplayName](type:uuid) patterns in text.
@@ -139,14 +140,18 @@ export function ContentWithMentions({ children }: ContentWithMentionsProps) {
   const hasMentionPatterns = new RegExp(MENTION_REGEX.source).test(children);
 
   if (!hasMentionPatterns) {
-    return <Streamdown>{children}</Streamdown>;
+    return (
+      <div className="overflow-hidden [&_pre]:overflow-x-auto">
+        <Streamdown plugins={{ code }}>{children}</Streamdown>
+      </div>
+    );
   }
 
   const { processed, mentions } = preprocessMentions(children);
 
   return (
     <MentionPostProcessor mentions={mentions}>
-      <Streamdown>{processed}</Streamdown>
+      <Streamdown plugins={{ code }}>{processed}</Streamdown>
     </MentionPostProcessor>
   );
 }
@@ -223,7 +228,7 @@ function MentionPostProcessor({
     }
   }, [mentions]);
 
-  return <div ref={containerRef}>{children}</div>;
+  return <div ref={containerRef} className="overflow-hidden [&_pre]:overflow-x-auto">{children}</div>;
 }
 
 /**

@@ -29,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 import {
   addTaskDraftAction,
   updateTaskDraftAction,
@@ -487,7 +488,7 @@ export function TaskDraftDetailPanel({
                   <div className="mt-2">
                     {taskDraft.description ? (
                       <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown>{taskDraft.description}</Streamdown>
+                        <Streamdown plugins={{ code }}>{taskDraft.description}</Streamdown>
                       </div>
                     ) : (
                       <p className="text-sm italic text-[#9A9A9A]">{t("common.noDescription")}</p>
@@ -503,7 +504,7 @@ export function TaskDraftDetailPanel({
                     </label>
                     <div className="mt-2">
                       <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown>{taskDraft.acceptanceCriteria}</Streamdown>
+                        <Streamdown plugins={{ code }}>{taskDraft.acceptanceCriteria}</Streamdown>
                       </div>
                     </div>
                   </div>

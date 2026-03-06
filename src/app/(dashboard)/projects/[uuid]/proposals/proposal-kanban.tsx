@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, User } from "lucide-react";
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 import type { DocumentDraft, TaskDraft } from "@/services/proposal.service";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -122,7 +123,7 @@ function ProposalCard({
         {/* Description */}
         {proposal.description && (
           <div className="prose prose-sm max-w-none mb-2 line-clamp-2 text-sm text-[#6B6B6B]">
-            <Streamdown>{proposal.description}</Streamdown>
+            <Streamdown plugins={{ code }}>{proposal.description}</Streamdown>
           </div>
         )}
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 
 export function MarkdownContent({ children }: { children: string }) {
-  return <Streamdown>{children}</Streamdown>;
+  return <Streamdown plugins={{ code }}>{children}</Streamdown>;
 }

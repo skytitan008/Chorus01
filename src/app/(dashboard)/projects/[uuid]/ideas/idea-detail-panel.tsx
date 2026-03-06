@@ -48,6 +48,7 @@ import { updateIdeaAction, deleteIdeaAction } from "./actions";
 import type { ActivityResponse } from "@/services/activity.service";
 import type { CommentResponse } from "@/services/comment.service";
 import { Streamdown } from "streamdown";
+import { code } from "@streamdown/code";
 import { ContentWithMentions } from "@/components/mention-renderer";
 import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
 import { AssignIdeaModal } from "./assign-idea-modal";
@@ -488,7 +489,7 @@ export function IdeaDetailPanel({
         </div>
 
         {/* Panel Body - Scrollable */}
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]>div]:!block">
           <div className="flex min-h-full flex-col px-6 py-5">
             {isEditing ? (
               /* Edit Mode */
@@ -586,7 +587,7 @@ export function IdeaDetailPanel({
                   <div className="mt-2">
                     {idea.content ? (
                       <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown>{idea.content}</Streamdown>
+                        <Streamdown plugins={{ code }}>{idea.content}</Streamdown>
                       </div>
                     ) : (
                       <p className="text-sm italic text-[#9A9A9A]">{t("common.noContent")}</p>
@@ -639,7 +640,7 @@ export function IdeaDetailPanel({
                     ) : (
                       comments.map((c) => (
                         <div key={c.uuid} className="flex gap-2.5">
-                          <Avatar className="h-6 w-6">
+                          <Avatar className="h-6 w-6 shrink-0">
                             <AvatarFallback className={c.author.type === "agent" ? "bg-[#C67A52] text-white" : "bg-[#E5E0D8] text-[#6B6B6B] text-[10px]"}>
                               {c.author.type === "agent" ? (
                                 <Bot className="h-3 w-3" />
@@ -648,7 +649,7 @@ export function IdeaDetailPanel({
                               )}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-medium text-[#2C2C2C]">{c.author.name}</span>
                               <span className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(c.createdAt, t)}</span>

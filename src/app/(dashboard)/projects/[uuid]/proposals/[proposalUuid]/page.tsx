@@ -20,7 +20,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Streamdown } from "streamdown";
+import { MarkdownContent } from "@/components/markdown-content";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getProposal, type DocumentDraft, type TaskDraft } from "@/services/proposal.service";
 import { getIdea } from "@/services/idea.service";
@@ -185,7 +185,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
               </CardHeader>
               <CardContent className="px-5 py-4">
                 <div className="prose prose-sm max-w-none text-[#6B6B6B]">
-                  <Streamdown>{proposal.description}</Streamdown>
+                  <MarkdownContent>{proposal.description}</MarkdownContent>
                 </div>
               </CardContent>
             </Card>
