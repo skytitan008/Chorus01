@@ -69,7 +69,8 @@
   }
 }
 
-/* Streamdown Shiki syntax highlighting - apply CSS variable colors to code tokens */
+/* Streamdown code block fixes - Tailwind @source can't extract all classes from streamdown chunks */
+/* Shiki syntax highlighting token colors */
 pre code span[style*="--sdm-c"] {
   color: var(--sdm-c);
 }
@@ -78,6 +79,14 @@ pre[style*="--sdm-bg"] {
 }
 span[style*="--sdm-tbg"] {
   background-color: var(--sdm-tbg);
+}
+/* Code block horizontal scroll */
+[data-streamdown="code-block"] pre {
+  overflow-x: auto;
+}
+/* Code block action buttons (Download/Copy) - parent uses pointer-events-none */
+[data-streamdown="code-block-actions"] {
+  pointer-events: auto;
 }
 
 @layer base {

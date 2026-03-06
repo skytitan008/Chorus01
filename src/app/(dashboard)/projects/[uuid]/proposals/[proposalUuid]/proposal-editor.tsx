@@ -419,22 +419,22 @@ export function ProposalEditor({
                   <div key={doc.uuid} className="px-5 py-4">
                     {/* Document header row */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          onClick={() => toggleDocExpand(doc.uuid)}
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                      <button
+                        onClick={() => toggleDocExpand(doc.uuid)}
+                        className="flex items-center gap-2.5 text-left cursor-pointer hover:opacity-80 transition-opacity"
+                      >
+                        <span className="text-muted-foreground">
                           {isExpanded ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )}
-                        </button>
+                        </span>
                         <Badge variant="outline" className="text-[10px] font-medium text-[#6B6B6B] border-[#E5E2DC] bg-[#FAF8F4]">
                           {t(`proposals.docType${docTypeKeys[doc.type] || "Guide"}`)}
                         </Badge>
                         <span className="text-[13px] font-medium text-foreground">{doc.title}</span>
-                      </div>
+                      </button>
                       {canEdit && (
                         <div className="flex gap-1">
                           <Button
@@ -459,8 +459,8 @@ export function ProposalEditor({
                     </div>
                     {/* Document content (collapsible) */}
                     {isExpanded && doc.content && (
-                      <div className="ml-7 mt-3 rounded-lg bg-[#F5F2EC] p-4">
-                        <div className="prose prose-sm max-w-none text-[#6B6B6B]">
+                      <div className="mt-3 border-t border-[#F5F2EC] pt-4">
+                        <div className="prose prose-sm max-w-none text-foreground">
                           <Streamdown plugins={{ code }}>{doc.content}</Streamdown>
                         </div>
                       </div>
