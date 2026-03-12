@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0] - 2026-03-12
+
+### Added
+- **Structured Acceptance Criteria**: Dual-track verification system — developer self-check + admin verification per criterion. New `AcceptanceCriterion` Prisma model as independent table, with `chorus_report_criteria_self_check` and `chorus_mark_acceptance_criteria` MCP tools. Kanban cards show acceptance progress badges, task detail panel displays criterion cards with pass/fail actions. Full i18n support. (#18)
+- **Task Dependency Enforcement**: Tasks cannot move to `in_progress` when their dependencies are unresolved. Kanban UI shows lock icon + blocked banner with force-move confirmation dialog for admins. New `checkDependenciesResolved()` service method with enriched blocker info. `chorus_admin_reopen_task` gains `force` parameter for admin bypass. (#16)
+- **`COOKIE_SECURE` Environment Variable**: Support `COOKIE_SECURE=false` for HTTP-only deployments. Extracted `getCookieOptions()` helper to eliminate 8 duplicate cookie config blocks. Updated Docker Compose and documentation. (#19)
+
+### Changed
+- **Session Management Simplified**: Removed manual session lifecycle management from skill docs. Plugin sessions are fully automated by hooks; standalone skill removes session tools entirely.
+- **Unblocked Tasks Rule**: `getUnblockedTasks` now requires dependencies to be `done` or `closed` (previously accepted `to_verify`).
+
+### Fixed
+- **Code Block Horizontal Scroll**: Fixed horizontal scroll for code blocks in task draft detail panel by overriding ScrollArea's `display:table` to `display:block`.
+
+### Plugin
+- Chorus Plugin bumped to v0.2.1 (session docs clarification, dependency enforcement, acceptance criteria).
+- OpenClaw Plugin bumped to v0.2.1: new `admin-tools.ts` module with `chorus_admin_create_project_group` and `chorus_mark_acceptance_criteria`; added `chorus_get_project_groups` / `chorus_get_project_group` to common tools; event router handles `task_verified` / `task_reopened`. (#20)
+
+---
+
 ## [0.3.0] - 2026-03-06
 
 ### Added
