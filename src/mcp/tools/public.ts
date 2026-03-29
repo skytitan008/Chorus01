@@ -385,6 +385,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         effectivePersona = defaultPersonas[agent.roles[0]] || null;
       }
 
+      // Emit agent_checkin notification to owner on first checkin
+      if (agent.ownerUuid) {
+        await notificationService.emitAgentCheckinIfFirst({
+          companyUuid: auth.companyUuid,
+          agentUuid: agent.uuid,
+          agentName: agent.name,
+          ownerUuid: agent.ownerUuid,
+        });
+      }
+
       const result = {
         checkinTime: new Date().toISOString(),
         agent: {
