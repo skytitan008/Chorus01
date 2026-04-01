@@ -3,13 +3,16 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ChevronDown, Check, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  ArrowRight,
+  Pencil,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Collapsible,
   CollapsibleContent,
@@ -36,20 +39,10 @@ const categoryI18nKeys: Record<string, string> = {
   scope: "scope",
 };
 
-// Category background color mapping
-const categoryBgColors: Record<string, string> = {
-  functional: "bg-[#E8F5E9] text-[#2E7D32]",
-  non_functional: "bg-[#E3F2FD] text-[#1565C0]",
-  business_context: "bg-[#FFF3E0] text-[#E65100]",
-  technical_context: "bg-[#F3E5F5] text-[#7B1FA2]",
-  user_scenario: "bg-[#E0F2F1] text-[#00796B]",
-  scope: "bg-[#FBE9E7] text-[#BF360C]",
-};
-
 interface ElaborationPanelProps {
   ideaUuid: string;
   elaboration: ElaborationResponse | null;
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<void> | void;
 }
 
 export function ElaborationPanel({
@@ -88,7 +81,10 @@ export function ElaborationPanel({
             key={round.uuid}
             round={round}
             ideaUuid={ideaUuid}
-            onAnswered={() => { onRefresh?.(); router.refresh(); }}
+            onAnswered={async () => {
+              await onRefresh?.();
+              router.refresh();
+            }}
           />
         ))}
       </div>
@@ -101,84 +97,92 @@ export function ElaborationPanel({
 interface RoundCardProps {
   round: ElaborationRoundResponse;
   ideaUuid: string;
-  onAnswered: () => void;
+  onAnswered: () => Promise<void> | void;
 }
 
 function RoundCard({ round, ideaUuid, onAnswered }: RoundCardProps) {
   const t = useTranslations("elaboration");
-  const isPending = round.status === "pending_answers";
-  const isValidated = round.status === "validated";
+  const isPending =
+    round.status === "pending_answers" || round.status === "needs_followup";
+  const isDone =
+    round.status === "answered" || round.status === "validated";
   const [isOpen, setIsOpen] = useState(isPending);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card
-        className={`border-[#E5E0D8] overflow-hidden ${
-          isPending ? "border-[#C67A52] border-[1.5px]" : ""
+      <div
+        className={`overflow-hidden rounded-xl border bg-white ${
+          isPending ? "border-[#E5E0D8]" : "border-[#E5E0D8]"
         }`}
       >
         {/* Collapsible header */}
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[#FAF8F4] transition-colors"
+            className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[#FAF8F4] ${
+              isOpen ? "bg-[#F7F6F3] border-b border-[#E5E0D8]" : ""
+            }`}
           >
-            {/* Round number badge */}
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
-              {round.roundNumber}
-            </span>
+            <div className="flex items-center gap-2">
+              {/* Chevron */}
+              {isOpen ? (
+                <ChevronDown className="h-4 w-4 text-[#6B6B6B]" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-[#6B6B6B]" />
+              )}
 
-            {/* Label */}
-            <span className="flex-1 text-sm font-medium text-[#2C2C2C]">
-              {t("roundLabel", { number: round.roundNumber })}
-            </span>
-
-            {/* Status indicator */}
-            {isValidated ? (
-              <span className="flex items-center gap-1">
-                <Check className="h-3.5 w-3.5 text-[#5A9E6F]" />
-                <span className="text-[11px] font-medium text-[#5A9E6F]">
-                  {t("validated")}
-                </span>
+              {/* Round number badge */}
+              <span
+                className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${
+                  isPending ? "bg-[#C67A52]" : "bg-[#888780]"
+                }`}
+              >
+                {round.roundNumber}
               </span>
-            ) : isPending ? (
-              <Badge className="bg-[#FFF3E0] text-[#E65100] border-transparent text-[10px]">
-                {t("pendingAnswers")}
-              </Badge>
-            ) : (
-              <Badge className="bg-[#E3F2FD] text-[#1976D2] border-transparent text-[10px]">
-                {t("statusAnswered")}
-              </Badge>
-            )}
 
-            {/* Chevron */}
-            <ChevronDown
-              className={`h-4 w-4 text-[#9A9A9A] transition-transform ${
-                isOpen ? "rotate-180" : ""
-              }`}
-            />
+              {/* Label */}
+              <span className="text-[13px] font-semibold text-[#2C2C2C]">
+                {t("roundLabel", { number: round.roundNumber })}
+              </span>
+
+              {/* Question count (shown when collapsed) */}
+              {!isOpen && (
+                <span className="text-xs text-[#9A9A9A]">
+                  &middot; {t("questionCount", { count: round.questions.length })}
+                </span>
+              )}
+            </div>
+
+            {/* Status badge */}
+            {isDone ? (
+              <span className="rounded bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-medium text-[#2E7D32]">
+                {t("statusAnswered")}
+              </span>
+            ) : (
+              <span className="rounded bg-[#FFF3E0] px-2 py-0.5 text-[10px] font-medium text-[#E65100]">
+                {t("pendingAnswers")}
+              </span>
+            )}
           </button>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-t border-[#F5F2EC] px-4 py-3">
-            {isPending ? (
-              <PendingRoundContent
-                round={round}
-                ideaUuid={ideaUuid}
-                onAnswered={onAnswered}
-              />
-            ) : (
-              <AnsweredRoundContent round={round} />
-            )}
-          </div>
+          {isPending ? (
+            <PendingRoundContent
+              round={round}
+              ideaUuid={ideaUuid}
+              onAnswered={onAnswered}
+            />
+          ) : (
+            <AnsweredRoundContent round={round} />
+          )}
         </CollapsibleContent>
-      </Card>
+      </div>
     </Collapsible>
   );
 }
 
-// ===== Answered Round Content =====
+// ===== Answered Round Content (Q/A text format) =====
 
 interface AnsweredRoundContentProps {
   round: ElaborationRoundResponse;
@@ -188,65 +192,52 @@ function AnsweredRoundContent({ round }: AnsweredRoundContentProps) {
   const t = useTranslations("elaboration");
 
   return (
-    <div className="space-y-3">
-      {round.questions.map((question) => (
-        <AnsweredQuestion key={question.uuid} question={question} t={t} />
-      ))}
-    </div>
-  );
-}
+    <div className="space-y-4 px-4 py-4">
+      {round.questions.map((question, index) => {
+        const selectedOption = question.answer?.selectedOptionId
+          ? question.options.find(
+              (o) => o.id === question.answer?.selectedOptionId
+            )
+          : null;
+        const answerText =
+          question.answer?.customText ||
+          selectedOption?.label ||
+          t("noAnswer");
+        const categoryKey =
+          categoryI18nKeys[question.category] || question.category;
 
-function AnsweredQuestion({
-  question,
-  t,
-}: {
-  question: ElaborationQuestionResponse;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: any;
-}) {
-  const selectedOption = question.answer?.selectedOptionId
-    ? question.options.find((o) => o.id === question.answer?.selectedOptionId)
-    : null;
-  const categoryKey = categoryI18nKeys[question.category] || question.category;
-  const categoryBg =
-    categoryBgColors[question.category] || "bg-[#F5F5F5] text-[#6B6B6B]";
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-start gap-2">
-        {/* Filled terracotta radio indicator */}
-        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-[#C67A52]">
-          <span className="h-2 w-2 rounded-full bg-[#C67A52]" />
-        </span>
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <p className="text-[13px] leading-snug text-[#2C2C2C]">
-              {question.text}
+        return (
+          <div key={question.uuid}>
+            {/* Q row: question text + category right-aligned */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs leading-relaxed text-[#6B6B6B]">
+                Q: {question.text}
+              </span>
+              <span className="shrink-0 text-[11px] italic text-[#B0B0B0]">
+                {t(`category.${categoryKey}`)}
+              </span>
+            </div>
+            {/* A row */}
+            <p className="mt-1 text-xs font-medium leading-relaxed text-[#2C2C2C]">
+              A: {answerText}
             </p>
-            <Badge
-              className={`shrink-0 border-transparent text-[9px] px-1.5 py-0 ${categoryBg}`}
-            >
-              {t(`category.${categoryKey}`)}
-            </Badge>
+            {/* Divider (not after last) */}
+            {index < round.questions.length - 1 && (
+              <div className="mt-4 h-px bg-[#F0EEEA]" />
+            )}
           </div>
-          {/* Answer text */}
-          <p className="text-[12px] text-[#6B6B6B]">
-            {question.answer?.customText
-              ? question.answer.customText
-              : selectedOption?.label || t("noAnswer")}
-          </p>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-// ===== Pending Round Content (interactive) =====
+// ===== Pending Round Content (carousel/slide UI) =====
 
 interface PendingRoundContentProps {
   round: ElaborationRoundResponse;
   ideaUuid: string;
-  onAnswered: () => void;
+  onAnswered: () => Promise<void> | void;
 }
 
 function PendingRoundContent({
@@ -255,11 +246,27 @@ function PendingRoundContent({
   onAnswered,
 }: PendingRoundContentProps) {
   const t = useTranslations("elaboration");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [enterFrom, setEnterFrom] = useState<"left" | "right">("right");
   const [answers, setAnswers] = useState<Record<string, AnswerInput>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleOptionChange = useCallback(
+  const goTo = useCallback(
+    (next: number, dir: "left" | "right") => {
+      // dir="left" means content moves left → new slide enters from right
+      setEnterFrom(dir === "left" ? "right" : "left");
+      setCurrentIndex(next);
+    },
+    []
+  );
+
+  const questions = round.questions;
+  const question = questions[currentIndex];
+  const categoryKey =
+    categoryI18nKeys[question.category] || question.category;
+
+  const handleSelectOption = useCallback(
     (questionId: string, optionId: string) => {
       setAnswers((prev) => ({
         ...prev,
@@ -272,8 +279,15 @@ function PendingRoundContent({
               : null,
         },
       }));
+      // Auto-advance to next question with slide-left animation
+      if (optionId !== OTHER_OPTION_ID) {
+        const nextIdx = Math.min(questions.length - 1, currentIndex + 1);
+        if (nextIdx !== currentIndex) {
+          setTimeout(() => goTo(nextIdx, "left"), 300);
+        }
+      }
     },
-    []
+    [questions.length, currentIndex, goTo]
   );
 
   const handleCustomTextChange = useCallback(
@@ -291,9 +305,9 @@ function PendingRoundContent({
     []
   );
 
-  const getSelectedValue = (questionId: string): string => {
+  const getSelectedOptionId = (questionId: string): string | null => {
     const answer = answers[questionId];
-    if (!answer) return "";
+    if (!answer) return null;
     if (
       answer.selectedOptionId === null &&
       answer.customText !== null &&
@@ -301,10 +315,10 @@ function PendingRoundContent({
     ) {
       return OTHER_OPTION_ID;
     }
-    return answer.selectedOptionId || "";
+    return answer.selectedOptionId || null;
   };
 
-  const allRequiredAnswered = round.questions
+  const allRequiredAnswered = questions
     .filter((q) => q.required)
     .every((q) => {
       const answer = answers[q.questionId];
@@ -325,114 +339,148 @@ function PendingRoundContent({
       answerList
     );
 
-    setIsSubmitting(false);
-
     if (result.success) {
-      onAnswered();
+      await onAnswered();
+      setIsSubmitting(false);
     } else {
+      setIsSubmitting(false);
       setError(result.error || t("submitFailed"));
     }
   };
 
+  const selectedOptionId = getSelectedOptionId(question.questionId);
+  const isOtherSelected = selectedOptionId === OTHER_OPTION_ID;
+
   return (
-    <div className="space-y-4">
-      {round.questions.map((question) => {
-        const categoryKey =
-          categoryI18nKeys[question.category] || question.category;
-        const categoryBg =
-          categoryBgColors[question.category] || "bg-[#F5F5F5] text-[#6B6B6B]";
-        const selectedValue = getSelectedValue(question.questionId);
-        const isOtherSelected = selectedValue === OTHER_OPTION_ID;
+    <div className="overflow-hidden p-3.5">
+      {/* Sliding content wrapper — key change triggers CSS enter animation */}
+      <div
+        key={currentIndex}
+        className={enterFrom === "right" ? "animate-in slide-in-from-right-4 duration-200" : "animate-in slide-in-from-left-4 duration-200"}
+      >
+      {/* Question text (left) + Nav (right) */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 text-sm text-[#6B6B6B]">{question.text}</div>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => goTo(currentIndex - 1, "right")}
+            disabled={currentIndex === 0}
+            className="text-[#6B6B6B] disabled:opacity-30"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-xs text-[#9A9A9A]">
+            {t("navCounter", {
+              current: currentIndex + 1,
+              total: questions.length,
+            })}
+          </span>
+          <button
+            type="button"
+            onClick={() => goTo(currentIndex + 1, "left")}
+            disabled={currentIndex === questions.length - 1}
+            className="text-[#6B6B6B] disabled:opacity-30"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
-        return (
-          <div key={question.uuid} className="space-y-2">
-            {/* Question text + category */}
-            <div className="flex items-start gap-2">
-              <p className="flex-1 text-[13px] font-medium leading-snug text-[#2C2C2C]">
-                {question.text}
-                {question.required && (
-                  <span className="ml-0.5 text-[#C67A52]">*</span>
-                )}
-              </p>
-              <Badge
-                className={`shrink-0 border-transparent text-[9px] px-1.5 py-0 ${categoryBg}`}
+      {/* Options list */}
+      <div className="mt-3">
+        {question.options.map((option, idx) => {
+          const isSelected = selectedOptionId === option.id;
+          return (
+            <div key={option.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  handleSelectOption(question.questionId, option.id)
+                }
+                className={`flex w-full items-center justify-between px-3.5 py-3 text-left transition-colors ${
+                  isSelected
+                    ? "bg-[#F7F6F3]"
+                    : "hover:bg-[#FAF8F4]"
+                }`}
               >
-                {t(`category.${categoryKey}`)}
-              </Badge>
-            </div>
-
-            {/* Radio options */}
-            <RadioGroup
-              value={selectedValue}
-              onValueChange={(value) =>
-                handleOptionChange(question.questionId, value)
-              }
-              className="gap-2 pl-1"
-            >
-              {question.options.map((option) => (
-                <div key={option.id} className="flex items-start gap-2">
-                  <RadioGroupItem
-                    value={option.id}
-                    id={`${question.uuid}-${option.id}`}
-                    className="mt-0.5 border-[#C67A52] text-[#C67A52] data-[state=checked]:border-[#C67A52]"
-                  />
-                  <Label
-                    htmlFor={`${question.uuid}-${option.id}`}
-                    className="text-[12px] leading-snug text-[#2C2C2C] font-normal cursor-pointer"
+                <span className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#E5E0D8] text-xs font-medium text-[#5F5E5A]"
                   >
+                    {idx + 1}
+                  </span>
+                  <span className="text-[13px] text-[#2C2C2A]">
                     {option.label}
-                    {option.description && (
-                      <span className="block text-[11px] text-[#6B6B6B]">
-                        {option.description}
-                      </span>
-                    )}
-                  </Label>
-                </div>
-              ))}
-              {/* Other option */}
-              <div className="space-y-1.5">
-                <div className="flex items-start gap-2">
-                  <RadioGroupItem
-                    value={OTHER_OPTION_ID}
-                    id={`${question.uuid}-other`}
-                    className="mt-0.5 border-[#C67A52] text-[#C67A52] data-[state=checked]:border-[#C67A52]"
-                  />
-                  <Label
-                    htmlFor={`${question.uuid}-other`}
-                    className="text-[12px] leading-snug text-[#2C2C2C] font-normal cursor-pointer"
-                  >
-                    {t("otherOption")}
-                  </Label>
-                </div>
-                {isOtherSelected && (
-                  <Input
-                    value={answers[question.questionId]?.customText || ""}
-                    onChange={(e) =>
-                      handleCustomTextChange(
-                        question.questionId,
-                        e.target.value
-                      )
-                    }
-                    placeholder={t("otherPlaceholder")}
-                    className="ml-6 h-8 max-w-sm border-[#E5E0D8] text-[12px] focus-visible:ring-[#C67A52]"
-                    autoFocus
-                  />
+                  </span>
+                </span>
+                {isSelected && (
+                  <ArrowRight className="h-4 w-4 text-[#888780]" />
                 )}
-              </div>
-            </RadioGroup>
-          </div>
-        );
-      })}
+              </button>
+              {idx < question.options.length - 1 && (
+                <div className="h-px bg-[#F0EEEA]" />
+              )}
+            </div>
+          );
+        })}
+
+        {/* Divider before Other */}
+        <div className="h-px bg-[#F0EEEA]" />
+
+        {/* Something else (Other) option — inline editable */}
+        <div
+          className={`flex w-full items-center gap-2.5 px-3.5 py-3 transition-colors ${
+            isOtherSelected ? "bg-[#F7F6F3]" : "hover:bg-[#FAF8F4]"
+          }`}
+        >
+          <span
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#E5E0D8]"
+            onClick={() =>
+              handleSelectOption(question.questionId, OTHER_OPTION_ID)
+            }
+          >
+            <Pencil className="h-3.5 w-3.5 text-[#B4B2A9]" />
+          </span>
+          {isOtherSelected ? (
+            <input
+              type="text"
+              value={answers[question.questionId]?.customText || ""}
+              onChange={(e) =>
+                handleCustomTextChange(question.questionId, e.target.value)
+              }
+              placeholder={t("somethingElse")}
+              className="flex-1 bg-transparent text-[13px] text-[#2C2C2A] placeholder:italic placeholder:text-[#B4B2A9] outline-none"
+              autoFocus
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() =>
+                handleSelectOption(question.questionId, OTHER_OPTION_ID)
+              }
+              className="flex-1 text-left text-[13px] italic text-[#B4B2A9]"
+            >
+              {t("somethingElse")}
+            </button>
+          )}
+        </div>
+      </div>
+      </div>
 
       {/* Error message */}
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-2.5 text-[12px] text-destructive">
+        <div className="mt-3 rounded-lg bg-destructive/10 p-2.5 text-[12px] text-destructive">
           {error}
         </div>
       )}
 
-      {/* Submit button */}
-      <div className="flex justify-end pt-1">
+      {/* Category (left) + Submit (right) */}
+      <div className="mt-3 flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-[11px] text-[#B0B0B0]">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#C67A52]" />
+          {t(`category.${categoryKey}`)}
+        </span>
         <Button
           onClick={handleSubmit}
           disabled={!allRequiredAnswered || isSubmitting}
