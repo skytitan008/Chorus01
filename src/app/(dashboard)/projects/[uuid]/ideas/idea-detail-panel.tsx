@@ -117,39 +117,36 @@ function formatRelativeTime(dateString: string, t: any): string {
   return date.toLocaleDateString();
 }
 
-function getActivityDotColor(action: string): string {
-  switch (action) {
-    case "idea_created":
-      return "bg-[#C67A52]";
-    case "idea_assigned":
-    case "idea_claimed":
-      return "bg-[#1976D2]";
-    case "idea_started":
-      return "bg-[#5A9E6F]";
-    case "idea_completed":
-      return "bg-[#00796B]";
-    case "idea_released":
-      return "bg-[#E65100]";
-    default:
-      return "bg-[#6B6B6B]";
-  }
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function formatActivityMessage(activity: ActivityResponse, t: any): string {
   const { action, actorName } = activity;
 
   switch (action) {
+    case "created":
     case "idea_created":
       return t("activity.ideaCreated", { actor: actorName });
+    case "assigned":
     case "idea_assigned":
       return t("activity.ideaAssigned", { actor: actorName });
+    case "claimed":
     case "idea_claimed":
       return t("activity.ideaClaimed", { actor: actorName });
+    case "released":
     case "idea_released":
       return t("activity.ideaReleased", { actor: actorName });
+    case "status_changed":
     case "idea_status_changed":
       return t("activity.ideaStatusChanged", { actor: actorName });
+    case "elaboration_started":
+      return t("activity.elaborationStarted", { actor: actorName });
+    case "elaboration_answered":
+      return t("activity.elaborationAnswered", { actor: actorName });
+    case "elaboration_skipped":
+      return t("activity.elaborationSkipped", { actor: actorName });
+    case "elaboration_resolved":
+      return t("activity.elaborationAnswered", { actor: actorName });
+    case "elaboration_followup":
+      return t("activity.elaborationStarted", { actor: actorName });
     default:
       return `${actorName}: ${action}`;
   }
@@ -540,7 +537,7 @@ export function IdeaDetailPanel({
               <motion.div variants={fadeIn} initial="initial" animate="animate">
                 {/* Assignee Section */}
                 <div>
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+                  <label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
                     {t("common.assignee")}
                   </label>
                   <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-3">
@@ -590,7 +587,7 @@ export function IdeaDetailPanel({
 
                 {/* Content Section */}
                 <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+                  <label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
                     {t("common.content")}
                   </label>
                   <div className="mt-2">
@@ -606,7 +603,7 @@ export function IdeaDetailPanel({
 
                 {/* Activity Section */}
                 <div className="mt-5 flex-1">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+                  <label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
                     {t("common.activity")}
                   </label>
                   <div className="mt-2 space-y-3">
@@ -619,14 +616,12 @@ export function IdeaDetailPanel({
                     ) : (
                       activities.map((activity) => (
                         <div key={activity.uuid} className="flex items-start gap-2.5">
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#F5F2EC]">
-                            <div className={`h-2 w-2 rounded-full ${getActivityDotColor(activity.action)}`} />
-                          </div>
+                          <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#9A9A9A]" />
                           <div className="flex-1">
-                            <p className="text-xs text-[#2C2C2C]">
+                            <p className="text-[13px] text-[#2C2C2C]">
                               {formatActivityMessage(activity, t)}
                             </p>
-                            <p className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(activity.createdAt, t)}</p>
+                            <p className="text-[11px] text-[#9A9A9A]">{formatRelativeTime(activity.createdAt, t)}</p>
                           </div>
                         </div>
                       ))
@@ -636,10 +631,10 @@ export function IdeaDetailPanel({
 
                 {/* Comments Section */}
                 <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+                  <label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
                     {t("comments.title")}
                   </label>
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-2 space-y-3">
                     {isLoadingComments ? (
                       <div className="flex items-center justify-center py-4">
                         <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
@@ -660,8 +655,8 @@ export function IdeaDetailPanel({
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-[#2C2C2C]">{c.author.name}</span>
-                              <span className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(c.createdAt, t)}</span>
+                              <span className={`text-xs font-semibold ${c.author.type === "agent" ? "text-[#C67A52]" : "text-[#2C2C2C]"}`}>{c.author.name}</span>
+                              <span className="text-[11px] text-[#9A9A9A]">{formatRelativeTime(c.createdAt, t)}</span>
                             </div>
                             <div className="mt-1 text-xs leading-relaxed text-[#2C2C2C]">
                               <ContentWithMentions>{c.content}</ContentWithMentions>
@@ -713,7 +708,7 @@ export function IdeaDetailPanel({
 
         {/* Panel Footer */}
         <div className="border-t border-[#F5F2EC] px-6 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3">
             {isEditing ? (
               <>
                 <Button
@@ -747,82 +742,84 @@ export function IdeaDetailPanel({
                 {canAssign && (
                   <Button
                     variant="outline"
-                    className="border-[#E5E0D8]"
+                    className="shrink-0 border-[#E5E0D8] rounded-md px-4 py-2 text-[13px] font-medium"
                     onClick={() => setShowAssignModal(true)}
                   >
                     <User className="mr-2 h-4 w-4" />
                     {idea.assignee ? t("common.reassign") : t("common.assign")}
                   </Button>
                 )}
-                {canSkipElaboration && (
-                  <Button
-                    variant="outline"
-                    className="border-[#E5E0D8]"
-                    onClick={() => {
-                      setSkipReason("");
-                      setSkipError(null);
-                      setShowSkipDialog(true);
-                    }}
-                  >
-                    {t("elaboration.skipButton")}
-                  </Button>
-                )}
-                {canCreateProposal && (
-                  <Link href={`/projects/${projectUuid}/proposals/new?ideaUuid=${idea.uuid}`}>
-                    <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
-                      <FileText className="mr-2 h-4 w-4" />
-                      {t("proposals.createProposal")}
+                {/* Middle area: help text or action buttons */}
+                <div className="flex-1 min-w-0">
+                  {canSkipElaboration && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-[#E5E0D8]"
+                      onClick={() => {
+                        setSkipReason("");
+                        setSkipError(null);
+                        setShowSkipDialog(true);
+                      }}
+                    >
+                      {t("elaboration.skipButton")}
                     </Button>
-                  </Link>
-                )}
-                {idea.status === "elaborating" && !elaborationResolved && !canSkipElaboration && (
-                  <div className="text-xs text-[#9A9A9A]">
-                    {t("elaboration.elaborationRequiredHint")}
-                  </div>
-                )}
-                {idea.status === "completed" || idea.status === "closed" ? (
-                  <div className="text-sm text-[#9A9A9A] text-center w-full">
-                    {idea.status === "completed" ? t("status.completed") : t("status.closed")}
-                  </div>
-                ) : null}
-                <div className="ml-auto">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 border-[#E5E0D8] text-[#D32F2F] hover:bg-[#FFEBEE] hover:text-[#D32F2F] hover:border-[#D32F2F]"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                  )}
+                  {canCreateProposal && (
+                    <Link href={`/projects/${projectUuid}/proposals/new?ideaUuid=${idea.uuid}`}>
+                      <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
+                        <FileText className="mr-2 h-4 w-4" />
+                        {t("proposals.createProposal")}
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("ideas.deleteIdea")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("ideas.deleteIdeaConfirm", { title: idea.title })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          onClick={handleDelete}
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              {t("common.delete")}
-                            </>
-                          ) : (
-                            t("common.delete")
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    </Link>
+                  )}
+                  {idea.status === "elaborating" && !elaborationResolved && !canSkipElaboration && (
+                    <span className="text-[11px] text-[#9A9A9A]">
+                      {t("elaboration.elaborationRequiredHint")}
+                    </span>
+                  )}
+                  {(idea.status === "completed" || idea.status === "closed") && (
+                    <span className="text-sm text-[#9A9A9A]">
+                      {idea.status === "completed" ? t("status.completed") : t("status.closed")}
+                    </span>
+                  )}
                 </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 h-8 w-8 border-[#E5E0D8] text-[#EF4444] hover:bg-[#FFEBEE] hover:text-[#EF4444] hover:border-[#EF4444]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("ideas.deleteIdea")}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("ideas.deleteIdeaConfirm", { title: idea.title })}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t("common.delete")}
+                          </>
+                        ) : (
+                          t("common.delete")
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </>
             )}
           </div>
