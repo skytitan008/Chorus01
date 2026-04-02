@@ -69,6 +69,8 @@
     "elaborationStarted": "{actor} started elaboration",
     "elaborationAnswered": "{actor} answered elaboration",
     "elaborationSkipped": "{actor} skipped elaboration",
+    "elaborationResolved": "{actor} resolved elaboration",
+    "elaborationFollowup": "{actor} requested follow-up elaboration",
     "entityIdea": "Idea",
     "entityProposal": "Proposal",
     "entityTask": "Task",

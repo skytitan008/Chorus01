@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -102,6 +102,8 @@ interface RoundCardProps {
 
 function RoundCard({ round, ideaUuid, onAnswered }: RoundCardProps) {
   const t = useTranslations("elaboration");
+  // `needs_followup` rounds require the user to answer follow-up questions,
+  // so they are treated as interactive/pending just like `pending_answers`.
   const isPending =
     round.status === "pending_answers" || round.status === "needs_followup";
   const isDone =
@@ -111,9 +113,7 @@ function RoundCard({ round, ideaUuid, onAnswered }: RoundCardProps) {
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
-        className={`overflow-hidden rounded-xl border bg-white ${
-          isPending ? "border-[#E5E0D8]" : "border-[#E5E0D8]"
-        }`}
+        className="overflow-hidden rounded-xl border border-[#E5E0D8] bg-white"
       >
         {/* Collapsible header */}
         <CollapsibleTrigger asChild>
@@ -247,10 +247,15 @@ function PendingRoundContent({
 }: PendingRoundContentProps) {
   const t = useTranslations("elaboration");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
   const [enterFrom, setEnterFrom] = useState<"left" | "right">("right");
   const [answers, setAnswers] = useState<Record<string, AnswerInput>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Animation duration in ms — keep in sync with CSS `duration-200`
+  const SLIDE_DURATION_MS = 200;
 
   const goTo = useCallback(
     (next: number, dir: "left" | "right") => {
@@ -281,13 +286,14 @@ function PendingRoundContent({
       }));
       // Auto-advance to next question with slide-left animation
       if (optionId !== OTHER_OPTION_ID) {
-        const nextIdx = Math.min(questions.length - 1, currentIndex + 1);
-        if (nextIdx !== currentIndex) {
-          setTimeout(() => goTo(nextIdx, "left"), 300);
+        const idx = currentIndexRef.current;
+        const nextIdx = Math.min(questions.length - 1, idx + 1);
+        if (nextIdx !== idx) {
+          setTimeout(() => goTo(nextIdx, "left"), SLIDE_DURATION_MS);
         }
       }
     },
-    [questions.length, currentIndex, goTo]
+    [questions.length, goTo]
   );
 
   const handleCustomTextChange = useCallback(
@@ -362,28 +368,30 @@ function PendingRoundContent({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 text-sm text-[#6B6B6B]">{question.text}</div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-[#6B6B6B] disabled:opacity-30"
             onClick={() => goTo(currentIndex - 1, "right")}
             disabled={currentIndex === 0}
-            className="text-[#6B6B6B] disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </Button>
           <span className="text-xs text-[#9A9A9A]">
             {t("navCounter", {
               current: currentIndex + 1,
               total: questions.length,
             })}
           </span>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-[#6B6B6B] disabled:opacity-30"
             onClick={() => goTo(currentIndex + 1, "left")}
             disabled={currentIndex === questions.length - 1}
-            className="text-[#6B6B6B] disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -393,12 +401,12 @@ function PendingRoundContent({
           const isSelected = selectedOptionId === option.id;
           return (
             <div key={option.id}>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() =>
                   handleSelectOption(question.questionId, option.id)
                 }
-                className={`flex w-full items-center justify-between px-3.5 py-3 text-left transition-colors ${
+                className={`flex h-auto w-full items-center justify-between rounded-none px-3.5 py-3 text-left transition-colors ${
                   isSelected
                     ? "bg-[#F7F6F3]"
                     : "hover:bg-[#FAF8F4]"
@@ -410,14 +418,21 @@ function PendingRoundContent({
                   >
                     {idx + 1}
                   </span>
-                  <span className="text-[13px] text-[#2C2C2A]">
-                    {option.label}
+                  <span className="flex flex-col items-start">
+                    <span className="text-[13px] text-[#2C2C2A]">
+                      {option.label}
+                    </span>
+                    {option.description && (
+                      <span className="text-[11px] font-normal text-[#9A9A9A]">
+                        {option.description}
+                      </span>
+                    )}
                   </span>
                 </span>
                 {isSelected && (
                   <ArrowRight className="h-4 w-4 text-[#888780]" />
                 )}
-              </button>
+              </Button>
               {idx < question.options.length - 1 && (
                 <div className="h-px bg-[#F0EEEA]" />
               )}
@@ -443,26 +458,26 @@ function PendingRoundContent({
             <Pencil className="h-3.5 w-3.5 text-[#B4B2A9]" />
           </span>
           {isOtherSelected ? (
-            <input
+            <Input
               type="text"
               value={answers[question.questionId]?.customText || ""}
               onChange={(e) =>
                 handleCustomTextChange(question.questionId, e.target.value)
               }
               placeholder={t("somethingElse")}
-              className="flex-1 bg-transparent text-[13px] text-[#2C2C2A] placeholder:italic placeholder:text-[#B4B2A9] outline-none"
+              className="flex-1 border-none bg-transparent text-[13px] text-[#2C2C2A] placeholder:italic placeholder:text-[#B4B2A9] shadow-none focus-visible:ring-0"
               autoFocus
             />
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() =>
                 handleSelectOption(question.questionId, OTHER_OPTION_ID)
               }
-              className="flex-1 text-left text-[13px] italic text-[#B4B2A9]"
+              className="h-auto flex-1 justify-start rounded-none p-0 text-[13px] italic text-[#B4B2A9] hover:bg-transparent"
             >
               {t("somethingElse")}
-            </button>
+            </Button>
           )}
         </div>
       </div>
