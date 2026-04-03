@@ -65,6 +65,7 @@ export default async function DashboardPage({ params }: PageProps) {
       <div className="min-h-0 flex-1">
         <IdeaTracker
           projectUuid={projectUuid}
+          currentUserUuid={auth.actorUuid}
           initialTrackerData={trackerData}
           initialStatsData={{ stats, recentActivities: activities }}
         />

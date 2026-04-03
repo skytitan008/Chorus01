@@ -6,11 +6,13 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IdeaTrackerList } from "./idea-tracker-list";
 import { IdeaTrackerStats } from "./idea-tracker-stats";
+import { IdeaDetailPanel } from "./panels/idea-detail-panel";
 import { NewIdeaDialog } from "./new-idea-dialog";
 import type { TrackerGroupsResult } from "@/services/idea.service";
 
 interface IdeaTrackerProps {
   projectUuid: string;
+  currentUserUuid: string;
   initialTrackerData: TrackerGroupsResult;
   initialStatsData: {
     stats: {
@@ -29,11 +31,12 @@ interface IdeaTrackerProps {
   };
 }
 
-export function IdeaTracker({ projectUuid, initialTrackerData, initialStatsData }: IdeaTrackerProps) {
+export function IdeaTracker({ projectUuid, currentUserUuid, initialTrackerData, initialStatsData }: IdeaTrackerProps) {
   const t = useTranslations("ideaTracker");
   const [activeTab, setActiveTab] = useState<"ideas" | "stats">("ideas");
   const [isEmpty, setIsEmpty] = useState(false);
   const [showNewIdeaDialog, setShowNewIdeaDialog] = useState(false);
+  const [selectedIdeaUuid, setSelectedIdeaUuid] = useState<string | null>(null);
 
   return (
     <div className="flex h-full flex-col">
@@ -87,6 +90,7 @@ export function IdeaTracker({ projectUuid, initialTrackerData, initialStatsData 
         <IdeaTrackerList
           projectUuid={projectUuid}
           initialData={initialTrackerData}
+          onIdeaClick={setSelectedIdeaUuid}
           onNewIdea={() => setShowNewIdeaDialog(true)}
           onEmptyChange={setIsEmpty}
         />
@@ -99,7 +103,18 @@ export function IdeaTracker({ projectUuid, initialTrackerData, initialStatsData 
         open={showNewIdeaDialog}
         onOpenChange={setShowNewIdeaDialog}
         projectUuid={projectUuid}
+        onCreated={(uuid) => setSelectedIdeaUuid(uuid)}
       />
+
+      {/* Idea Detail Panel */}
+      {selectedIdeaUuid && (
+        <IdeaDetailPanel
+          ideaUuid={selectedIdeaUuid}
+          projectUuid={projectUuid}
+          currentUserUuid={currentUserUuid}
+          onClose={() => setSelectedIdeaUuid(null)}
+        />
+      )}
     </div>
   );
 }
