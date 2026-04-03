@@ -1,5 +1,5 @@
 // src/app/api/projects/[uuid]/stats/route.ts
-// Project Stats API - Returns aggregated stats for dashboard display
+// Project Stats API — thin route, used for client-side realtime refetch
 
 import { NextRequest } from "next/server";
 import { withErrorHandler } from "@/lib/api-handler";
@@ -10,7 +10,7 @@ import { listActivitiesWithActorNames } from "@/services/activity.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
-// GET /api/projects/[uuid]/stats - Project Stats + Recent Activity
+// GET /api/projects/[uuid]/stats — used for client-side realtime refetch
 export const GET = withErrorHandler<{ uuid: string }>(
   async (request: NextRequest, context: RouteContext) => {
     const auth = await getAuthContext(request);
@@ -35,9 +35,6 @@ export const GET = withErrorHandler<{ uuid: string }>(
       }),
     ]);
 
-    return success({
-      stats,
-      recentActivities: activities,
-    });
+    return success({ stats, recentActivities: activities });
   }
 );

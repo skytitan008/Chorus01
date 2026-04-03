@@ -7,15 +7,32 @@ import { Button } from "@/components/ui/button";
 import { IdeaTrackerList } from "./idea-tracker-list";
 import { IdeaTrackerStats } from "./idea-tracker-stats";
 import { NewIdeaDialog } from "./new-idea-dialog";
+import type { TrackerGroupsResult } from "@/services/idea.service";
 
 interface IdeaTrackerProps {
   projectUuid: string;
+  initialTrackerData: TrackerGroupsResult;
+  initialStatsData: {
+    stats: {
+      ideas: { total: number; open: number };
+      tasks: { total: number; inProgress: number; todo: number; toVerify: number; done: number };
+      proposals: { total: number; pending: number };
+      documents: { total: number };
+    };
+    recentActivities: Array<{
+      uuid: string;
+      targetType: string;
+      action: string;
+      actorName: string;
+      createdAt: string;
+    }>;
+  };
 }
 
-export function IdeaTracker({ projectUuid }: IdeaTrackerProps) {
+export function IdeaTracker({ projectUuid, initialTrackerData, initialStatsData }: IdeaTrackerProps) {
   const t = useTranslations("ideaTracker");
   const [activeTab, setActiveTab] = useState<"ideas" | "stats">("ideas");
-  const [isEmpty, setIsEmpty] = useState(true);
+  const [isEmpty, setIsEmpty] = useState(false);
   const [showNewIdeaDialog, setShowNewIdeaDialog] = useState(false);
 
   return (
@@ -69,11 +86,12 @@ export function IdeaTracker({ projectUuid }: IdeaTrackerProps) {
       {activeTab === "ideas" ? (
         <IdeaTrackerList
           projectUuid={projectUuid}
+          initialData={initialTrackerData}
           onNewIdea={() => setShowNewIdeaDialog(true)}
           onEmptyChange={setIsEmpty}
         />
       ) : (
-        <IdeaTrackerStats projectUuid={projectUuid} />
+        <IdeaTrackerStats projectUuid={projectUuid} initialData={initialStatsData} />
       )}
 
       {/* New Idea Dialog */}
@@ -81,7 +99,6 @@ export function IdeaTracker({ projectUuid }: IdeaTrackerProps) {
         open={showNewIdeaDialog}
         onOpenChange={setShowNewIdeaDialog}
         projectUuid={projectUuid}
-        onCreated={() => {}}
       />
     </div>
   );

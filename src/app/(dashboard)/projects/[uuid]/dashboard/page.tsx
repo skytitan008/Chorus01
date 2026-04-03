@@ -4,7 +4,9 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { getProject } from "@/services/project.service";
+import { getProject, getProjectStats } from "@/services/project.service";
+import { getTrackerGroups } from "@/services/idea.service";
+import { listActivitiesWithActorNames } from "@/services/activity.service";
 import { ProjectSettingsModal } from "./project-settings-modal";
 import { IdeaTracker } from "./idea-tracker";
 
@@ -25,6 +27,18 @@ export default async function DashboardPage({ params }: PageProps) {
   if (!project) {
     redirect("/projects");
   }
+
+  // Fetch initial data server-side — no loading spinner on first render
+  const [trackerData, stats, { activities }] = await Promise.all([
+    getTrackerGroups(auth.companyUuid, projectUuid),
+    getProjectStats(auth.companyUuid, projectUuid),
+    listActivitiesWithActorNames({
+      companyUuid: auth.companyUuid,
+      projectUuid,
+      skip: 0,
+      take: 5,
+    }),
+  ]);
 
   return (
     <div className="flex h-full flex-col gap-5 bg-[#F7F6F3] p-5 md:p-6">
@@ -49,7 +63,11 @@ export default async function DashboardPage({ params }: PageProps) {
 
       {/* Idea Tracker */}
       <div className="min-h-0 flex-1">
-        <IdeaTracker projectUuid={projectUuid} />
+        <IdeaTracker
+          projectUuid={projectUuid}
+          initialTrackerData={trackerData}
+          initialStatsData={{ stats, recentActivities: activities }}
+        />
       </div>
     </div>
   );

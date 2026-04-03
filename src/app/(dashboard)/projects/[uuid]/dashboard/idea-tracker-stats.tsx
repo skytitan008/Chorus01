@@ -51,7 +51,7 @@ const activityDotColors: Record<string, string> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatRelativeTime(dateStr: string, t: any): string {
+function formatRelativeTime(dateStr: string, t: (key: string, params?: any) => string): string {
   const now = Date.now();
   const diff = now - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
@@ -65,12 +65,13 @@ function formatRelativeTime(dateStr: string, t: any): string {
 
 interface IdeaTrackerStatsProps {
   projectUuid: string;
+  initialData?: StatsData;
 }
 
-export function IdeaTrackerStats({ projectUuid }: IdeaTrackerStatsProps) {
+export function IdeaTrackerStats({ projectUuid, initialData }: IdeaTrackerStatsProps) {
   const t = useTranslations("ideaTracker");
-  const [data, setData] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<StatsData | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -85,9 +86,10 @@ export function IdeaTrackerStats({ projectUuid }: IdeaTrackerStatsProps) {
     }
   }, [projectUuid]);
 
+  // Only fetch on mount if no initial data was provided
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (!initialData) fetchStats();
+  }, [fetchStats, initialData]);
 
   // Live refresh when ideas/tasks/proposals change
   useRealtimeEvent(fetchStats);

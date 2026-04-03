@@ -727,3 +727,68 @@ export async function getIdeasWithDerivedStatus(
     };
   });
 }
+
+// ===== Tracker Grouping =====
+
+/** Serialized idea for the tracker API/SSR response */
+export interface TrackerIdeaItem {
+  uuid: string;
+  title: string;
+  status: string;
+  derivedStatus: DerivedIdeaStatus;
+  badgeHint: BadgeHint;
+  createdAt: string;
+}
+
+export interface TrackerGroupsResult {
+  groups: Record<string, TrackerIdeaItem[]>;
+  counts: Record<string, number>;
+}
+
+/** The 4 tracker columns (closed is excluded from the board view) */
+const TRACKER_STATUSES: DerivedIdeaStatus[] = [
+  "todo",
+  "in_progress",
+  "human_conduct_required",
+  "done",
+];
+
+/**
+ * Get ideas grouped by derived status for the tracker board.
+ * Business logic lives here — routes/server components just call this.
+ */
+export async function getTrackerGroups(
+  companyUuid: string,
+  projectUuid: string,
+): Promise<TrackerGroupsResult> {
+  const ideas = await getIdeasWithDerivedStatus(companyUuid, projectUuid);
+
+  const groups: Record<string, TrackerIdeaItem[]> = {};
+  const counts: Record<string, number> = {};
+
+  for (const status of TRACKER_STATUSES) {
+    groups[status] = [];
+    counts[status] = 0;
+  }
+
+  for (const idea of ideas) {
+    const ds = idea.derivedStatus;
+    if (ds === "closed") continue;
+
+    const formatted: TrackerIdeaItem = {
+      uuid: idea.uuid,
+      title: idea.title,
+      status: idea.status,
+      derivedStatus: ds,
+      badgeHint: idea.badgeHint,
+      createdAt: idea.createdAt.toISOString(),
+    };
+
+    if (groups[ds]) {
+      groups[ds].push(formatted);
+      counts[ds]++;
+    }
+  }
+
+  return { groups, counts };
+}

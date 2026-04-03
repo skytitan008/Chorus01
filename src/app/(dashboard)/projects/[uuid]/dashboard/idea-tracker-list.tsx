@@ -20,6 +20,7 @@ interface TrackerApiResponse {
 
 interface IdeaTrackerListProps {
   projectUuid: string;
+  initialData?: { groups: Record<string, IdeaCardItem[]>; counts: Record<string, number> };
   onIdeaClick?: (uuid: string) => void;
   onNewIdea?: () => void;
   onEmptyChange?: (isEmpty: boolean) => void;
@@ -30,14 +31,15 @@ const STATUS_ORDER = ["human_conduct_required", "in_progress", "todo", "done"] a
 
 export function IdeaTrackerList({
   projectUuid,
+  initialData,
   onIdeaClick,
   onNewIdea,
   onEmptyChange,
 }: IdeaTrackerListProps) {
   const t = useTranslations("ideaTracker");
 
-  const [groups, setGroups] = useState<Record<string, IdeaCardItem[]>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [groups, setGroups] = useState<Record<string, IdeaCardItem[]>>(initialData?.groups ?? {});
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -57,12 +59,13 @@ export function IdeaTrackerList({
     }
   }, [projectUuid, t]);
 
-  // Initial fetch + realtime refresh
+  // Realtime refresh — initial data comes from Server Component
   useRealtimeEvent(fetchData);
 
+  // Only fetch on mount if no initial data was provided
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!initialData) fetchData();
+  }, [fetchData, initialData]);
 
   const totalIdeas = STATUS_ORDER.reduce(
     (sum, s) => sum + (groups[s] || []).length,
