@@ -100,51 +100,12 @@ interface TaskForPanel {
   dependedBy?: { uuid: string; title: string; status: string }[];
 }
 
-// Derive a simplified status from the idea's lifecycle for panel routing
-function derivedStatus(idea: IdeaResponse): string {
-  const status = idea.status;
-  const elaborationStatus = idea.elaborationStatus;
-
-  if (status === "open") return "todo";
-  if (status === "elaborating") {
-    return elaborationStatus === "pending_answers" ? "human_conduct_required" : "in_progress";
-  }
-  if (status === "proposal_created") return "human_conduct_required";
-  if (status === "completed") return "done";
-  if (status === "closed") return "done";
-  return "todo";
-}
-
-// Status badge colors for derived statuses
-const derivedStatusColors: Record<string, string> = {
-  todo: "bg-[#FFF3E0] text-[#E65100]",
-  in_progress: "bg-[#E3F2FD] text-[#1976D2]",
-  human_conduct_required: "bg-[#F3E5F5] text-[#7B1FA2]",
-  done: "bg-[#E0F2F1] text-[#00796B]",
-};
-
-const derivedStatusI18nKeys: Record<string, string> = {
-  todo: "todo",
-  in_progress: "inProgress",
-  human_conduct_required: "humanConductRequired",
-  done: "done",
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatRelativeTime(dateString: string, t: any, locale: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return t("time.justNow");
-  if (diffMins < 60) return t("time.minutesAgo", { minutes: diffMins });
-  if (diffHours < 24) return t("time.hoursAgo", { hours: diffHours });
-  if (diffDays < 7) return t("time.daysAgo", { days: diffDays });
-  return date.toLocaleDateString(locale);
-}
+import {
+  formatRelativeTime,
+  derivePanelStatus,
+  DERIVED_STATUS_COLORS as derivedStatusColors,
+  DERIVED_STATUS_I18N_KEYS as derivedStatusI18nKeys,
+} from "../utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function formatActivityMessage(activity: ActivityResponse, t: any): string {
@@ -177,7 +138,7 @@ function formatActivityMessage(activity: ActivityResponse, t: any): string {
     case "elaboration_followup":
       return t("activity.elaborationFollowup", { actor: actorName });
     default:
-      return `${actorName}: ${action}`;
+      return t("activity.genericAction", { actor: actorName, action });
   }
 }
 
@@ -472,7 +433,7 @@ export function IdeaDetailPanel({
     setIsMoving(false);
   };
 
-  const status = idea ? derivedStatus(idea) : "todo";
+  const status = idea ? derivePanelStatus(idea.status, idea.elaborationStatus) : "todo";
   const canAssign = idea ? idea.status !== "completed" && idea.status !== "closed" : false;
   const elaborationResolved = idea?.elaborationStatus === "resolved";
   const showHelpText = idea?.status === "elaborating" && !elaborationResolved;
@@ -624,9 +585,9 @@ export function IdeaDetailPanel({
 
                 {/* Activity Section */}
                 <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
+                  <Label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
                     {t("common.activity")}
-                  </label>
+                  </Label>
                   <div className="mt-2">
                     {isLoadingActivities ? (
                       <div className="flex items-center justify-center py-4">
@@ -658,9 +619,9 @@ export function IdeaDetailPanel({
 
                 {/* Comments Section */}
                 <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
+                  <Label className="text-[11px] font-medium uppercase tracking-wider text-[#9A9A9A]">
                     {t("comments.title")}
-                  </label>
+                  </Label>
                   <div className="mt-2 space-y-3">
                     {isLoadingComments ? (
                       <div className="flex items-center justify-center py-4">

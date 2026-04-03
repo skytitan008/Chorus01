@@ -416,6 +416,42 @@ export async function checkIdeasAssignee(
 
 // ===== Service Methods =====
 
+// Get proposals that reference a specific idea UUID
+export async function getProposalsByIdeaUuid(
+  companyUuid: string,
+  projectUuid: string,
+  ideaUuid: string,
+): Promise<ProposalResponse[]> {
+  const rawProposals = await prisma.proposal.findMany({
+    where: { projectUuid, companyUuid },
+    orderBy: { createdAt: "desc" },
+    select: {
+      uuid: true,
+      title: true,
+      description: true,
+      inputType: true,
+      inputUuids: true,
+      documentDrafts: true,
+      taskDrafts: true,
+      status: true,
+      createdByUuid: true,
+      createdByType: true,
+      reviewedByUuid: true,
+      reviewNote: true,
+      reviewedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  // Filter by ideaUuid in the JSON inputUuids array (Prisma JSON filtering is DB-dependent)
+  const matching = rawProposals.filter(
+    (p) => Array.isArray(p.inputUuids) && (p.inputUuids as string[]).includes(ideaUuid),
+  );
+
+  return Promise.all(matching.map((p) => formatProposalResponse(p)));
+}
+
 // List proposals query
 export async function listProposals({
   companyUuid,

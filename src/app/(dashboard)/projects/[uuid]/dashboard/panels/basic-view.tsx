@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Bot, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Streamdown } from "streamdown";
@@ -30,9 +31,9 @@ export function BasicView({ idea, projectUuid, currentUserUuid, onRefresh }: Bas
     <motion.div variants={fadeIn} initial="initial" animate="animate">
       {/* Assignee Section */}
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+        <Label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
           {tCommon("assignee")}
-        </label>
+        </Label>
         <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-3">
           {idea.assignee ? (
             <>
@@ -74,9 +75,9 @@ export function BasicView({ idea, projectUuid, currentUserUuid, onRefresh }: Bas
 
       {/* Content Section */}
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+        <Label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
           {tCommon("content")}
-        </label>
+        </Label>
         <div className="mt-2">
           {idea.content ? (
             <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
@@ -94,9 +95,9 @@ export function BasicView({ idea, projectUuid, currentUserUuid, onRefresh }: Bas
 
       {/* Created By Section */}
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+        <Label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
           {tCommon("created")}
-        </label>
+        </Label>
         <div className="mt-2 flex items-center gap-2">
           {idea.createdBy && (
             <span className="text-sm text-[#2C2C2C]">

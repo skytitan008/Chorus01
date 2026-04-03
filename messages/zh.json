@@ -71,6 +71,7 @@
     "elaborationSkipped": "{actor} 跳过了需求澄清",
     "elaborationResolved": "{actor} 完成了需求澄清",
     "elaborationFollowup": "{actor} 发起了追加需求澄清",
+    "genericAction": "{actor} 执行了 {action}",
     "entityIdea": "想法",
     "entityProposal": "提案",
     "entityTask": "任务",

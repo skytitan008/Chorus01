@@ -71,6 +71,7 @@
     "elaborationSkipped": "{actor} skipped elaboration",
     "elaborationResolved": "{actor} resolved elaboration",
     "elaborationFollowup": "{actor} requested follow-up elaboration",
+    "genericAction": "{actor} performed {action}",
     "entityIdea": "Idea",
     "entityProposal": "Proposal",
     "entityTask": "Task",

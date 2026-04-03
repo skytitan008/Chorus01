@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { useRealtimeEvent } from "@/contexts/realtime-context";
+import { formatRelativeTime } from "./utils";
 import {
   Lightbulb,
   LayoutGrid,
@@ -50,18 +51,6 @@ const activityDotColors: Record<string, string> = {
   document: "bg-[#9A9A9A]",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatRelativeTime(dateStr: string, t: (key: string, params?: any) => string): string {
-  const now = Date.now();
-  const diff = now - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return t("justNow");
-  if (minutes < 60) return t("minutesAgo", { minutes });
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return t("hoursAgo", { hours });
-  const days = Math.floor(hours / 24);
-  return t("daysAgo", { days });
-}
 
 interface IdeaTrackerStatsProps {
   projectUuid: string;
@@ -69,6 +58,7 @@ interface IdeaTrackerStatsProps {
 }
 
 export function IdeaTrackerStats({ projectUuid, initialData }: IdeaTrackerStatsProps) {
+  const tRoot = useTranslations();
   const t = useTranslations("ideaTracker");
   const [data, setData] = useState<StatsData | null>(initialData ?? null);
   const [loading, setLoading] = useState(!initialData);
@@ -248,7 +238,7 @@ export function IdeaTrackerStats({ projectUuid, initialData }: IdeaTrackerStatsP
                         {activity.actorName} {activity.action}
                       </p>
                       <span className="text-[11px] text-[#9A9A9A]">
-                        {formatRelativeTime(activity.createdAt, t)}
+                        {formatRelativeTime(activity.createdAt, tRoot)}
                       </span>
                     </div>
                   </div>

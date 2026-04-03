@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Bot, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ElaborationPanel } from "@/components/elaboration-panel";
 import { getElaborationAction } from "@/app/(dashboard)/projects/[uuid]/ideas/[ideaUuid]/elaboration-actions";
@@ -33,8 +34,6 @@ export function ElaborationView({ idea, onRefresh }: ElaborationViewProps) {
     const result = await getElaborationAction(idea.uuid);
     if (result.success && result.data) {
       setElaboration(result.data);
-    } else {
-      console.error("[ElaborationView] Failed to load elaboration:", result.error);
     }
     setIsLoading(false);
   }, [idea.uuid]);
@@ -63,9 +62,9 @@ export function ElaborationView({ idea, onRefresh }: ElaborationViewProps) {
     <motion.div variants={fadeIn} initial="initial" animate="animate">
       {/* Assignee Section */}
       <div>
-        <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+        <Label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
           {tCommon("assignee")}
-        </label>
+        </Label>
         <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-3">
           {idea.assignee ? (
             <>
@@ -136,9 +135,9 @@ export function ElaborationView({ idea, onRefresh }: ElaborationViewProps) {
         <>
           <Separator className="my-5 bg-[#F5F2EC]" />
           <div>
-            <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+            <Label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
               {tCommon("content")}
-            </label>
+            </Label>
             <div className="mt-2">
               <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
                 <Streamdown plugins={{ code }}>{idea.content}</Streamdown>

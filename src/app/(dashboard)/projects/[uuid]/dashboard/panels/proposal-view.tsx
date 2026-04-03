@@ -15,6 +15,7 @@ import { Streamdown } from "streamdown";
 import { code as codePlugin } from "@streamdown/code";
 import { TaskDag, type TaskDagTask, type TaskDagEdge } from "@/components/task-dag";
 import { normalizeNewlines, DOC_TYPE_I18N_KEYS } from "./utils";
+import { getProposalsForIdeaAction, getTasksForProposalAction } from "./actions";
 import type { IdeaResponse } from "@/services/idea.service";
 
 interface AcceptanceCriteriaItem {
@@ -65,16 +66,9 @@ export function ProposalView({ idea, projectUuid, onTaskClick, onDocClick }: Pro
 
   const fetchProposals = useCallback(async () => {
     try {
-      const res = await fetch(
-        `/api/projects/${projectUuid}/proposals?pageSize=100`
-      );
-      const json = await res.json();
-      if (json.success) {
-        const matching = (json.data || []).filter(
-          (p: { inputUuids: string[] }) =>
-            Array.isArray(p.inputUuids) && p.inputUuids.includes(idea.uuid)
-        );
-        setProposals(matching);
+      const result = await getProposalsForIdeaAction(projectUuid, idea.uuid);
+      if (result.success) {
+        setProposals(result.data);
       }
     } catch {
       // empty state will show
@@ -153,12 +147,9 @@ function ProposalContent({
   // For approved proposals, fetch materialized tasks to enable navigation
   useEffect(() => {
     if (!isApproved) return;
-    fetch(`/api/projects/${projectUuid}/tasks?proposalUuids=${proposal.uuid}&pageSize=100`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) setMaterializedTasks(json.data || []);
-      })
-      .catch(() => {});
+    getTasksForProposalAction(projectUuid, proposal.uuid).then((result) => {
+      if (result.success) setMaterializedTasks(result.data || []);
+    }).catch(() => {});
   }, [isApproved, projectUuid, proposal.uuid]);
 
   // Map draft title → materialized task info for navigation + status
