@@ -33,6 +33,7 @@ vi.mock("@/services/activity.service", () => ({
 import {
   computeDerivedStatus,
   getIdeasWithDerivedStatus,
+  getTrackerGroups,
 } from "@/services/idea.service";
 
 // ===== Test Data =====
@@ -357,5 +358,104 @@ describe("getIdeasWithDerivedStatus", () => {
     expect(result[0].derivedStatus).toBe("in_progress");
     expect(result[0].badgeHint).toBe("planning");
     expect(mockPrisma.task.findMany).not.toHaveBeenCalled();
+  });
+});
+
+// ===== getTrackerGroups (grouping + formatting) =====
+
+describe("getTrackerGroups", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns empty groups when project has no ideas", async () => {
+    mockPrisma.idea.findMany.mockResolvedValue([]);
+    mockPrisma.proposal.findMany.mockResolvedValue([]);
+
+    const result = await getTrackerGroups(COMPANY_UUID, PROJECT_UUID);
+
+    expect(result.groups.todo).toEqual([]);
+    expect(result.groups.in_progress).toEqual([]);
+    expect(result.groups.human_conduct_required).toEqual([]);
+    expect(result.groups.done).toEqual([]);
+    expect(result.counts.todo).toBe(0);
+    expect(result.counts.in_progress).toBe(0);
+    expect(result.counts.human_conduct_required).toBe(0);
+    expect(result.counts.done).toBe(0);
+  });
+
+  it("excludes closed ideas from all groups", async () => {
+    mockPrisma.idea.findMany.mockResolvedValue([
+      makeIdea("idea-closed", "closed"),
+    ]);
+    mockPrisma.proposal.findMany.mockResolvedValue([]);
+    mockPrisma.task.findMany.mockResolvedValue([]);
+
+    const result = await getTrackerGroups(COMPANY_UUID, PROJECT_UUID);
+
+    const allItems = Object.values(result.groups).flat();
+    expect(allItems).toHaveLength(0);
+  });
+
+  it("groups ideas by derived status with correct counts", async () => {
+    const proposalUuid = "proposal-approved";
+
+    mockPrisma.idea.findMany.mockResolvedValue([
+      makeIdea("idea-open", "open"),
+      makeIdea("idea-elab", "elaborating", "validating"),
+      makeIdea("idea-pending", "elaborating", "pending_answers"),
+      makeIdea("idea-done", "completed"),
+      makeIdea("idea-closed", "closed"),
+      makeIdea("idea-building", "proposal_created"),
+    ]);
+    mockPrisma.proposal.findMany.mockResolvedValue([
+      { uuid: proposalUuid, status: "approved", inputUuids: ["idea-building"], createdAt: now },
+    ]);
+    mockPrisma.task.findMany.mockResolvedValue([
+      { proposalUuid, status: "in_progress" },
+    ]);
+
+    const result = await getTrackerGroups(COMPANY_UUID, PROJECT_UUID);
+
+    expect(result.counts.todo).toBe(1);
+    expect(result.counts.in_progress).toBe(2); // elaborating + building
+    expect(result.counts.human_conduct_required).toBe(1); // pending_answers
+    expect(result.counts.done).toBe(1);
+
+    // Closed should not appear in any group
+    const allUuids = Object.values(result.groups).flat().map((i) => i.uuid);
+    expect(allUuids).not.toContain("idea-closed");
+    expect(allUuids).toHaveLength(5);
+  });
+
+  it("formats TrackerIdeaItem fields correctly", async () => {
+    mockPrisma.idea.findMany.mockResolvedValue([makeIdea("idea-1", "open")]);
+    mockPrisma.proposal.findMany.mockResolvedValue([]);
+
+    const result = await getTrackerGroups(COMPANY_UUID, PROJECT_UUID);
+
+    const item = result.groups.todo[0];
+    expect(item).toEqual({
+      uuid: "idea-1",
+      title: "Idea idea-1",
+      status: "open",
+      derivedStatus: "todo",
+      badgeHint: "open",
+      createdAt: now.toISOString(),
+    });
+  });
+
+  it("places multiple ideas in the same group", async () => {
+    mockPrisma.idea.findMany.mockResolvedValue([
+      makeIdea("idea-a", "open"),
+      makeIdea("idea-b", "open"),
+      makeIdea("idea-c", "open"),
+    ]);
+    mockPrisma.proposal.findMany.mockResolvedValue([]);
+
+    const result = await getTrackerGroups(COMPANY_UUID, PROJECT_UUID);
+
+    expect(result.groups.todo).toHaveLength(3);
+    expect(result.counts.todo).toBe(3);
   });
 });
