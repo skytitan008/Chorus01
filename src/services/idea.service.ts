@@ -609,7 +609,6 @@ export function computeDerivedStatus(ctx: DerivedStatusContext): DerivedStatusRe
 }
 
 export interface IdeaWithDerivedStatus {
-  id: number;
   uuid: string;
   title: string;
   status: string;
@@ -631,7 +630,6 @@ export async function getIdeasWithDerivedStatus(
   const ideas = await prisma.idea.findMany({
     where: { companyUuid, projectUuid },
     select: {
-      id: true,
       uuid: true,
       title: true,
       status: true,
@@ -719,7 +717,6 @@ export async function getIdeasWithDerivedStatus(
     });
 
     return {
-      id: idea.id,
       uuid: idea.uuid,
       title: idea.title,
       status: idea.status,

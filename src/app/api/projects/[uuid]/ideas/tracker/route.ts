@@ -45,12 +45,9 @@ export const GET = withErrorHandler<{ uuid: string }>(
       projectUuid
     );
 
-    // Use DB auto-increment id as stable idea number (won't shift on delete)
-
-    // Group ideas by derivedStatus and attach commentCount + ideaNumber
+    // Group ideas by derivedStatus
     const groups: Record<string, Array<{
       uuid: string;
-      ideaNumber: number;
       title: string;
       status: string;
       derivedStatus: DerivedIdeaStatus;
@@ -71,7 +68,6 @@ export const GET = withErrorHandler<{ uuid: string }>(
 
       const formatted = {
         uuid: idea.uuid,
-        ideaNumber: idea.id,
         title: idea.title,
         status: idea.status,
         derivedStatus: ds,
