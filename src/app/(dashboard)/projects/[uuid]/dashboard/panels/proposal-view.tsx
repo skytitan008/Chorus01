@@ -71,6 +71,7 @@ function normalizeNewlines(text: string): string {
 export function ProposalView({ idea, projectUuid, onTaskClick, onDocClick }: ProposalViewProps) {
   const t = useTranslations("ideaTracker");
   const tProposals = useTranslations("proposals");
+  const tTasks = useTranslations("tasks");
   const tDocs = useTranslations("documents");
 
   const [proposals, setProposals] = useState<ProposalData[]>([]);
@@ -128,6 +129,7 @@ export function ProposalView({ idea, projectUuid, onTaskClick, onDocClick }: Pro
           projectUuid={projectUuid}
           t={t}
           tProposals={tProposals}
+          tTasks={tTasks}
           tDocs={tDocs}
           onTaskClick={onTaskClick}
           onDocClick={onDocClick}
@@ -148,6 +150,7 @@ function ProposalContent({
   projectUuid,
   t,
   tProposals,
+  tTasks,
   tDocs,
   onTaskClick,
   onDocClick,
@@ -158,6 +161,8 @@ function ProposalContent({
   t: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tProposals: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tTasks: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tDocs: any;
   onTaskClick?: (taskUuid: string) => void;
@@ -327,7 +332,7 @@ function ProposalContent({
                     : "text-[#9A9A9A] hover:text-[#6B6B6B]"
                 }`}
               >
-                {tProposals("dagView")}
+                {tTasks("dagView")}
               </Button>
             </div>
           )}
