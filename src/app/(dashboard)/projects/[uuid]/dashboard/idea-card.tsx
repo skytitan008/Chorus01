@@ -62,6 +62,7 @@ export function IdeaCard({ idea, onClick }: IdeaRowProps) {
     >
       {/* Left: ID + Title + Badge */}
       <div className="flex min-w-0 items-center gap-2.5">
+        <span className="shrink-0 text-[11px] text-[#B4B2A9]">IDEA</span>
         <span className="truncate text-[13px] text-[#2C2C2A]">
           {idea.title}
         </span>
