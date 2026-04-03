@@ -70,8 +70,8 @@ export function ProposalView({ idea, projectUuid, onTaskClick, onDocClick }: Pro
       if (result.success) {
         setProposals(result.data);
       }
-    } catch {
-      // empty state will show
+    } catch (e) {
+      console.error("Failed to fetch proposals:", e);
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +149,7 @@ function ProposalContent({
     if (!isApproved) return;
     getTasksForProposalAction(projectUuid, proposal.uuid).then((result) => {
       if (result.success) setMaterializedTasks(result.data || []);
-    }).catch(() => {});
+    }).catch((e) => console.error("Failed to fetch materialized tasks:", e));
   }, [isApproved, projectUuid, proposal.uuid]);
 
   // Map draft title → materialized task info for navigation + status

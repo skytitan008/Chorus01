@@ -106,10 +106,10 @@ import {
   derivePanelStatus,
   DERIVED_STATUS_COLORS as derivedStatusColors,
   DERIVED_STATUS_I18N_KEYS as derivedStatusI18nKeys,
+  type TranslateFn,
 } from "../utils";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatActivityMessage(activity: ActivityResponse, t: any): string {
+function formatActivityMessage(activity: ActivityResponse, t: TranslateFn): string {
   const { action, actorName } = activity;
 
   switch (action) {
@@ -388,7 +388,8 @@ export function IdeaDetailPanel({
         }
         setMoveGroups(groups);
       }
-    } catch {
+    } catch (e) {
+      console.error("Failed to load projects for move dialog:", e);
       setMoveGroups([]);
     }
     setIsLoadingProjects(false);

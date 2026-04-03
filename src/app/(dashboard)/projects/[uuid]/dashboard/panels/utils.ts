@@ -10,4 +10,7 @@ export const DOC_TYPE_I18N_KEYS: Record<string, string> = {
   adr: "typeAdr",
   spec: "typeSpec",
   guide: "typeGuide",
+  design: "typeDesign",
+  note: "typeNote",
+  other: "typeOther",
 };

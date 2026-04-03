@@ -1,9 +1,11 @@
+import type { useTranslations } from "next-intl";
 import type { DerivedIdeaStatus, BadgeHint } from "@/services/idea.service";
+
+export type TranslateFn = ReturnType<typeof useTranslations>;
 
 // ===== Relative Time Formatting =====
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function formatRelativeTime(dateString: string, t: any, locale?: string): string {
+export function formatRelativeTime(dateString: string, t: TranslateFn, locale?: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -62,7 +64,7 @@ export const BADGE_HINT_I18N_KEYS: Record<string, string> = {
   closed: "closed",
 };
 
-export function getBadgeHintLabel(badgeHint: BadgeHint, t: (key: string) => string): string {
+export function getBadgeHintLabel(badgeHint: BadgeHint, t: TranslateFn): string {
   if (!badgeHint) return "";
   return t(BADGE_HINT_I18N_KEYS[badgeHint] || "open");
 }

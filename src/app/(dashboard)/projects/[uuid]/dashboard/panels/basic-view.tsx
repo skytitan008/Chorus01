@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Bot, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
@@ -13,6 +12,7 @@ import { motion } from "framer-motion";
 import { fadeIn } from "@/lib/animation";
 import type { IdeaResponse } from "@/services/idea.service";
 import { AssignIdeaModal } from "@/app/(dashboard)/projects/[uuid]/ideas/assign-idea-modal";
+import { AssigneeSection } from "./assignee-section";
 
 interface BasicViewProps {
   idea: IdeaResponse;
@@ -30,46 +30,7 @@ export function BasicView({ idea, projectUuid, currentUserUuid, onRefresh }: Bas
   return (
     <motion.div variants={fadeIn} initial="initial" animate="animate">
       {/* Assignee Section */}
-      <div>
-        <Label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-          {tCommon("assignee")}
-        </Label>
-        <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-3">
-          {idea.assignee ? (
-            <>
-              <Avatar className="h-7 w-7">
-                <AvatarFallback
-                  className={
-                    idea.assignee.type === "agent"
-                      ? "bg-[#C67A52] text-white"
-                      : "bg-[#E5E0D8] text-[#6B6B6B]"
-                  }
-                >
-                  {idea.assignee.type === "agent" ? (
-                    <Bot className="h-3.5 w-3.5" />
-                  ) : (
-                    idea.assignee.name.charAt(0).toUpperCase()
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="text-sm font-medium text-[#2C2C2C]">
-                  {idea.assignee.name}
-                </div>
-                <div className="text-xs text-[#6B6B6B]">
-                  {idea.assignee.type === "agent"
-                    ? tCommon("agent")
-                    : tCommon("user")}
-                </div>
-              </div>
-            </>
-          ) : (
-            <span className="text-sm text-[#9A9A9A]">
-              {tCommon("unassigned")}
-            </span>
-          )}
-        </div>
-      </div>
+      <AssigneeSection assignee={idea.assignee} />
 
       <Separator className="my-5 bg-[#F5F2EC]" />
 
