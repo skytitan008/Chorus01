@@ -53,6 +53,7 @@ import {
 } from "@/app/(dashboard)/projects/[uuid]/ideas/[ideaUuid]/comment-actions";
 import { getIdeaActivitiesAction } from "@/app/(dashboard)/projects/[uuid]/ideas/[ideaUuid]/activity-actions";
 import { deleteIdeaAction, updateIdeaAction } from "@/app/(dashboard)/projects/[uuid]/ideas/actions";
+import { getIdeaAction, getTaskAction, moveIdeaAction, getProjectsAndGroupsAction } from "./actions";
 import { AssignIdeaModal } from "@/app/(dashboard)/projects/[uuid]/ideas/assign-idea-modal";
 import type { IdeaResponse } from "@/services/idea.service";
 import type { ActivityResponse } from "@/services/activity.service";
@@ -210,18 +211,15 @@ export function IdeaDetailPanel({
   // Use panel URL for URL state management
   usePanelUrl(`/projects/${projectUuid}/dashboard`, ideaUuid);
 
-  // Fetch single idea by UUID
+  // Fetch single idea via server action (calls service layer directly)
   const fetchIdea = useCallback(async () => {
     try {
-      const res = await fetch(`/api/ideas/${ideaUuid}`);
-      const json = await res.json();
-      if (json.success && json.data) {
-        setIdea(json.data);
+      const result = await getIdeaAction(ideaUuid);
+      if (result.success) {
+        setIdea(result.data);
         setError(null);
-      } else if (res.status === 404) {
-        setError(tTracker("panel.notFound"));
       } else {
-        setError(tTracker("panel.loadFailed"));
+        setError(tTracker(result.error === "Not found" ? "panel.notFound" : "panel.loadFailed"));
       }
     } catch {
       setError(tTracker("panel.loadFailed"));
@@ -264,20 +262,15 @@ export function IdeaDetailPanel({
     });
   });
 
-  // Fetch single task by UUID when selected from the proposal view
+  // Fetch single task via server action when selected from the proposal view
   useEffect(() => {
     if (!selectedTaskUuid) {
       setSelectedTask(null);
       return;
     }
-    fetch(`/api/tasks/${selectedTaskUuid}`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && json.data) {
-          setSelectedTask(json.data);
-        }
-      })
-      .catch(() => {});
+    getTaskAction(selectedTaskUuid).then((result) => {
+      if (result.success) setSelectedTask(result.data);
+    }).catch(console.error);
   }, [selectedTaskUuid]);
 
   const handleSubmitComment = async () => {
@@ -361,25 +354,18 @@ export function IdeaDetailPanel({
     setMoveError(null);
     setIsLoadingProjects(true);
     try {
-      const [projRes, groupRes] = await Promise.all([
-        fetch("/api/projects?pageSize=100"),
-        fetch("/api/project-groups"),
-      ]);
-      const [projJson, groupJson] = await Promise.all([projRes.json(), groupRes.json()]);
-
-      if (projJson.success) {
-        const projects = projJson.data
+      const result = await getProjectsAndGroupsAction();
+      if (result.success) {
+        const { projects: allProjects, groups: allGroups } = result.data;
+        const projects = allProjects
           .filter((p: { uuid: string }) => p.uuid !== projectUuid)
           .map((p: { uuid: string; name: string; groupUuid: string | null }) => ({
             uuid: p.uuid, name: p.name, groupUuid: p.groupUuid,
           }));
 
         const groupMap = new Map<string, string>();
-        if (groupJson.success) {
-          const groups = groupJson.data.groups || groupJson.data;
-          for (const g of groups) {
-            groupMap.set(g.uuid, g.name);
-          }
+        for (const g of allGroups) {
+          groupMap.set(g.uuid, g.name);
         }
 
         const grouped = new Map<string, { uuid: string; name: string; projects: { uuid: string; name: string }[] }>();
@@ -414,18 +400,13 @@ export function IdeaDetailPanel({
     setMoveError(null);
 
     try {
-      const res = await fetch(`/api/ideas/${idea.uuid}/move`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetProjectUuid: selectedMoveProject.uuid }),
-      });
-      const json = await res.json();
-      if (json.success) {
+      const result = await moveIdeaAction(idea.uuid, selectedMoveProject.uuid);
+      if (result.success) {
         setShowMoveDialog(false);
         onClose();
         router.refresh();
       } else {
-        setMoveError(typeof json.error === "string" ? json.error : json.error?.message || t("ideas.moveFailed"));
+        setMoveError(result.error || t("ideas.moveFailed"));
       }
     } catch {
       setMoveError(t("ideas.moveFailed"));
