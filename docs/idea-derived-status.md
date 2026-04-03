@@ -9,70 +9,44 @@ The Idea Tracker displays ideas with a **derived presentation** computed from mu
 | Idea Status | `Idea.status` | `open`, `elaborating`, `proposal_created`, `completed`, `closed` |
 | Elaboration Status | `Idea.elaborationStatus` | `null`, `validating`, `pending_answers`, `resolved` |
 | Proposal Status | `Proposal.status` | `draft`, `pending`, `approved`, `rejected`, `closed` |
-| Task Status | `Task.status` | `open`, `in_progress`, `to_verify`, `done`, `closed` |
+| Task Status | `Task.status` | `open`, `assigned`, `in_progress`, `to_verify`, `done`, `closed` |
 
-## Full Mapping Table
+## Full Mapping (11 internal states → 4 groups + 9 badge labels)
 
-Left side = internal state machine (5 source fields). Right side = user-facing display (5 presentation dimensions).
+| # | Idea Status | Elab Status | Proposal | Tasks | → Group | → Badge |
+|---|---|---|---|---|---|---|
+| 1 | `open` | — | — | — | **To Do** | `open` |
+| 2 | `elaborating` | `null`/`validating`/`resolved` | — | — | **In Progress** | `researching` |
+| 3 | `elaborating` | `pending_answers` | — | — | **Human Conduct Required** | `answer_questions` |
+| 4 | `proposal_created` | — | `draft`/`rejected` | — | **In Progress** | `planning` |
+| 5 | `proposal_created` | — | `pending` | — | **Human Conduct Required** | `review_proposal` |
+| 6 | `proposal_created` | — | `approved` | not all finished (any `open`/`assigned`/`in_progress` remaining) | **In Progress** | `building` |
+| 7 | `proposal_created` | — | `approved` | ALL `done`/`closed`/`to_verify`, with ≥1 `to_verify` | **Human Conduct Required** | `verify_work` |
+| 8 | `proposal_created` | — | `approved` | ≥1 task, ALL `done`/`closed` | **Done** | `done` |
+| 9 | `proposal_created` | — | `approved` | no tasks | **In Progress** | `building` |
+| 10 | `completed` | — | — | — | **Done** | `done` |
+| 11 | `closed` | — | — | — | *(excluded from board)* | `closed` |
 
-| # | Internal Stage | Idea Status | Elab Status | Proposal | Task | Icon | User Label | Phase Progress | Action Type | Human Action? |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | New | `open` | — | — | — | ○ gray | Open | — | — | — |
-| 2 | AI elaborating | `elaborating` | `null`/`validating`/`resolved` | — | — | ◐ purple spin | Researching | **Research** → Plan → Build | — | — |
-| 3 | Pending answers | `elaborating` | `pending_answers` | — | — | ● orange | Answer questions | **Research** → Plan → Build | Answer questions | YES |
-| 4 | Drafting proposal | `proposal_created` | — | `draft`/`rejected` | — | ◐ purple spin | Planning | Research → **Plan** → Build | — | — |
-| 5 | Pending approval | `proposal_created` | — | `pending` | — | ● orange | Review proposal | Research → **Plan** → Build | Review proposal | YES |
-| 6 | In development | `proposal_created` | — | `approved` | `open`/`in_progress` | ◐ purple spin | Building | Research → Plan → **Build** | — | — |
-| 7 | Pending verification | `proposal_created` | — | `approved` | any `to_verify` | ● orange | Verify work | Research → Plan → **Build** | Verify deliverables | YES |
-| 8 | All tasks done | `proposal_created` | — | `approved` | all `done`/`closed` | ✓ green | Done | — | — | — |
-| 9 | Approved, no tasks | `proposal_created` | — | `approved` | (empty) | ✓ green | Done | — | — | — |
-| 10 | Completed | `completed` | — | — | — | ✓ green | Done | — | — | — |
-| 11 | Closed | `closed` | — | — | — | ✗ gray | Closed | — | — | — |
+### Evaluation Order
 
-## Display Dimensions
+The code evaluates `proposal_created` + `approved` states in this order (first match wins):
 
-### Icons (4 variants)
+1. All tasks `done`/`closed` (≥1 task) → **done**
+2. All tasks `done`/`closed`/`to_verify` with ≥1 `to_verify` → **verify_work**
+3. Fallback (including no tasks, or any task still `open`/`assigned`/`in_progress`) → **building**
 
-| Icon | Color | Meaning |
-|---|---|---|
-| ○ | gray | Not started |
-| ◐ spin | purple | AI is working |
-| ● | orange | Waiting for human |
-| ✓ | green | Complete |
-| ✗ | gray | Closed |
+### Key Design Decisions
 
-### User Labels (9 unique, #8/#9/#10 merge into "Done")
+1. **`verify_work` requires ALL tasks complete** — Row #7 only triggers when every task is `done`, `closed`, or `to_verify` (with at least one `to_verify`). A mix of `in_progress` + `to_verify` stays as `building` (#6), preventing premature "verify" prompts.
 
-`Open` → `Researching` → `Answer questions` → `Planning` → `Review proposal` → `Building` → `Verify work` → `Done` / `Closed`
+2. **3 human action points** — The board highlights when humans need to act: answer elaboration questions (#3), review proposals (#5), verify completed work (#7). Everything else is AI-driven.
 
-### Phase Progress Bar (3-segment: Research → Plan → Build)
-
-Shown only during active stages (#2–#7). The currently active phase is **bolded**. Not shown for Open, Done, or Closed.
-
-| Phase | Active During Rows |
-|---|---|
-| **Research** | 2, 3 |
-| **Plan** | 4, 5 |
-| **Build** | 6, 7 |
-
-### Action Types (3 human actions)
-
-| Action | Row | Trigger |
-|---|---|---|
-| Answer questions | 3 | Elaboration Q&A — agent needs information |
-| Review proposal | 5 | Proposal ready for approval/rejection |
-| Verify deliverables | 7 | Task work submitted for verification |
-
-## Design Notes
-
-11 internal states map to 9 user labels. The presentation uses 3 parallel information channels beyond the label:
-- **Icon color** (4 variants) — instant visual status
-- **Phase progress bar** (3 segments) — where in the lifecycle
-- **Action type** (3 variants) — what the human should do next
+3. **4 dashboard groups** — `todo` (not started), `in_progress` (AI working), `human_conduct_required` (waiting on human), `done` (complete). `closed` ideas are excluded from the board.
 
 ## Implementation
 
-- **Service**: `computeDerivedStatus()` in `src/services/idea.service.ts`
-- **Tests**: `src/services/__tests__/idea.service.derived-status.test.ts`
-- **API**: `GET /api/projects/[uuid]/ideas/tracker` returns derived fields per idea
-- **UI**: `src/app/(dashboard)/projects/[uuid]/dashboard/idea-card.tsx` renders the card
+- **Computation**: `computeDerivedStatus()` in `src/services/idea.service.ts` — pure function, no DB calls
+- **Data fetching**: `getIdeasWithDerivedStatus()` — 3 batch queries (ideas + proposals + tasks), no N+1
+- **Tests**: 27 test cases in `src/services/__tests__/idea.service.derived-status.test.ts` covering all 11 rows
+- **API**: `GET /api/projects/[uuid]/ideas/tracker` returns `derivedStatus` + `badgeHint` per idea
+- **UI**: `src/app/(dashboard)/projects/[uuid]/dashboard/idea-card.tsx` renders badge color/label based on `badgeHint`
