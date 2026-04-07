@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://chorus-aidlc.com',
+  site: 'https://chorus-ai.dev',
   output: 'static',
 
   i18n: {
