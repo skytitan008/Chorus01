@@ -10,9 +10,11 @@ const { lang } = Astro.props;
 const pre = langPrefix(lang);
 const githubUrl = "https://github.com/Chorus-AIDLC/chorus";
 const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general";
-const altUrl = getAlternateUrl(Astro.url);
+const altLang = lang === 'en' ? 'zh' : 'en';
+const altUrl = getAlternateUrl(Astro.url) + '?lang=' + altLang;
+const enUrl = (lang === 'en' ? Astro.url.pathname : getAlternateUrl(Astro.url)) + '?lang=en';
+const zhUrl = (lang === 'zh' ? Astro.url.pathname : getAlternateUrl(Astro.url)) + '?lang=zh';
 const currentLabel = lang === 'en' ? 'EN' : '中文';
-const altLabel = lang === 'en' ? '中文' : 'EN';
 ---
 
 <nav>
@@ -36,8 +38,8 @@ const altLabel = lang === 'en' ? '中文' : 'EN';
           <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="lang-menu" id="lang-menu">
-          <a href={`${pre}/`} class:list={["lang-option", { active: lang === 'en' }]}>English</a>
-          <a href={altUrl} class:list={["lang-option", { active: lang === 'zh' }]}>中文</a>
+          <a href={enUrl} class:list={["lang-option", { active: lang === 'en' }]}>English</a>
+          <a href={zhUrl} class:list={["lang-option", { active: lang === 'zh' }]}>中文</a>
         </div>
       </div>
       <a href={dockerUrl} class="nav-icon-link" title={t(lang, 'nav.dockerHub')} aria-label={t(lang, 'nav.dockerHub')} target="_blank" rel="noopener noreferrer">
@@ -65,8 +67,8 @@ const altLabel = lang === 'en' ? '中文' : 'EN';
     <a href={`${pre}/blog/`}>{t(lang, 'nav.blog')}</a>
     <div class="mobile-divider"></div>
     <div class="mobile-lang">
-      <a href="/" class:list={[{ active: lang === 'en' }]}>English</a>
-      <a href="/zh/" class:list={[{ active: lang === 'zh' }]}>中文</a>
+      <a href={enUrl} class:list={[{ active: lang === 'en' }]}>English</a>
+      <a href={zhUrl} class:list={[{ active: lang === 'zh' }]}>中文</a>
     </div>
     <div class="mobile-divider"></div>
     <div class="mobile-actions">
@@ -120,14 +122,6 @@ const altLabel = lang === 'en' ? '中文' : 'EN';
     document.addEventListener('click', () => langMenu.classList.remove('open'));
   }
 
-  // Save language choice to localStorage
-  document.querySelectorAll('.lang-option, .mobile-lang a').forEach(a => {
-    a.addEventListener('click', () => {
-      const href = (a as HTMLAnchorElement).getAttribute('href') || '';
-      const lang = href.startsWith('/zh') ? 'zh' : 'en';
-      localStorage.setItem('chorus-lang', lang);
-    });
-  });
 </script>
 
 <style>

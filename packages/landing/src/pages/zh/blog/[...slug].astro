@@ -36,7 +36,7 @@ const dateStr = post.data.date.toISOString().slice(0, 10);
         <a href="/zh/blog/" class="back-link">&larr; {t(lang, 'blog.backToBlog')}</a>
         <div class="meta-right">
           <time datetime={dateStr}>{dateStr}</time>
-          <a href={`/blog/${post.data.postSlug}/`} class="lang-switch">EN</a>
+          <a href={`/blog/${post.data.postSlug}/?lang=en`} class="lang-switch">EN</a>
         </div>
       </div>
       <div class="post-content">

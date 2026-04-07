@@ -16,14 +16,24 @@ const { title, description = "Chorus is the agent harness for AI-human collabora
   <meta charset="UTF-8" />
   <script is:inline>
     (function() {
+      // If URL has ?lang= param, it's an explicit switch — save and clean URL
+      var params = new URLSearchParams(location.search);
+      var explicit = params.get('lang');
+      if (explicit === 'en' || explicit === 'zh') {
+        localStorage.setItem('chorus-lang', explicit);
+        params.delete('lang');
+        var clean = location.pathname + (params.toString() ? '?' + params : '');
+        history.replaceState(null, '', clean);
+        // Already on correct page (Nav links point to correct path)
+        return;
+      }
+
       var stored = localStorage.getItem('chorus-lang');
       if (stored) {
-        // User previously chose a language
         var onZh = location.pathname.startsWith('/zh');
         if (stored === 'zh' && !onZh) { location.replace('/zh' + location.pathname); return; }
         if (stored === 'en' && onZh) { location.replace(location.pathname.replace(/^\/zh/, '') || '/'); return; }
       } else if (location.pathname === '/') {
-        // First visit on root — detect browser language
         var lang = (navigator.language || '').toLowerCase();
         if (lang.startsWith('zh')) { location.replace('/zh/'); return; }
       }
