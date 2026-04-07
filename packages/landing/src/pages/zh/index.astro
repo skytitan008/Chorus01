@@ -1,0 +1,35 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Hero from '../../components/Hero.astro';
+import Pipeline from '../../components/Pipeline.astro';
+import ReversedConversation from '../../components/ReversedConversation.astro';
+import Features from '../../components/Features.astro';
+import Integration from '../../components/Integration.astro';
+import Showcase from '../../components/Showcase.astro';
+import Agents from '../../components/Agents.astro';
+import Workflow from '../../components/Workflow.astro';
+import Stats from '../../components/Stats.astro';
+import Quickstart from '../../components/Quickstart.astro';
+import Cta from '../../components/Cta.astro';
+import Footer from '../../components/Footer.astro';
+import { t } from '../../i18n/utils';
+
+const lang = 'zh' as const;
+---
+
+<Layout title={t(lang, 'meta.siteTitle')} lang={lang}>
+  <Nav lang={lang} />
+  <Hero lang={lang} />
+  <Pipeline lang={lang} />
+  <ReversedConversation lang={lang} />
+  <Features lang={lang} />
+  <Integration lang={lang} />
+  <Showcase lang={lang} />
+  <Agents lang={lang} />
+  <Workflow lang={lang} />
+  <Stats lang={lang} />
+  <Quickstart lang={lang} />
+  <Cta lang={lang} />
+  <Footer lang={lang} />
+</Layout>

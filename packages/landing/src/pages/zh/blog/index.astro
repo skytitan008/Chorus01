@@ -1,21 +1,21 @@
 ---
 import { getCollection } from "astro:content";
-import Layout from "../../layouts/Layout.astro";
-import Nav from "../../components/Nav.astro";
-import Footer from "../../components/Footer.astro";
-import { t } from "../../i18n/utils";
+import Layout from "../../../layouts/Layout.astro";
+import Nav from "../../../components/Nav.astro";
+import Footer from "../../../components/Footer.astro";
+import { t } from "../../../i18n/utils";
 
-const lang = 'en' as const;
+const lang = 'zh' as const;
 const allPosts = await getCollection("blog");
 const posts = allPosts
-  .filter((p) => p.data.lang === 'en')
+  .filter((p) => p.data.lang === 'zh')
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
 function getTags(slug: string): string[] {
-  if (slug.includes("claude-code")) return ["Claude Code", "Plugin"];
-  if (slug.includes("openclaw")) return ["OpenClaw", "Plugin"];
-  if (slug.includes("harness")) return ["Architecture", "Essay"];
-  return ["Engineering"];
+  if (slug.includes("claude-code")) return ["Claude Code", "插件"];
+  if (slug.includes("openclaw")) return ["OpenClaw", "插件"];
+  if (slug.includes("harness")) return ["架构", "随笔"];
+  return ["工程"];
 }
 
 const featured = posts[0];
@@ -41,7 +41,7 @@ const featuredTags = featured ? getTags(featured.data.postSlug) : [];
     </div>
 
     {featured && (
-      <a href={`/blog/${featured.data.postSlug}/`} class="featured-card">
+      <a href={`/zh/blog/${featured.data.postSlug}/`} class="featured-card">
         <div class="featured-badge">{t(lang, 'blog.latest')}</div>
         <div class="featured-content">
           <div class="featured-meta">
@@ -67,7 +67,7 @@ const featuredTags = featured ? getTags(featured.data.postSlug) : [];
         const tags = getTags(post.data.postSlug);
         const num = String(i + 2).padStart(2, "0");
         return (
-          <a href={`/blog/${post.data.postSlug}/`} class="post-row">
+          <a href={`/zh/blog/${post.data.postSlug}/`} class="post-row">
             <span class="post-num">{num}</span>
             <div class="post-body">
               <div class="post-row-meta">

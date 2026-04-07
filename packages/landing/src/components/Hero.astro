@@ -1,11 +1,23 @@
 ---
+import { t } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
 const githubUrl = "https://github.com/Chorus-AIDLC/chorus";
+
+// Parse title to handle the <highlight> tag
+const rawTitle = t(lang, 'hero.title');
+const titleParts = rawTitle.split(/<highlight>(.*?)<\/highlight>/);
 ---
 
 <section class="hero">
-  <div class="hero-badge">The Agent Harness</div>
-  <h1>The Model Is the Brain. <span class="highlight">Chorus</span> Is Everything Else.</h1>
-  <p>Chorus wraps AI agents in a structured pipeline — from idea elaboration to task verification — so teams of agents can ship projects, not just write functions. AI proposes, humans verify.</p>
+  <div class="hero-badge">{t(lang, 'hero.badge')}</div>
+  <h1>{titleParts[0]}<span class="highlight">{titleParts[1]}</span>{titleParts[2]}</h1>
+  <p>{t(lang, 'hero.subtitle')}</p>
 </section>
 
 <style>

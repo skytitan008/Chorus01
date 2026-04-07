@@ -1,4 +1,13 @@
 ---
+import { t } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
 const dockerHubUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general";
 const githubUrl = "https://github.com/Chorus-AIDLC/chorus";
 
@@ -33,15 +42,15 @@ const composeYml = `services:
 <div class="quickstart" id="quickstart">
   <div class="quickstart-card">
     <div class="quickstart-header">
-      <span class="quickstart-badge">Docker</span>
+      <span class="quickstart-badge">{t(lang, 'quickstart.badge')}</span>
     </div>
-    <h2>Run Chorus in 60 Seconds</h2>
-    <p>Pre-built image on <a href={dockerHubUrl}>Docker Hub</a>. Supports amd64 &amp; arm64 (Apple Silicon).</p>
+    <h2>{t(lang, 'quickstart.title')}</h2>
+    <p>{t(lang, 'quickstart.subtitle').split('<a>')[0]}<a href={dockerHubUrl}>{t(lang, 'quickstart.subtitle').match(/<a>(.*?)<\/a>/)?.[1] ?? 'Docker Hub'}</a>{t(lang, 'quickstart.subtitle').split('</a>')[1] ?? ''}</p>
     <div class="qs-steps">
       <div class="qs-step">
         <div class="qs-num">1</div>
         <div class="qs-content">
-          <p>Create a <code>docker-compose.yml</code></p>
+          <p>{t(lang, 'quickstart.step1').split('<code>')[0]}<code>{t(lang, 'quickstart.step1').match(/<code>(.*?)<\/code>/)?.[1] ?? 'docker-compose.yml'}</code>{t(lang, 'quickstart.step1').split('</code>')[1] ?? ''}</p>
           <div class="qs-code-wrap">
             <button class="qs-copy" title="Copy" data-code={composeYml}>
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="7" height="7" rx="1"/><path d="M5 11H4a1 1 0 01-1-1V4a1 1 0 011-1h6a1 1 0 011 1v1"/></svg>
@@ -79,7 +88,7 @@ services:
       <div class="qs-step">
         <div class="qs-num">2</div>
         <div class="qs-content">
-          <p>Start everything</p>
+          <p>{t(lang, 'quickstart.step2')}</p>
           <div class="qs-code-wrap">
             <button class="qs-copy" title="Copy" data-code="docker compose up -d">
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="7" height="7" rx="1"/><path d="M5 11H4a1 1 0 01-1-1V4a1 1 0 011-1h6a1 1 0 011 1v1"/></svg>
@@ -91,7 +100,7 @@ services:
       <div class="qs-step">
         <div class="qs-num">3</div>
         <div class="qs-content">
-          <p>Open <a href="http://localhost:3000">http://localhost:3000</a> and log in with your DEFAULT_USER credentials</p>
+          <p>{t(lang, 'quickstart.step3').split('<a>')[0]}<a href="http://localhost:3000">{t(lang, 'quickstart.step3').match(/<a>(.*?)<\/a>/)?.[1] ?? 'http://localhost:3000'}</a>{t(lang, 'quickstart.step3').split('</a>')[1] ?? ''}</p>
           <div class="qs-arch">
             <span class="qs-arch-tag">linux/amd64</span>
             <span class="qs-arch-tag">linux/arm64</span>
@@ -100,8 +109,8 @@ services:
       </div>
     </div>
     <div class="qs-footer">
-      <a href={dockerHubUrl} class="qs-link qs-link-primary">Docker Hub</a>
-      <a href={githubUrl} class="qs-link qs-link-outline">GitHub</a>
+      <a href={dockerHubUrl} class="qs-link qs-link-primary">{t(lang, 'quickstart.dockerHub')}</a>
+      <a href={githubUrl} class="qs-link qs-link-outline">{t(lang, 'quickstart.github')}</a>
     </div>
   </div>
 </div>

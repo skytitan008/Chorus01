@@ -1,24 +1,24 @@
 ---
 import { getCollection, render } from "astro:content";
-import Layout from "../../layouts/Layout.astro";
-import Nav from "../../components/Nav.astro";
-import Footer from "../../components/Footer.astro";
-import { t } from "../../i18n/utils";
+import Layout from "../../../layouts/Layout.astro";
+import Nav from "../../../components/Nav.astro";
+import Footer from "../../../components/Footer.astro";
+import { t } from "../../../i18n/utils";
 
-const lang = 'en' as const;
+const lang = 'zh' as const;
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
-  const enPosts = posts
-    .filter((p) => p.data.lang === "en")
+  const zhPosts = posts
+    .filter((p) => p.data.lang === "zh")
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
-  return enPosts.map((post, idx) => ({
+  return zhPosts.map((post, idx) => ({
     params: { slug: post.data.postSlug },
     props: {
       post,
-      prevLink: idx > 0 ? { title: enPosts[idx - 1].data.title, slug: enPosts[idx - 1].data.postSlug } : null,
-      nextLink: idx < enPosts.length - 1 ? { title: enPosts[idx + 1].data.title, slug: enPosts[idx + 1].data.postSlug } : null,
+      prevLink: idx > 0 ? { title: zhPosts[idx - 1].data.title, slug: zhPosts[idx - 1].data.postSlug } : null,
+      nextLink: idx < zhPosts.length - 1 ? { title: zhPosts[idx + 1].data.title, slug: zhPosts[idx + 1].data.postSlug } : null,
     },
   }));
 }
@@ -28,15 +28,15 @@ const { Content } = await render(post);
 const dateStr = post.data.date.toISOString().slice(0, 10);
 ---
 
-<Layout title={`${post.data.title} - Chorus Blog`} lang={lang} description={post.data.description}>
+<Layout title={`${post.data.title} - Chorus 博客`} lang={lang} description={post.data.description}>
   <Nav lang={lang} />
   <main class="blog-post">
     <article>
       <div class="post-meta">
-        <a href="/blog/" class="back-link">&larr; {t(lang, 'blog.backToBlog')}</a>
+        <a href="/zh/blog/" class="back-link">&larr; {t(lang, 'blog.backToBlog')}</a>
         <div class="meta-right">
           <time datetime={dateStr}>{dateStr}</time>
-          <a href={`/zh/blog/${post.data.postSlug}/`} class="lang-switch">中文</a>
+          <a href={`/blog/${post.data.postSlug}/`} class="lang-switch">EN</a>
         </div>
       </div>
       <div class="post-content">
@@ -50,13 +50,13 @@ const dateStr = post.data.date.toISOString().slice(0, 10);
     </article>
     <nav class="post-nav">
       {prevLink ? (
-        <a href={`/blog/${prevLink.slug}/`} class="nav-link nav-prev">
+        <a href={`/zh/blog/${prevLink.slug}/`} class="nav-link nav-prev">
           <span class="nav-label">&larr; {t(lang, 'blog.previous')}</span>
           <span class="nav-title">{prevLink.title}</span>
         </a>
       ) : <div />}
       {nextLink ? (
-        <a href={`/blog/${nextLink.slug}/`} class="nav-link nav-next">
+        <a href={`/zh/blog/${nextLink.slug}/`} class="nav-link nav-next">
           <span class="nav-label">{t(lang, 'blog.next')} &rarr;</span>
           <span class="nav-title">{nextLink.title}</span>
         </a>

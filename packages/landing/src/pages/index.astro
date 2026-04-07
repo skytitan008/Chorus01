@@ -13,20 +13,22 @@ import Stats from '../components/Stats.astro';
 import Quickstart from '../components/Quickstart.astro';
 import Cta from '../components/Cta.astro';
 import Footer from '../components/Footer.astro';
+
+const lang = 'en' as const;
 ---
 
-<Layout title="Chorus - The Agent Harness for AI-Human Collaboration">
-  <Nav />
-  <Hero />
-  <Pipeline />
-  <ReversedConversation />
-  <Features />
-  <Integration />
-  <Showcase />
-  <Agents />
-  <Workflow />
-  <Stats />
-  <Quickstart />
-  <Cta />
-  <Footer />
+<Layout title="Chorus - The Agent Harness for AI-Human Collaboration" lang={lang}>
+  <Nav lang={lang} />
+  <Hero lang={lang} />
+  <Pipeline lang={lang} />
+  <ReversedConversation lang={lang} />
+  <Features lang={lang} />
+  <Integration lang={lang} />
+  <Showcase lang={lang} />
+  <Agents lang={lang} />
+  <Workflow lang={lang} />
+  <Stats lang={lang} />
+  <Quickstart lang={lang} />
+  <Cta lang={lang} />
+  <Footer lang={lang} />
 </Layout>

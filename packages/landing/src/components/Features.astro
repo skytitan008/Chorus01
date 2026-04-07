@@ -1,55 +1,36 @@
 ---
-const features = [
-  {
-    icon: "layers",
-    iconColor: "#E65100",
-    bgClass: "fi-context",
-    title: "Zero Context Injection",
-    description: "With the Chorus Plugin, agents automatically receive role persona, current assignments, and project context on checkin — no manual prompt engineering needed.",
-  },
-  {
-    icon: "users",
-    iconColor: "#1565C0",
-    bgClass: "fi-agents",
-    title: "Multi-Agent Observability",
-    description: "Real-time visibility into all agent activity. Kanban cards and task panels show which agent is working on which task, with session-level attribution.",
-  },
-  {
-    icon: "activity",
-    iconColor: "#7B1FA2",
-    bgClass: "fi-workflow",
-    title: "Structured Workflow",
-    description: "Ideas go through structured Q&A elaboration, then become proposals with task DAGs. Every requirement is clarified, every decision is recorded.",
-  },
-  {
-    icon: "plug",
-    iconColor: "#2E7D32",
-    bgClass: "fi-session",
-    title: "Bring Your Own Agent",
-    description: "Connect Claude Code, OpenClaw, or any MCP-compatible agent. Download skill docs via URL — no vendor lock-in, any LLM works.",
-  },
-  {
-    icon: "flag",
-    iconColor: "#00695C",
-    bgClass: "fi-mcp",
-    title: "MCP Native",
-    description: "Built on the Model Context Protocol with HTTP Streamable Transport. Any MCP-compatible agent can connect and participate immediately.",
-  },
-  {
-    icon: "open-source",
-    iconColor: "#2C2C2C",
-    bgClass: "fi-oss",
-    title: "Open Source & Self-Hosted",
-    description: "AGPL-3.0 licensed. Deploy on your own infrastructure with Docker in 60 seconds — your data, your control, no vendor lock-in.",
-  },
+import { t, tRaw } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+const featureItems = tRaw(lang, 'features.items') as Array<{ title: string; description: string }>;
+
+const featureMeta = [
+  { icon: "layers", iconColor: "#E65100", bgClass: "fi-context" },
+  { icon: "users", iconColor: "#1565C0", bgClass: "fi-agents" },
+  { icon: "activity", iconColor: "#7B1FA2", bgClass: "fi-workflow" },
+  { icon: "plug", iconColor: "#2E7D32", bgClass: "fi-session" },
+  { icon: "flag", iconColor: "#00695C", bgClass: "fi-mcp" },
+  { icon: "open-source", iconColor: "#2C2C2C", bgClass: "fi-oss" },
 ];
+
+const features = featureItems.map((item, i) => ({
+  ...featureMeta[i],
+  title: item.title,
+  description: item.description,
+}));
 ---
 
 <section class="section" id="features">
   <div class="section-header">
-    <div class="section-label">Features</div>
-    <h2>What the Harness Handles</h2>
-    <p>Everything outside the model that enables AI-human collaboration — from session management to human review loops.</p>
+    <div class="section-label">{t(lang, 'features.label')}</div>
+    <h2>{t(lang, 'features.title')}</h2>
+    <p>{t(lang, 'features.subtitle')}</p>
   </div>
   <div class="features-grid">
     {features.map((f) => (

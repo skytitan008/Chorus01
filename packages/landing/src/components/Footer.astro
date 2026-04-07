@@ -1,17 +1,26 @@
 ---
+import { t, langPrefix } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const pre = langPrefix(lang);
 const githubUrl = "https://github.com/Chorus-AIDLC/chorus";
 ---
 
 <footer>
   <div class="footer-left">
-    &copy; {new Date().getFullYear()} Chorus. AI-Driven Development Lifecycle.
+    &copy; {new Date().getFullYear()} {t(lang, 'footer.copyright')}
   </div>
   <div class="footer-links">
-    <a href="#features">Features</a>
-    <a href="#showcase">Showcase</a>
-    <a href="#agents">Agents</a>
-    <a href="#workflow">Workflow</a>
-    <a href={githubUrl}>GitHub</a>
+    <a href={`${pre}/#features`}>{t(lang, 'footer.features')}</a>
+    <a href={`${pre}/#showcase`}>{t(lang, 'footer.showcase')}</a>
+    <a href={`${pre}/#agents`}>{t(lang, 'footer.agents')}</a>
+    <a href={`${pre}/#workflow`}>{t(lang, 'footer.workflow')}</a>
+    <a href={githubUrl}>{t(lang, 'footer.github')}</a>
   </div>
 </footer>
 

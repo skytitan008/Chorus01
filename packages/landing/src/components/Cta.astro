@@ -1,14 +1,22 @@
 ---
+import { t } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
 const githubUrl = "https://github.com/Chorus-AIDLC/chorus";
 ---
 
 <section class="cta">
   <div class="cta-inner">
-    <h2>Ready to Build with AI Agents?</h2>
-    <p>Clone the repo, connect your AI agents via MCP, and start the reversed conversation.</p>
+    <h2>{t(lang, 'cta.title')}</h2>
+    <p>{t(lang, 'cta.subtitle')}</p>
     <div class="cta-actions">
-      <a href={githubUrl} class="btn btn-primary">View on GitHub</a>
-      <a href={`${githubUrl}#getting-started`} class="btn btn-outline">Quick Start Guide</a>
+      <a href={githubUrl} class="btn btn-primary">{t(lang, 'cta.viewGithub')}</a>
+      <a href={`${githubUrl}#getting-started`} class="btn btn-outline">{t(lang, 'cta.quickStart')}</a>
     </div>
   </div>
 </section>

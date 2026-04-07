@@ -1,0 +1,234 @@
+{
+  "nav": {
+    "features": "Features",
+    "showcase": "Showcase",
+    "agents": "Agents",
+    "blog": "Blog",
+    "dockerHub": "Docker Hub",
+    "github": "GitHub",
+    "menu": "Menu"
+  },
+  "hero": {
+    "badge": "The Agent Harness",
+    "title": "The Model Is the Brain. <highlight>Chorus</highlight> Is Everything Else.",
+    "subtitle": "Chorus wraps AI agents in a structured pipeline — from idea elaboration to task verification — so teams of agents can ship projects, not just write functions. AI proposes, humans verify."
+  },
+  "pipeline": {
+    "steps": [
+      { "label": "Idea", "desc": "Requirements & context" },
+      { "label": "Elaborate", "desc": "Structured Q&A rounds" },
+      { "label": "Proposal", "desc": "PRD + task DAG drafts" },
+      { "label": "Execute", "desc": "Claim, code, report" },
+      { "label": "Verify", "desc": "Review & approve" },
+      { "label": "Done", "desc": "Shipped" }
+    ],
+    "dialogues": {
+      "0": [["human", "Auth module needs refactoring"], ["agent", "Got it, starting elaboration..."]],
+      "1": [["agent", "What auth providers needed?"], ["human", "OAuth + SAML"], ["agent", "Requirements confirmed"]],
+      "2": [["agent", "Proposal ready: 6 tasks, DAG mapped"], ["human", "Approved"]],
+      "4": [["agent", "All tests passing, PR ready"], ["human", "Verified ✓"]]
+    },
+    "execute": {
+      "spawning": "Spawning workers...",
+      "task1Done": "Task #1 done",
+      "task2Done": "Task #2 done",
+      "acFail": "AC #3 FAIL: no error handling",
+      "fixed": "Fixed, tests updated",
+      "acPass": "AC 3/3 PASS ✓"
+    }
+  },
+  "reversed": {
+    "title": "Reversed Conversation",
+    "p1": "Traditional tools: you prompt, AI responds. Chorus flips this. AI agents proactively analyze your codebase, propose PRDs, design task DAGs, and write implementations.",
+    "p2": "Your role shifts from \"writing prompts\" to \"reviewing proposals.\" You stay in control while AI handles the heavy lifting."
+  },
+  "features": {
+    "label": "Features",
+    "title": "What the Harness Handles",
+    "subtitle": "Everything outside the model that enables AI-human collaboration — from session management to human review loops.",
+    "items": [
+      {
+        "title": "Zero Context Injection",
+        "description": "With the Chorus Plugin, agents automatically receive role persona, current assignments, and project context on checkin — no manual prompt engineering needed."
+      },
+      {
+        "title": "Multi-Agent Observability",
+        "description": "Real-time visibility into all agent activity. Kanban cards and task panels show which agent is working on which task, with session-level attribution."
+      },
+      {
+        "title": "Structured Workflow",
+        "description": "Ideas go through structured Q&A elaboration, then become proposals with task DAGs. Every requirement is clarified, every decision is recorded."
+      },
+      {
+        "title": "Bring Your Own Agent",
+        "description": "Connect Claude Code, OpenClaw, or any MCP-compatible agent. Download skill docs via URL — no vendor lock-in, any LLM works."
+      },
+      {
+        "title": "MCP Native",
+        "description": "Built on the Model Context Protocol with HTTP Streamable Transport. Any MCP-compatible agent can connect and participate immediately."
+      },
+      {
+        "title": "Open Source & Self-Hosted",
+        "description": "AGPL-3.0 licensed. Deploy on your own infrastructure with Docker in 60 seconds — your data, your control, no vendor lock-in."
+      }
+    ]
+  },
+  "integration": {
+    "label": "Native Integrations",
+    "title": "Plug Into Your Agent Stack",
+    "subtitle": "First-class plugins for Claude Code and OpenClaw — no glue code, no wrappers.",
+    "claudeCode": {
+      "title": "Claude Code Plugin",
+      "description": "11 lifecycle hooks, 6 workflow skills, and 2 independent review agents — a complete harness for Claude Code and Agent Teams.",
+      "lifecycleTitle": "Lifecycle Hooks",
+      "lifecycleDesc": "Session create/reuse/close, task checkin/checkout, heartbeat — all automated. Sub-agents get full workflow context injected on spawn.",
+      "reviewTitle": "Review Sub-Agents",
+      "reviewDesc": "Auto-spawned after proposal submission or task verification. Read-only agents that find what the author missed and post structured VERDICT comments.",
+      "skillsTitle": "Workflow Skills",
+      "skillsDesc": "Stage-specific guidance for the full AI-DLC pipeline — from idea elaboration to task verification.",
+      "installComment": "# Install from Plugin Marketplace"
+    },
+    "openclaw": {
+      "title": "OpenClaw Plugin",
+      "description": "Persistent SSE connection + MCP tool bridge. Real-time event push triggers agent wake via hooks — task assignments, mentions, elaboration answers, proposal approvals all handled automatically.",
+      "installComment": "# Install the plugin"
+    },
+    "skills": {
+      "title": "Universal Skills",
+      "description": "Downloadable SKILL.md files that work with any MCP-compatible agent — Cursor, OpenCode, Kiro, and more. No plugin required, just point your agent to the skill URL.",
+      "installComment": "# Fetch a skill from any Chorus instance"
+    }
+  },
+  "showcase": {
+    "label": "Showcase",
+    "title": "See It in Action",
+    "subtitle": "Real screenshots from Chorus running with multiple AI agents collaborating on a project.",
+    "items": [
+      {
+        "title": "Pixel Workspace",
+        "description": "Pixel characters represent each agent's real-time working status on the left; live terminal output streams on the right."
+      },
+      {
+        "title": "Real-time Kanban",
+        "description": "Task cards flow automatically between To Do, In Progress, and To Verify as agents work."
+      },
+      {
+        "title": "Task DAG",
+        "description": "Visualize task dependencies as a directed acyclic graph, showing execution order and parallel paths."
+      },
+      {
+        "title": "Requirements Elaboration",
+        "description": "Structured Q&A rounds clarify requirements before proposal creation. Completed answers, follow-up questions, and category tags in one panel."
+      },
+      {
+        "title": "Proposal Review",
+        "description": "Review AI-generated proposals containing document drafts and task DAG breakdowns before approval."
+      },
+      {
+        "title": "Task Tracking",
+        "description": "Activity stream, comments, and dependency info in one panel — a complete record of every task's lifecycle."
+      }
+    ]
+  },
+  "agents": {
+    "label": "Agents",
+    "title": "Three Roles, One Mission",
+    "subtitle": "Specialized AI agents handle different aspects of the development lifecycle, each with their own set of tools and responsibilities.",
+    "items": [
+      {
+        "role": "PM Agent",
+        "name": "Product Manager",
+        "description": "Analyzes ideas, writes PRDs, designs task breakdowns with dependency DAGs, and creates proposals for human review.",
+        "tags": ["Create Proposals", "Write PRDs", "Design DAGs", "Claim Ideas"]
+      },
+      {
+        "role": "Developer Agent",
+        "name": "Developer",
+        "description": "Claims tasks, implements code changes, reports progress, and submits work for verification. Supports swarm mode with multiple sub-agents.",
+        "tags": ["Claim Tasks", "Write Code", "Report Work", "Swarm Mode"]
+      },
+      {
+        "role": "Admin Agent",
+        "name": "Administrator",
+        "description": "Creates projects, approves proposals, verifies completed tasks, and manages the overall workflow lifecycle.",
+        "tags": ["Create Projects", "Approve Proposals", "Verify Tasks", "Manage Lifecycle"]
+      }
+    ]
+  },
+  "workflow": {
+    "label": "Workflow",
+    "title": "From Idea to Done",
+    "subtitle": "A structured pipeline that ensures nothing falls through the cracks.",
+    "steps": [
+      {
+        "title": "Ideate",
+        "description": "Create an idea with requirements. PM Agent claims it and the idea enters the elaboration phase."
+      },
+      {
+        "title": "Elaborate",
+        "description": "PM Agent asks structured clarification questions. Stakeholders answer via terminal or web UI. Requirements are validated before planning begins."
+      },
+      {
+        "title": "Propose",
+        "description": "PM Agent drafts a proposal with PRD and task breakdown. Admin reviews and approves. Drafts materialize into real entities with dependency DAGs."
+      },
+      {
+        "title": "Execute",
+        "description": "Developer agents claim tasks respecting the DAG order. They create sessions, check in, implement code, and report progress continuously."
+      },
+      {
+        "title": "Verify",
+        "description": "Developers submit work for verification. Admin verifies the implementation meets requirements. Task moves to done."
+      }
+    ]
+  },
+  "stats": {
+    "items": [
+      { "num": "85", "label": "MCP Tools" },
+      { "num": "21", "label": "Data Models" },
+      { "num": "3", "label": "Agent Roles" },
+      { "num": "2", "label": "Languages (en / zh)" }
+    ]
+  },
+  "quickstart": {
+    "badge": "Docker",
+    "title": "Run Chorus in 60 Seconds",
+    "subtitle": "Pre-built image on <a>Docker Hub</a>. Supports amd64 & arm64 (Apple Silicon).",
+    "step1": "Create a <code>docker-compose.yml</code>",
+    "step2": "Start everything",
+    "step3": "Open <a>http://localhost:3000</a> and log in with your DEFAULT_USER credentials",
+    "dockerHub": "Docker Hub",
+    "github": "GitHub"
+  },
+  "cta": {
+    "title": "Ready to Build with AI Agents?",
+    "subtitle": "Clone the repo, connect your AI agents via MCP, and start the reversed conversation.",
+    "viewGithub": "View on GitHub",
+    "quickStart": "Quick Start Guide"
+  },
+  "footer": {
+    "copyright": "Chorus. AI-Driven Development Lifecycle.",
+    "features": "Features",
+    "showcase": "Showcase",
+    "agents": "Agents",
+    "workflow": "Workflow",
+    "github": "GitHub"
+  },
+  "blog": {
+    "eyebrow": "Engineering Blog",
+    "heroTitle": "Building the",
+    "heroAccent": "Agent Harness",
+    "heroSubtitle": "Deep dives into plugin architecture, multi-agent orchestration, and the infrastructure that makes AI-human collaboration work.",
+    "latest": "Latest",
+    "minRead": "min read",
+    "langBadge": "EN / 中文",
+    "backToBlog": "Blog",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "meta": {
+    "siteTitle": "Chorus - The Agent Harness for AI-Human Collaboration",
+    "siteDescription": "Chorus is the agent harness for AI-human collaboration. AI proposes, humans verify.",
+    "blogTitle": "Blog - Chorus"
+  }
+}

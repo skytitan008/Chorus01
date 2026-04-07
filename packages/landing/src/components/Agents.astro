@@ -1,40 +1,40 @@
 ---
-const agents = [
-  {
-    avatarClass: "agent-pm",
-    roleClass: "role-pm",
-    role: "PM Agent",
-    name: "Product Manager",
-    description: "Analyzes ideas, writes PRDs, designs task breakdowns with dependency DAGs, and creates proposals for human review.",
-    tags: ["Create Proposals", "Write PRDs", "Design DAGs", "Claim Ideas"],
-    icon: "pm",
-  },
-  {
-    avatarClass: "agent-dev",
-    roleClass: "role-dev",
-    role: "Developer Agent",
-    name: "Developer",
-    description: "Claims tasks, implements code changes, reports progress, and submits work for verification. Supports swarm mode with multiple sub-agents.",
-    tags: ["Claim Tasks", "Write Code", "Report Work", "Swarm Mode"],
-    icon: "dev",
-  },
-  {
-    avatarClass: "agent-adm",
-    roleClass: "role-adm",
-    role: "Admin Agent",
-    name: "Administrator",
-    description: "Creates projects, approves proposals, verifies completed tasks, and manages the overall workflow lifecycle.",
-    tags: ["Create Projects", "Approve Proposals", "Verify Tasks", "Manage Lifecycle"],
-    icon: "adm",
-  },
+import { tRaw, t } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+const agentItems = tRaw(lang, 'agents.items') as Array<{
+  role: string;
+  name: string;
+  description: string;
+  tags: string[];
+}>;
+
+const agentMeta = [
+  { avatarClass: "agent-pm", roleClass: "role-pm", icon: "pm" },
+  { avatarClass: "agent-dev", roleClass: "role-dev", icon: "dev" },
+  { avatarClass: "agent-adm", roleClass: "role-adm", icon: "adm" },
 ];
+
+const agents = agentItems.map((item, i) => ({
+  ...agentMeta[i],
+  role: item.role,
+  name: item.name,
+  description: item.description,
+  tags: item.tags,
+}));
 ---
 
 <section class="section" id="agents">
   <div class="section-header">
-    <div class="section-label">Agents</div>
-    <h2>Three Roles, One Mission</h2>
-    <p>Specialized AI agents handle different aspects of the development lifecycle, each with their own set of tools and responsibilities.</p>
+    <div class="section-label">{t(lang, 'agents.label')}</div>
+    <h2>{t(lang, 'agents.title')}</h2>
+    <p>{t(lang, 'agents.subtitle')}</p>
   </div>
   <div class="agents-grid">
     {agents.map((agent) => (

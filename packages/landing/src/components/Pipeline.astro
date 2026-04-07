@@ -1,21 +1,24 @@
 ---
-const steps = [
-  { label: "Idea", desc: "Requirements & context", nodeClass: "p-idea" },
-  { label: "Elaborate", desc: "Structured Q&A rounds", nodeClass: "p-elaborate" },
-  { label: "Proposal", desc: "PRD + task DAG drafts", nodeClass: "p-proposal" },
-  { label: "Execute", desc: "Claim, code, report", nodeClass: "p-execute" },
-  { label: "Verify", desc: "Review & approve", nodeClass: "p-verify" },
-  { label: "Done", desc: "Shipped", nodeClass: "p-done" },
-];
+import { t, tRaw } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
 
-// Dialogue scripts for human-interaction steps
-// Each step has alternating [speaker, text] pairs
-const dialogues: Record<number, Array<[string, string]>> = {
-  0: [["human", "Auth module needs refactoring"], ["agent", "Got it, starting elaboration..."]],
-  1: [["agent", "What auth providers needed?"], ["human", "OAuth + SAML"], ["agent", "Requirements confirmed"]],
-  2: [["agent", "Proposal ready: 6 tasks, DAG mapped"], ["human", "Approved"]],
-  4: [["agent", "All tests passing, PR ready"], ["human", "Verified ✓"]],
-};
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+const stepTranslations = tRaw(lang, 'pipeline.steps') as Array<{ label: string; desc: string }>;
+const nodeClasses = ["p-idea", "p-elaborate", "p-proposal", "p-execute", "p-verify", "p-done"];
+
+const steps = stepTranslations.map((s, i) => ({
+  label: s.label,
+  desc: s.desc,
+  nodeClass: nodeClasses[i],
+}));
+
+const dialogues = tRaw(lang, 'pipeline.dialogues') as Record<string, Array<[string, string]>>;
+const executeTexts = tRaw(lang, 'pipeline.execute') as Record<string, string>;
 ---
 
 <div class="pipeline-section">
@@ -57,7 +60,7 @@ const dialogues: Record<number, Array<[string, string]>> = {
   </div>
 </div>
 
-<script define:vars={{ dialogues }}>
+<script define:vars={{ dialogues, executeTexts }}>
   function animatePipeline() {
     const pipeline = document.getElementById('pipeline');
     const agentDot = document.getElementById('agent-dot');
@@ -154,12 +157,12 @@ const dialogues: Record<number, Array<[string, string]>> = {
       posAt(subDot, x - 28);
       posAt(agentDot, x);
 
-      t(() => { subDot.classList.add('visible'); showBubble(agentDot, 'Spawning workers...', 'bubble-top'); }, 300);
-      t(() => { showBubble(subDot, 'Task #1 done', 'bubble-top', 'bubble-blue'); }, 1500);
-      t(() => { showBubble(agentDot, 'Task #2 done', 'bubble-top'); }, 2700);
-      t(() => { posAt(reviewerDot, x + 44); reviewerDot.classList.add('visible'); showBubble(reviewerDot, 'AC #3 FAIL: no error handling', 'bubble-top', 'bubble-red'); }, 3900);
-      t(() => { showBubble(agentDot, 'Fixed, tests updated', 'bubble-top'); }, 5100);
-      t(() => { showBubble(reviewerDot, 'AC 3/3 PASS ✓', 'bubble-top', 'bubble-green'); }, 6300);
+      t(() => { subDot.classList.add('visible'); showBubble(agentDot, executeTexts.spawning, 'bubble-top'); }, 300);
+      t(() => { showBubble(subDot, executeTexts.task1Done, 'bubble-top', 'bubble-blue'); }, 1500);
+      t(() => { showBubble(agentDot, executeTexts.task2Done, 'bubble-top'); }, 2700);
+      t(() => { posAt(reviewerDot, x + 44); reviewerDot.classList.add('visible'); showBubble(reviewerDot, executeTexts.acFail, 'bubble-top', 'bubble-red'); }, 3900);
+      t(() => { showBubble(agentDot, executeTexts.fixed, 'bubble-top'); }, 5100);
+      t(() => { showBubble(reviewerDot, executeTexts.acPass, 'bubble-top', 'bubble-green'); }, 6300);
       t(() => { hideBubble(); subDot.classList.remove('visible'); reviewerDot.classList.remove('visible'); }, 7500);
       return 7900;
     }

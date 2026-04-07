@@ -1,8 +1,19 @@
+---
+import { t } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
 <div class="integration" id="integration">
   <div class="section-header">
-    <div class="section-label">Native Integrations</div>
-    <h2>Plug Into Your Agent Stack</h2>
-    <p>First-class plugins for Claude Code and OpenClaw — no glue code, no wrappers.</p>
+    <div class="section-label">{t(lang, 'integration.label')}</div>
+    <h2>{t(lang, 'integration.title')}</h2>
+    <p>{t(lang, 'integration.subtitle')}</p>
   </div>
   <div class="integration-grid">
     <div class="int-card int-card-featured">
@@ -11,14 +22,14 @@
           <div class="int-icon int-icon-plugin">
             <img src="/images/claudecode.png" alt="Claude Code" width="28" height="28" />
           </div>
-          <h3>Claude Code Plugin</h3>
+          <h3>{t(lang, 'integration.claudeCode.title')}</h3>
         </div>
-        <p>11 lifecycle hooks, 6 workflow skills, and 2 independent review agents — a complete harness for Claude Code and Agent Teams.</p>
+        <p>{t(lang, 'integration.claudeCode.description')}</p>
       </div>
       <div class="int-features">
         <div class="int-feature">
-          <div class="int-feature-title">Lifecycle Hooks</div>
-          <div class="int-feature-desc">Session create/reuse/close, task checkin/checkout, heartbeat — all automated. Sub-agents get full workflow context injected on spawn.</div>
+          <div class="int-feature-title">{t(lang, 'integration.claudeCode.lifecycleTitle')}</div>
+          <div class="int-feature-desc">{t(lang, 'integration.claudeCode.lifecycleDesc')}</div>
           <div class="int-hooks">
             <span class="int-hook">SessionStart</span>
             <span class="int-hook">SubagentStart</span>
@@ -27,16 +38,16 @@
           </div>
         </div>
         <div class="int-feature">
-          <div class="int-feature-title">Review Sub-Agents</div>
-          <div class="int-feature-desc">Auto-spawned after proposal submission or task verification. Read-only agents that find what the author missed and post structured VERDICT comments.</div>
+          <div class="int-feature-title">{t(lang, 'integration.claudeCode.reviewTitle')}</div>
+          <div class="int-feature-desc">{t(lang, 'integration.claudeCode.reviewDesc')}</div>
           <div class="int-hooks">
             <span class="int-hook">proposal-reviewer</span>
             <span class="int-hook">task-reviewer</span>
           </div>
         </div>
         <div class="int-feature">
-          <div class="int-feature-title">Workflow Skills</div>
-          <div class="int-feature-desc">Stage-specific guidance for the full AI-DLC pipeline — from idea elaboration to task verification.</div>
+          <div class="int-feature-title">{t(lang, 'integration.claudeCode.skillsTitle')}</div>
+          <div class="int-feature-desc">{t(lang, 'integration.claudeCode.skillsDesc')}</div>
           <div class="int-hooks">
             <span class="int-hook">/chorus</span>
             <span class="int-hook">/idea</span>
@@ -48,7 +59,7 @@
         </div>
       </div>
       <div class="int-code">
-        <span class="comment"># Install from Plugin Marketplace</span><br>
+        <span class="comment">{t(lang, 'integration.claudeCode.installComment')}</span><br>
         <span class="cmd">claude</span> <span class="flag">/plugin marketplace add</span> Chorus-AIDLC/chorus<br>
         <span class="cmd">claude</span> <span class="flag">/plugin install</span> chorus@chorus-plugins
       </div>
@@ -57,8 +68,8 @@
       <div class="int-icon int-icon-openclaw">
         <img src="/images/openclaw.png" alt="OpenClaw" style="height:28px;width:auto;" />
       </div>
-      <h3>OpenClaw Plugin</h3>
-      <p>Persistent SSE connection + MCP tool bridge. Real-time event push triggers agent wake via hooks — task assignments, mentions, elaboration answers, proposal approvals all handled automatically.</p>
+      <h3>{t(lang, 'integration.openclaw.title')}</h3>
+      <p>{t(lang, 'integration.openclaw.description')}</p>
       <div class="int-hooks">
         <span class="int-hook">SSE Push</span>
         <span class="int-hook">MCP Bridge</span>
@@ -67,7 +78,7 @@
         <span class="int-hook">6 Skills</span>
       </div>
       <div class="int-code">
-        <span class="comment"># Install the plugin</span><br>
+        <span class="comment">{t(lang, 'integration.openclaw.installComment')}</span><br>
         <span class="cmd">openclaw</span> <span class="flag">plugins install</span> @chorus-aidlc/chorus-openclaw-plugin
       </div>
     </div>
@@ -75,8 +86,8 @@
       <div class="int-icon int-icon-skill">
         <svg width="24" height="24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
       </div>
-      <h3>Universal Skills</h3>
-      <p>Downloadable SKILL.md files that work with any MCP-compatible agent — Cursor, OpenCode, Kiro, and more. No plugin required, just point your agent to the skill URL.</p>
+      <h3>{t(lang, 'integration.skills.title')}</h3>
+      <p>{t(lang, 'integration.skills.description')}</p>
       <div class="int-hooks">
         <span class="int-hook">chorus</span>
         <span class="int-hook">idea</span>
@@ -86,7 +97,7 @@
         <span class="int-hook">review</span>
       </div>
       <div class="int-code">
-        <span class="comment"># Fetch a skill from any Chorus instance</span><br>
+        <span class="comment">{t(lang, 'integration.skills.installComment')}</span><br>
         <span class="cmd">curl</span> <span class="flag">-sL</span> &lt;CHORUS_URL&gt;/skill/chorus/SKILL.md
       </div>
     </div>

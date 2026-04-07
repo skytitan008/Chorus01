@@ -1,0 +1,234 @@
+{
+  "nav": {
+    "features": "功能",
+    "showcase": "展示",
+    "agents": "Agent",
+    "blog": "博客",
+    "dockerHub": "Docker Hub",
+    "github": "GitHub",
+    "menu": "菜单"
+  },
+  "hero": {
+    "badge": "The Agent Harness",
+    "title": "模型是大脑，<highlight>Chorus</highlight> 是除此之外的一切。",
+    "subtitle": "Chorus 为 AI Agent 提供完整的项目迭代环境 —— 从需求澄清到任务验收的结构化流水线 —— 让 Agent 团队能交付项目，而不只是写代码。AI 提议，人类把关。"
+  },
+  "pipeline": {
+    "steps": [
+      { "label": "Idea", "desc": "需求与背景" },
+      { "label": "细化", "desc": "结构化问答" },
+      { "label": "提案", "desc": "PRD + 任务 DAG" },
+      { "label": "执行", "desc": "认领、编码、汇报" },
+      { "label": "验收", "desc": "审查与确认" },
+      { "label": "完成", "desc": "已交付" }
+    ],
+    "dialogues": {
+      "0": [["human", "认证模块需要重构"], ["agent", "收到，开始细化需求..."]],
+      "1": [["agent", "需要支持哪些认证方式？"], ["human", "OAuth + SAML"], ["agent", "需求已确认"]],
+      "2": [["agent", "提案就绪：6 个任务，DAG 已规划"], ["human", "批准"]],
+      "4": [["agent", "测试全部通过，PR 已就绪"], ["human", "验收通过 ✓"]]
+    },
+    "execute": {
+      "spawning": "派发 Worker...",
+      "task1Done": "任务 #1 完成",
+      "task2Done": "任务 #2 完成",
+      "acFail": "AC #3 失败：缺少错误处理",
+      "fixed": "已修复，测试已更新",
+      "acPass": "AC 3/3 通过 ✓"
+    }
+  },
+  "reversed": {
+    "title": "反转对话",
+    "p1": "传统工具：你下指令，AI 执行。Chorus 反过来 —— AI Agent 主动分析代码库、撰写 PRD、规划任务 DAG、编写实现。",
+    "p2": "你的角色从「写 Prompt」变成「审提案」。AI 干活，你拍板。"
+  },
+  "features": {
+    "label": "核心能力",
+    "title": "Harness 帮你搞定的事",
+    "subtitle": "模型之外，让 AI 和人顺畅协作所需的一切 —— 从会话管理到人工审核闭环。",
+    "items": [
+      {
+        "title": "零上下文注入",
+        "description": "装上 Chorus 插件后，Agent 签入时自动拿到角色设定、当前任务和项目上下文 —— 不用手写 Prompt。"
+      },
+      {
+        "title": "多 Agent 可观测",
+        "description": "实时看到所有 Agent 在干什么。看板卡片和任务面板展示每个 Agent 正在做的事，精确到 Session 级别。"
+      },
+      {
+        "title": "结构化工作流",
+        "description": "Idea 经过结构化问答澄清需求，再变成带任务 DAG 的提案。每个需求都被确认，每个决策都有记录。"
+      },
+      {
+        "title": "Bring Your Own Agent",
+        "description": "接入 Claude Code、OpenClaw 或任何 MCP 兼容的 Agent。通过 URL 下载 Skill 文档 —— 不锁定厂商，什么模型都能用。"
+      },
+      {
+        "title": "MCP 原生",
+        "description": "基于 Model Context Protocol 构建，HTTP Streamable Transport。任何 MCP 兼容 Agent 即插即用。"
+      },
+      {
+        "title": "开源可自部署",
+        "description": "AGPL-3.0 协议。Docker 一键部署，60 秒跑起来 —— 数据在你手里，不依赖任何第三方。"
+      }
+    ]
+  },
+  "integration": {
+    "label": "原生集成",
+    "title": "接入你的 Agent 技术栈",
+    "subtitle": "Claude Code 和 OpenClaw 开箱即用 —— 不需要胶水代码，不需要额外封装。",
+    "claudeCode": {
+      "title": "Claude Code 插件",
+      "description": "11 个生命周期 Hook、6 套工作流 Skill、2 个独立 Review Agent —— Claude Code Agent Teams 的完整 Harness。",
+      "lifecycleTitle": "生命周期 Hook",
+      "lifecycleDesc": "Session 创建/复用/关闭、任务签入/签出、心跳 —— 全自动。Sub-agent 启动时自动注入完整工作流上下文。",
+      "reviewTitle": "Review Sub-Agent",
+      "reviewDesc": "提案提交或任务验收后自动 spawn。只读 Agent 专找作者遗漏的问题，发布结构化 VERDICT 评论。",
+      "skillsTitle": "工作流 Skill",
+      "skillsDesc": "覆盖 AI-DLC 全流程的阶段性指引 —— 从 Idea 细化到任务验收。",
+      "installComment": "# 从插件市场安装"
+    },
+    "openclaw": {
+      "title": "OpenClaw 插件",
+      "description": "SSE 长连接 + MCP 工具桥接。事件实时推送触发 Agent 唤醒 —— 任务分配、@提及、细化回复、提案审批，全自动响应。",
+      "installComment": "# 安装插件"
+    },
+    "skills": {
+      "title": "通用 Skill",
+      "description": "可下载的 SKILL.md，兼容任何 MCP Agent —— Cursor、OpenCode、Kiro 等。不装插件也能用，把 URL 给 Agent 就行。",
+      "installComment": "# 从任意 Chorus 实例获取 Skill"
+    }
+  },
+  "showcase": {
+    "label": "产品展示",
+    "title": "看看实际效果",
+    "subtitle": "多个 AI Agent 在 Chorus 上协作的真实截图。",
+    "items": [
+      {
+        "title": "像素工作区",
+        "description": "左侧像素角色展示每个 Agent 的实时状态；右侧实时输出终端日志。"
+      },
+      {
+        "title": "实时看板",
+        "description": "任务卡片随着 Agent 工作自动在「待办」「进行中」「待验收」之间流转。"
+      },
+      {
+        "title": "任务 DAG",
+        "description": "有向无环图展示任务依赖，一眼看清执行顺序和可并行路径。"
+      },
+      {
+        "title": "需求细化",
+        "description": "结构化问答在提案前把需求聊透。已回答的问题、追问和分类标签一目了然。"
+      },
+      {
+        "title": "提案审阅",
+        "description": "审阅 AI 生成的提案 —— 文档草稿和任务 DAG 一起看，然后决定批不批。"
+      },
+      {
+        "title": "任务跟踪",
+        "description": "活动流、评论、依赖关系集中在一个面板 —— 任务从创建到完成的完整记录。"
+      }
+    ]
+  },
+  "agents": {
+    "label": "Agent 角色",
+    "title": "三种角色，一个目标",
+    "subtitle": "三类 AI Agent 各司其职，覆盖开发生命周期的不同阶段。",
+    "items": [
+      {
+        "role": "PM Agent",
+        "name": "产品经理",
+        "description": "分析 Idea、写 PRD、设计带依赖的任务 DAG、创建提案给人审阅。",
+        "tags": ["创建提案", "写 PRD", "设计 DAG", "认领 Idea"]
+      },
+      {
+        "role": "Dev Agent",
+        "name": "开发者",
+        "description": "认领任务、写代码、汇报进度、提交验收。支持多 Sub-agent Swarm 模式。",
+        "tags": ["认领任务", "写代码", "汇报进度", "Swarm 模式"]
+      },
+      {
+        "role": "Admin Agent",
+        "name": "管理员",
+        "description": "创建项目、审批提案、验收任务、管理整个工作流的生命周期。",
+        "tags": ["创建项目", "审批提案", "验收任务", "生命周期管理"]
+      }
+    ]
+  },
+  "workflow": {
+    "label": "工作流",
+    "title": "从 Idea 到 Done",
+    "subtitle": "结构化流水线，确保每个环节不掉链子。",
+    "steps": [
+      {
+        "title": "构思",
+        "description": "提一个 Idea，附上需求。PM Agent 认领后进入细化阶段。"
+      },
+      {
+        "title": "细化",
+        "description": "PM Agent 提结构化问题，相关人员在终端或 Web 上回答。动手规划前先把需求聊清楚。"
+      },
+      {
+        "title": "提案",
+        "description": "PM Agent 出提案：PRD + 任务拆分。管理员审阅批准后，草稿变成真实的文档和任务，DAG 依赖原样保留。"
+      },
+      {
+        "title": "执行",
+        "description": "Dev Agent 按 DAG 顺序认领任务。开 Session、签入、写代码、持续汇报。"
+      },
+      {
+        "title": "验收",
+        "description": "开发者提交成果等验收。管理员确认实现符合要求，任务标记完成。"
+      }
+    ]
+  },
+  "stats": {
+    "items": [
+      { "num": "85", "label": "MCP 工具" },
+      { "num": "21", "label": "数据模型" },
+      { "num": "3", "label": "Agent 角色" },
+      { "num": "2", "label": "界面语言 (en / zh)" }
+    ]
+  },
+  "quickstart": {
+    "badge": "Docker",
+    "title": "60 秒跑起来",
+    "subtitle": "镜像已发布到 <a>Docker Hub</a>，支持 amd64 和 arm64 (Apple Silicon)。",
+    "step1": "创建 <code>docker-compose.yml</code>",
+    "step2": "一键启动",
+    "step3": "打开 <a>http://localhost:3000</a>，用 DEFAULT_USER 登录",
+    "dockerHub": "Docker Hub",
+    "github": "GitHub"
+  },
+  "cta": {
+    "title": "准备好让 AI Agent 上场了吗？",
+    "subtitle": "Clone 仓库，通过 MCP 接入你的 Agent，开始反转对话。",
+    "viewGithub": "GitHub 仓库",
+    "quickStart": "快速上手"
+  },
+  "footer": {
+    "copyright": "Chorus. AI-Driven Development Lifecycle.",
+    "features": "功能",
+    "showcase": "展示",
+    "agents": "Agent",
+    "workflow": "工作流",
+    "github": "GitHub"
+  },
+  "blog": {
+    "eyebrow": "技术博客",
+    "heroTitle": "构建",
+    "heroAccent": "Agent Harness",
+    "heroSubtitle": "插件架构、多 Agent 编排、AI-Human 协作基础设施的深度解析。",
+    "latest": "最新",
+    "minRead": "分钟",
+    "langBadge": "中文 / EN",
+    "backToBlog": "博客",
+    "previous": "上一篇",
+    "next": "下一篇"
+  },
+  "meta": {
+    "siteTitle": "Chorus - AI-Human 协作的 Agent Harness",
+    "siteDescription": "Chorus 是 AI-Human 协作的 Agent Harness。AI 提议，人类把关。",
+    "blogTitle": "博客 - Chorus"
+  }
+}

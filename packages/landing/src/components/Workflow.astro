@@ -1,33 +1,21 @@
 ---
-const steps = [
-  {
-    title: "Ideate",
-    description: "Create an idea with requirements. PM Agent claims it and the idea enters the elaboration phase.",
-  },
-  {
-    title: "Elaborate",
-    description: "PM Agent asks structured clarification questions. Stakeholders answer via terminal or web UI. Requirements are validated before planning begins.",
-  },
-  {
-    title: "Propose",
-    description: "PM Agent drafts a proposal with PRD and task breakdown. Admin reviews and approves. Drafts materialize into real entities with dependency DAGs.",
-  },
-  {
-    title: "Execute",
-    description: "Developer agents claim tasks respecting the DAG order. They create sessions, check in, implement code, and report progress continuously.",
-  },
-  {
-    title: "Verify",
-    description: "Developers submit work for verification. Admin verifies the implementation meets requirements. Task moves to done.",
-  },
-];
+import { t, tRaw } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+const steps = tRaw(lang, 'workflow.steps') as Array<{ title: string; description: string }>;
 ---
 
 <section class="section" id="workflow">
   <div class="section-header">
-    <div class="section-label">Workflow</div>
-    <h2>From Idea to Done</h2>
-    <p>A structured pipeline that ensures nothing falls through the cracks.</p>
+    <div class="section-label">{t(lang, 'workflow.label')}</div>
+    <h2>{t(lang, 'workflow.title')}</h2>
+    <p>{t(lang, 'workflow.subtitle')}</p>
   </div>
   <div class="workflow-steps">
     {steps.map((step) => (

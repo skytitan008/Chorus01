@@ -1,22 +1,46 @@
 ---
+import { t, langPrefix, getAlternateUrl } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const pre = langPrefix(lang);
 const githubUrl = "https://github.com/Chorus-AIDLC/chorus";
 const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general";
+const altUrl = getAlternateUrl(Astro.url);
+const currentLabel = lang === 'en' ? 'EN' : '中文';
+const altLabel = lang === 'en' ? '中文' : 'EN';
 ---
 
 <nav>
   <div class="nav-inner">
-    <a href="/" class="logo">
+    <a href={`${pre}/`} class="logo">
       <img src="/images/chorus-icon.png" alt="Chorus" />
       Chorus<span>.</span>
     </a>
     <div class="nav-links">
-      <a href="/#features">Features</a>
-      <a href="/#showcase">Showcase</a>
-      <a href="/#agents">Agents</a>
-      <a href="/blog/">Blog</a>
+      <a href={`${pre}/#features`}>{t(lang, 'nav.features')}</a>
+      <a href={`${pre}/#showcase`}>{t(lang, 'nav.showcase')}</a>
+      <a href={`${pre}/#agents`}>{t(lang, 'nav.agents')}</a>
+      <a href={`${pre}/blog/`}>{t(lang, 'nav.blog')}</a>
     </div>
     <div class="nav-actions">
-      <a href={dockerUrl} class="nav-icon-link" title="Docker Hub" aria-label="Docker Hub" target="_blank" rel="noopener noreferrer">
+      <!-- Language dropdown -->
+      <div class="lang-dropdown" id="lang-dropdown">
+        <button class="lang-trigger" id="lang-trigger" aria-label="Language">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          <span>{currentLabel}</span>
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="lang-menu" id="lang-menu">
+          <a href={`${pre}/`} class:list={["lang-option", { active: lang === 'en' }]}>English</a>
+          <a href={altUrl} class:list={["lang-option", { active: lang === 'zh' }]}>中文</a>
+        </div>
+      </div>
+      <a href={dockerUrl} class="nav-icon-link" title={t(lang, 'nav.dockerHub')} aria-label={t(lang, 'nav.dockerHub')} target="_blank" rel="noopener noreferrer">
         <svg width="24" height="19" viewBox="0 0 24 19" fill="currentColor"><path d="M13.98 11.08h2.12a.19.19 0 00.19-.18V9.01a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.18.19v1.89c0 .1.08.18.18.18zm-2.95 0h2.12a.19.19 0 00.19-.18V9.01a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.19.19v1.89c0 .1.09.18.19.18zm-2.93 0h2.12a.19.19 0 00.18-.18V9.01a.19.19 0 00-.18-.19H8.1a.19.19 0 00-.19.19v1.89c0 .1.09.18.19.18zm-2.96 0h2.12a.19.19 0 00.19-.18V9.01a.19.19 0 00-.19-.19H5.14a.19.19 0 00-.18.19v1.89c0 .1.08.18.18.18zm5.89-2.8h2.12a.19.19 0 00.19-.19V6.2a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.18.19v1.89c0 .1.08.19.18.19zm-2.93 0h2.12a.19.19 0 00.18-.19V6.2a.19.19 0 00-.18-.19H8.1a.19.19 0 00-.19.19v1.89c0 .1.09.19.19.19zm-2.96 0h2.12a.19.19 0 00.19-.19V6.2a.19.19 0 00-.19-.19H5.14a.19.19 0 00-.18.19v1.89c0 .1.08.19.18.19zM8.1 5.47h2.12a.19.19 0 00.18-.19V3.39a.19.19 0 00-.18-.18H8.1a.19.19 0 00-.19.18v1.89c0 .1.09.19.19.19zm13.74 3.57c-.58-.3-1.21-.4-1.79-.34-.2-1.3-1.2-2.43-2.32-3.09l-.46-.27-.3.44c-.37.58-.58 1.24-.52 1.93.02.26.09.73.38 1.15-.27.15-.79.36-1.48.34H.36l-.11.6a9.6 9.6 0 00.8 4.8l.03.05c.56.96 1.38 1.7 2.4 2.18 1.2.56 2.24.82 3.47.82 1.33 0 2.42-.16 3.44-.5a9.3 9.3 0 002.7-1.54c.9-.78 1.7-1.71 2.36-2.86.52-.9.94-1.91 1.18-3.04h.34c.99 0 1.8-.33 2.33-.82.29-.27.5-.6.58-.96l.08-.32-.27-.16z"/></svg>
       </a>
       <a href={githubUrl} class="nav-github" aria-label="GitHub" target="_blank" rel="noopener noreferrer">
@@ -35,14 +59,19 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
   </div>
   <!-- Mobile dropdown -->
   <div class="mobile-menu" id="mobile-menu">
-    <a href="/#features">Features</a>
-    <a href="/#showcase">Showcase</a>
-    <a href="/#agents">Agents</a>
-    <a href="/blog/">Blog</a>
+    <a href={`${pre}/#features`}>{t(lang, 'nav.features')}</a>
+    <a href={`${pre}/#showcase`}>{t(lang, 'nav.showcase')}</a>
+    <a href={`${pre}/#agents`}>{t(lang, 'nav.agents')}</a>
+    <a href={`${pre}/blog/`}>{t(lang, 'nav.blog')}</a>
+    <div class="mobile-divider"></div>
+    <div class="mobile-lang">
+      <a href="/" class:list={[{ active: lang === 'en' }]}>English</a>
+      <a href="/zh/" class:list={[{ active: lang === 'zh' }]}>中文</a>
+    </div>
     <div class="mobile-divider"></div>
     <div class="mobile-actions">
-      <a href={dockerUrl} target="_blank" rel="noopener noreferrer">Docker Hub</a>
-      <a href={githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href={dockerUrl} target="_blank" rel="noopener noreferrer">{t(lang, 'nav.dockerHub')}</a>
+      <a href={githubUrl} target="_blank" rel="noopener noreferrer">{t(lang, 'nav.github')}</a>
     </div>
   </div>
 </nav>
@@ -64,6 +93,7 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
   }
   fetchStars();
 
+  // Mobile menu
   const toggle = document.getElementById('menu-toggle');
   const menu = document.getElementById('mobile-menu');
   if (toggle && menu) {
@@ -71,7 +101,6 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
       const open = menu.classList.toggle('open');
       toggle.classList.toggle('active', open);
     });
-    // Close on link click
     menu.querySelectorAll('a').forEach(a => {
       a.addEventListener('click', () => {
         menu.classList.remove('open');
@@ -79,6 +108,26 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
       });
     });
   }
+
+  // Language dropdown
+  const langTrigger = document.getElementById('lang-trigger');
+  const langMenu = document.getElementById('lang-menu');
+  if (langTrigger && langMenu) {
+    langTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      langMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', () => langMenu.classList.remove('open'));
+  }
+
+  // Save language choice to localStorage
+  document.querySelectorAll('.lang-option, .mobile-lang a').forEach(a => {
+    a.addEventListener('click', () => {
+      const href = (a as HTMLAnchorElement).getAttribute('href') || '';
+      const lang = href.startsWith('/zh') ? 'zh' : 'en';
+      localStorage.setItem('chorus-lang', lang);
+    });
+  });
 </script>
 
 <style>
@@ -118,9 +167,59 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
   .nav-links a:hover { color: var(--text-primary); }
 
   .nav-actions {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 10px;
     flex-shrink: 0;
   }
+
+  /* Language dropdown */
+  .lang-dropdown { position: relative; }
+  .lang-trigger {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .lang-trigger:hover { border-color: var(--primary); color: var(--primary); }
+  .lang-trigger .chevron { transition: transform 0.2s; }
+  .lang-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 120px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    padding: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: all 0.2s;
+  }
+  .lang-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .lang-option {
+    display: block;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 7px;
+    transition: all 0.15s;
+  }
+  .lang-option:hover { background: rgba(198,122,82,0.08); color: var(--text-primary); }
+  .lang-option.active { color: var(--primary); font-weight: 600; }
+
   .nav-icon-link {
     display: flex; align-items: center; justify-content: center;
     width: 36px; height: 36px;
@@ -159,23 +258,21 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
     font-weight: 500;
   }
 
-  /* Hamburger button */
+  /* Hamburger */
   .menu-toggle {
     display: none;
     width: 40px; height: 40px;
-    border: none;
-    background: none;
+    border: none; background: none;
     cursor: pointer;
     color: var(--text-primary);
     padding: 0;
-    align-items: center;
-    justify-content: center;
+    align-items: center; justify-content: center;
   }
   .menu-toggle .icon-close { display: none; }
   .menu-toggle.active .icon-open { display: none; }
   .menu-toggle.active .icon-close { display: block; }
 
-  /* Mobile dropdown */
+  /* Mobile menu */
   .mobile-menu {
     display: none;
     flex-direction: column;
@@ -187,28 +284,33 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
   .mobile-menu a {
     display: block;
     padding: 12px 0;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 15px; font-weight: 500;
     color: var(--text-primary);
     text-decoration: none;
     border-bottom: 1px solid rgba(0,0,0,0.05);
   }
   .mobile-menu a:last-child { border-bottom: none; }
-  .mobile-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 4px 0;
+  .mobile-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .mobile-lang {
+    display: flex; gap: 8px; padding: 8px 0;
   }
-  .mobile-actions {
-    display: flex; gap: 12px; padding-top: 8px;
+  .mobile-lang a {
+    flex: 1; text-align: center;
+    padding: 8px; border-radius: 8px;
+    font-size: 14px; font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
   }
+  .mobile-lang a.active {
+    background: rgba(198,122,82,0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .mobile-actions { display: flex; gap: 12px; padding-top: 8px; }
   .mobile-actions a {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
+    flex: 1; text-align: center;
+    padding: 10px; border-radius: 8px;
+    font-size: 14px; font-weight: 600;
     border-bottom: none;
   }
   .mobile-actions a:first-child {
@@ -228,6 +330,7 @@ const dockerUrl = "https://hub.docker.com/repository/docker/chorusaidlc/chorus-a
     .nav-inner { padding: 0 20px; }
     .nav-links { display: none; }
     .nav-icon-link { display: none; }
+    .lang-dropdown { display: none; }
     .gh-label, .gh-stars { display: none; }
     .nav-github { padding: 7px 10px; }
     .menu-toggle { display: flex; }

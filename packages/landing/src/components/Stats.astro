@@ -1,10 +1,14 @@
 ---
-const stats = [
-  { num: "85", label: "MCP Tools" },
-  { num: "21", label: "Data Models" },
-  { num: "3", label: "Agent Roles" },
-  { num: "2", label: "Languages (en / zh)" },
-];
+import { tRaw } from '../i18n/utils';
+import type { Lang } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+const stats = tRaw(lang, 'stats.items') as Array<{ num: string; label: string }>;
 ---
 
 <div class="stats-bar">
